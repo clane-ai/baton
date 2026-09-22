@@ -218,7 +218,7 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export async function reset() {
   await q(`truncate baton.events, baton.claims, baton.artifacts, baton.messages, baton.runs,
-           baton.decisions, baton.tasks, baton.agents, baton.roles restart identity cascade`);
+           baton.decisions, baton.tasks, baton.agents, baton.roles cascade`);
 }
 
 export async function role(name) {
