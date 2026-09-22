@@ -1,0 +1,12 @@
+{
+  "name": "@clane-ai/baton-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --env-file=../../.env --test --test-concurrency=1"
+  },
+  "dependencies": {
+    "pg": "^8.13.0"
+  }
+}

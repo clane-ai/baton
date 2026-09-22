@@ -1,0 +1,8 @@
+{
+  "name": "baton",
+  "private": true,
+  "packageManager": "pnpm@10.34.5",
+  "scripts": {
+    "test:server": "pnpm --filter @clane-ai/baton-server test"
+  }
+}
