@@ -592,8 +592,15 @@ test('a dependency cycle is rejected', async () => {
 
 test('creation and every state change write an event with an actor', async () => {
   const t = await task({ role: 'qa', state: 'draft' });
-  await q(`select set_config('baton.actor', 'test-suite', false)`);
-  await q(`update baton.tasks set state = 'ready' where id = $1`, [t.id]);
+  const c = await pool.connect();
+  try {
+    await c.query('begin');
+    await c.query(`select set_config('baton.actor', 'test-suite', true)`);
+    await c.query(`update baton.tasks set state = 'ready' where id = $1`, [t.id]);
+    await c.query('commit');
+  } finally {
+    c.release();
+  }
   const { rows } = await q(
     `select type, payload from baton.events where task_id = $1 order by id`, [t.id],
   );
