@@ -1,0 +1,10 @@
+{
+  "$comment": "Managed settings for a machine you own (prd.md 22.3). Linux: /etc/claude-code/managed-settings.json. macOS: /Library/Application Support/ClaudeCode/managed-settings.json. Windows: C:\\Program Files\\ClaudeCode\\managed-settings.json. Applied after every other source; a project file cannot loosen it. disableSideloadFlags rejects --plugin-dir, --plugin-url, --agents and --mcp-config, which is how someone would otherwise start a session with the gates bypassed.",
+  "extraKnownMarketplaces": {
+    "clane-ai": { "source": { "source": "github", "repo": "clane-ai/baton" }, "autoUpdate": true }
+  },
+  "enabledPlugins": { "baton-core@clane-ai": true },
+  "strictKnownMarketplaces": ["clane-ai"],
+  "disableSideloadFlags": true,
+  "permissions": { "deny": ["SendMessage", "ListAgents"] }
+}
