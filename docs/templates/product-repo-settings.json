@@ -11,6 +11,7 @@
   },
   "enabledMcpjsonServers": ["baton"],
   "permissions": {
+    "allow": ["mcp__plugin_baton-core_baton"],
     "deny": [
       "Bash(git push origin main)",
       "Bash(git push --force*)",
