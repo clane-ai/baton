@@ -51,7 +51,7 @@ Baton should report into Clane's existing run and instance model rather than gro
 ## 4. Decisions
 
 1. Make Clane CLI the primary Baton worker, Claude Code secondary, selected per role. (Recommended.)
-2. Place Baton under the Clane workflow orchestrator as the cross-machine execution substrate, with Baton exposed as a connector and steps compiled from the manifest. (Recommended.)
+2. Make Baton the execution engine behind Clane workflows for any step that must run on another machine, under another account, or unattended; Clane keeps the definition and the run status; Baton is exposed as a connector and tasks are compiled from the manifest. (Recommended.)
 3. Identity: Clane login as Baton operator identity; agent tokens minted for a Clane user so revocation follows the account.
 4. Distribution: Baton's binary on the clane.sh install channel; a Clane hostname for the gateway (api.clane.sh/baton). Independent of 1 and 2.
 
