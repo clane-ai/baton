@@ -30,7 +30,7 @@ Proposed shape: `baton supervise --runtime clane|claude` per role. Clane primary
 
 A Clane workflow is a versioned manifest (`workflow.json`, WorkflowManifest): name, version, host_role, inputs, outputs, and a definition of nodes and edges. Node types: `role` (bounded agent step with prompt, output_key, max_tool_rounds), `code`, `action` (call an installed connector), `control` (branch), `approval` (human), `output`, `trigger`, `note`. IO between steps is typed: each node writes a named channel with an output_schema; downstream nodes read channels through source refs. It runs in `clane serve` on one machine (local runner, streams step events) or in the platform backend (workflow rows with status, runs with a RunStatus lifecycle, rendered live in the desktop). Neither runs steps on more than one machine.
 
-So the orchestrator owns definitions and instances; Baton executes the steps that must run on another machine, under another account, or unattended. The mapping is nearly one to one:
+Neither runner has leases, retries, a completion gate, per-step cost or an audit log. Baton has all of those: it is the more capable engine, and what it lacks is only a definition format and a run object. So the honest placement is a split rather than "Baton under the orchestrator": Clane owns the definition (manifest, editor, UI) and the run status people look at; Baton is the engine that executes the graph whenever any step must run on another machine, under another account, or unattended. For a purely local, interactive workflow the Clane runner stays. The mapping is nearly one to one:
 
 | Clane workflow | Baton |
 |---|---|
