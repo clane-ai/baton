@@ -55,5 +55,5 @@ export function systemPromptFor(def, agentName) {
 
 /** The user prompt that starts the loop (what `baton prompt --role x` prints). */
 export function runPromptFor(def) {
-  return `Begin your Baton loop now as the ${def.role} agent: call whoami, then task_next, and follow the coordination protocol to the end. Do not ask me anything; use task_ask if you are blocked.`;
+  return `Begin your Baton loop now as the ${def.role} agent. First: if your session context lists questions addressed to you or your role, answer each one with the answer tool (read the artefacts you need with artifact_get to answer well). Then call whoami, then task_next, and follow the coordination protocol to the end. If task_next returns none, end the session. Do not ask me anything; use task_ask if you are blocked.`;
 }

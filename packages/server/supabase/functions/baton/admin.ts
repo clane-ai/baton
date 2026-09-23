@@ -26,7 +26,7 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
     const role = url.searchParams.get("role") ?? (ctx.kind === "agent" ? ctx.agent.role : "");
     if (!role) return bad("PRECONDITION_FAILED", "role is required");
     const r = await one(sql`select baton.work_available(${role}) as r`);
-    return { status: 200, body: { ...r, available: Number(r.ready) > 0 } };
+    return { status: 200, body: { ...r, available: Number(r.ready) > 0 || Number(r.questions ?? 0) > 0 } };
   }
   if (path === "/runs/usage" && method === "POST") {
     const b = await readJson(req);

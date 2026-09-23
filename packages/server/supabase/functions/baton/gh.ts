@@ -54,7 +54,8 @@ export async function handleWebhook(req: Request): Promise<{ status: number; bod
     const sha = String(obj.head_sha ?? "");
     const status = p.action === "completed" ? conclusionToStatus(obj.conclusion as string) : "pending";
     const details = { name: obj.name ?? event, conclusion: obj.conclusion ?? null, url: obj.html_url ?? obj.details_url ?? null, summary: (obj.output as Json)?.summary ?? null };
-    result = await one(sql`select baton.gh_check_event(${repo}, ${sha}, ${status}, ${details}::jsonb) as r`);
+    const numbers = ((obj.pull_requests as Json[]) ?? []).map((pr) => Number(pr.number)).filter((n) => Number.isFinite(n));
+    result = await one(sql`select baton.gh_check_event(${repo}, ${sha}, ${status}, ${details}::jsonb, ${numbers.length ? numbers : null}::int[]) as r`);
   } else if (event === "status") {
     const status = p.state === "success" ? "success" : p.state === "failure" || p.state === "error" ? "failure" : "pending";
     result = await one(sql`select baton.gh_check_event(${repo}, ${String(p.sha)}, ${status}, ${{ name: p.context ?? "status", conclusion: p.state, url: p.target_url ?? null, summary: p.description ?? null }}::jsonb) as r`);

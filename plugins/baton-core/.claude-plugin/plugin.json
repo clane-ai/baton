@@ -1,10 +1,16 @@
 {
   "name": "baton-core",
   "displayName": "Baton Core",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Coordination tools, protocol and enforcement gates for Baton agents.",
-  "author": { "name": "Clane AI" },
-  "keywords": ["baton", "agents", "coordination"],
+  "author": {
+    "name": "Clane AI"
+  },
+  "keywords": [
+    "baton",
+    "agents",
+    "coordination"
+  ],
   "userConfig": {
     "serverUrl": {
       "type": "string",
