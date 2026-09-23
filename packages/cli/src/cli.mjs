@@ -297,6 +297,8 @@ export async function run(argv) {
     case 'hook': {
       // Any other hook event, forwarded. Never blocks the agent on failure, except Stop which honours the server's block.
       const input = JSON.parse((await readStdin()) || '{}');
+      // The daemon's per-spawn session id scopes the lease release on session-end (see supervise.mjs).
+      if (process.env.BATON_SESSION && input.baton_session === undefined) input.baton_session = process.env.BATON_SESSION;
       const token = process.env.BATON_TOKEN ?? anyAgentToken(cfg).token;
       if (!token) { console.log('{}'); return 0; }
       try {

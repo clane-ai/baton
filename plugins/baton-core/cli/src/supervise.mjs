@@ -1,7 +1,7 @@
 // The supervisor daemon (prd.md 12.2, 24) and the single-run spawner it shares with `baton work`.
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync, createWriteStream, existsSync, readFileSync, unlinkSync, openSync, closeSync } from 'node:fs';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { dirname } from 'node:path';
@@ -54,15 +54,18 @@ export function spawnAgent(opts) {
   ];
   if (opts.useAgentFlag) args.push('--agent', opts.role);
 
+  // The claim made in this session is tagged with this id (X-Baton-Session), so a sibling session ending
+  // cannot release it (session_end is scoped to the claim's session).
+  const batonSession = randomUUID();
   let mcpPath = null;
   if (opts.mcpConfig !== false) {
     mkdirSync(join(CONFIG_DIR, 'tmp'), { recursive: true });
     mcpPath = join(CONFIG_DIR, 'tmp', `mcp-${opts.role}-${process.pid}-${Date.now()}.json`);
-    writeFileSync(mcpPath, JSON.stringify({ mcpServers: { baton: { type: 'http', url: `${opts.serverUrl}/mcp`, headers: { Authorization: `Bearer ${opts.token}` } } } }), { mode: 0o600 });
+    writeFileSync(mcpPath, JSON.stringify({ mcpServers: { baton: { type: 'http', url: `${opts.serverUrl}/mcp`, headers: { Authorization: `Bearer ${opts.token}`, 'X-Baton-Session': batonSession } } } }), { mode: 0o600 });
     args.push('--mcp-config', mcpPath, '--strict-mcp-config');
   }
 
-  const env = { ...process.env, BATON_URL: opts.serverUrl, BATON_TOKEN: opts.token, BATON_ROLE: opts.role };
+  const env = { ...process.env, BATON_URL: opts.serverUrl, BATON_TOKEN: opts.token, BATON_ROLE: opts.role, BATON_SESSION: batonSession };
   delete env.CLAUDECODE; delete env.CLAUDE_CODE_ENTRYPOINT;
 
   mkdirSync(join(CONFIG_DIR, 'logs'), { recursive: true });
@@ -113,7 +116,8 @@ export function spawnAgent(opts) {
       const reason = signal ? `signal_${signal}` : (EXIT_REASON[code] ?? `exit_${code}`);
       await post({ cost: costUsd, reason });
       // Exit gate from the daemon side: whatever happened, close the run and release a held lease.
-      if (sessionId) { try { await api.post('/hooks/session-end', { session_id: sessionId, hook_event_name: 'SessionEnd', reason: `daemon:${reason}` }); } catch { /* ignore */ } }
+      if (sessionId) { try { await api.post('/hooks/session-end', { session_id: sessionId, hook_event_name: 'SessionEnd', reason: `daemon:${reason}`, baton_session: batonSession }); } catch { /* ignore */ } }
+      if (mcpPath) { try { unlinkSync(mcpPath); } catch { /* already gone */ } }
       log.end();
       resolve({ code, signal, reason, sessionId, costUsd, turns, resultSeen, log: logPath });
     });
@@ -153,7 +157,9 @@ export async function supervise(cfg, opts) {
       let wa;
       try { wa = await api.get(`/work-available?role=${encodeURIComponent(role)}`); } catch (e) { log(`work-available ${role}: ${e.message}`); continue; }
       if (wa.status !== 200) { log(`work-available ${role}: HTTP ${wa.status} ${JSON.stringify(wa.body).slice(0, 200)}`); continue; }
-      const max = Number(wa.body.max_concurrent ?? 1);
+      // The role's max_concurrent is a fleet-wide cap. This daemon holds one token per role, and one agent
+      // identity cannot run two sessions at once (whoami and current_task are per agent), so at most one here.
+      const max = Math.min(1, Number(wa.body.max_concurrent ?? 1));
       const cur = running.get(role) ?? 0;
       if (opts.verbose) log(`${role}: ready=${wa.body.ready} questions=${wa.body.questions ?? 0} running=${cur}/${max}`);
       if (!wa.body.available || cur >= max) continue;

@@ -65,7 +65,7 @@ export function spawnAgent(opts) {
     args.push('--mcp-config', mcpPath, '--strict-mcp-config');
   }
 
-  const env = { ...process.env, BATON_URL: opts.serverUrl, BATON_TOKEN: opts.token, BATON_ROLE: opts.role };
+  const env = { ...process.env, BATON_URL: opts.serverUrl, BATON_TOKEN: opts.token, BATON_ROLE: opts.role, BATON_SESSION: batonSession };
   delete env.CLAUDECODE; delete env.CLAUDE_CODE_ENTRYPOINT;
 
   mkdirSync(join(CONFIG_DIR, 'logs'), { recursive: true });

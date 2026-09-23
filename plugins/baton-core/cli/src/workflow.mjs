@@ -10,6 +10,7 @@
 //                                  produces: config.baton.produces ?? [config.output_key],
 //                                  scope/budget from config.baton, workflow_run: the run key }
 //   edge role -> role    -> depends_on + consumes pinned to the upstream task (its produced kinds)
+//   baton.deadline_in_minutes -> a deadline relative to compile time (approval nodes: raises approval_overdue)
 //   control node         -> an exclusive gateway: each outgoing edge names an outcome (sourceHandle); the
 //                           tasks behind it get a condition on the deciding step's artefact (config.decision:
 //                           {from, kind, field, values}; defaults: nearest upstream step, its first kind, "verdict",
@@ -18,7 +19,7 @@
 import { readFileSync } from 'node:fs';
 import { Api, must } from './api.mjs';
 
-export const KNOWN_KINDS = ['user_story', 'task_spec', 'design_spec', 'api_contract', 'service_contract', 'pr', 'build', 'test_report', 'review', 'migration', 'doc', 'other', 'db_schema', 'config', 'handoff'];
+export const KNOWN_KINDS = ['user_story', 'task_spec', 'design_spec', 'api_contract', 'service_contract', 'pr', 'build', 'test_report', 'review', 'migration', 'doc', 'other', 'db_schema', 'config', 'handoff', 'purchase_order', 'delivery_note', 'invoice', 'goods_receipt', 'invoice_match', 'payment'];
 
 export function loadManifest(path) {
   const m = JSON.parse(readFileSync(path, 'utf8'));
@@ -86,6 +87,7 @@ export function plan(manifest, { input = '', run }) {
           const from = cfg.from ?? decidingStep(src.id);
           const outcome = e.sourceHandle ?? (src.data?.outcomes?.[0]?.id ?? 'yes');
           const fromNode = byId.get(from);
+          if (condition && condition.gateway !== src.id) throw new Error(`node ${id} is reached through two gateways (${condition.gateway} and ${src.id}); a step can carry one condition. Split it, or route one gateway through a step first.`);
           condition = { fromStep: from, kind: cfg.kind ?? producesOf(fromNode)[0] ?? 'review', field: cfg.field ?? 'verdict', equals: String(cfg.values?.[outcome] ?? outcome), outcome, gateway: src.id };
           if (from) upstream.add(from);
           continue;
@@ -94,12 +96,18 @@ export function plan(manifest, { input = '', run }) {
       }
     };
     walk(id);
+    // A step fed by two outcomes of one gateway can never become ready (its not-taken side is cancelled and
+    // the cascade takes the join with it). Say so at compile time instead of letting the run hang.
+    const seenOutcomes = new Map();
+    const outcomesFeeding = (stepId, acc) => { const st = steps.find((x) => x.id === stepId); if (!st) return acc; if (st.condition) acc.push(st.condition); for (const u of st.upstream) outcomesFeeding(u, acc); return acc; };
+    const feeding = [...upstream].flatMap((u) => outcomesFeeding(u, [])).concat(condition ? [condition] : []);
+    for (const f of feeding) { const prev = seenOutcomes.get(f.gateway); if (prev && prev !== f.outcome) throw new Error(`node ${id} joins outcomes "${prev}" and "${f.outcome}" of gateway ${f.gateway}; Baton gateways are exclusive and cannot rejoin. Give each branch its own copy of this step.`); seenOutcomes.set(f.gateway, f.outcome); }
     const label = n.data?.label ?? id;
     const spec = [`# Task`, taskOf(n), '', `# Workflow input`, input || '(none)', '',
       `# Workflow`, `${manifest.name} ${manifest.version ?? ''} run ${run}, step "${label}" (${id}). Register exactly these artefact kinds: ${produces.join(', ') || 'none'}.`].join('\n');
     const acceptance = c.baton?.acceptance ?? `Given the inputs of step ${id}, when the ${role} finishes, then ${produces.length ? `a valid ${produces.join(' and ')} artefact exists` : 'the step is submitted'} and it satisfies: ${label}.`;
     steps.push({ id, label, role, produces, spec, acceptance, upstream: [...upstream], scope: (c.baton?.scope ?? []).map(String), budget: c.baton?.budget_usd, maxAttempts: c.baton?.max_attempts,
-      affinity: c.baton?.affinity, deadline: c.baton?.deadline, condition });
+      affinity: c.baton?.affinity, deadline: c.baton?.deadline ?? (c.baton?.deadline_in_minutes ? new Date(Date.now() + Number(c.baton.deadline_in_minutes) * 60000).toISOString() : undefined), condition });
   }
   return { steps, skipped, gateways };
 }

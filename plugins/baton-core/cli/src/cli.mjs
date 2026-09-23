@@ -119,9 +119,15 @@ export async function run(argv) {
       }
       if (sub === 'prioritise' || sub === 'prioritize') { console.log(JSON.stringify(must(await api.post(`/admin/tasks/${rest[1]}/prioritise`, { priority: Number(rest[2]) }), 'prioritise'))); return 0; }
       if (sub === 'approve' || sub === 'reject') { console.log(JSON.stringify(must(await api.post(`/admin/tasks/${rest[1]}/approve`, { verdict: sub === 'approve' ? 'approve' : 'reject', reason: flags.reason }), sub))); return 0; }
+      if (sub === 'retry') {
+        if (!rest[1]) throw new Error('usage: baton tasks retry <key> [--budget n] [--keep-attempts] [--deadline <iso>|clear] [--reason ...]');
+        const r = must(await api.post(`/admin/tasks/${rest[1]}/retry`, { reset_attempts: !flags['keep-attempts'], budget_usd: flags.budget ? Number(flags.budget) : undefined, reason: flags.reason,
+          deadline: flags.deadline ? (String(flags.deadline) === 'clear' ? 'clear' : new Date(String(flags.deadline)).toISOString()) : undefined }), 'retry');
+        console.log(`${rest[1]} is back in the queue (${r.state})${r.dropped_consumes?.length ? `; dropped ${r.dropped_consumes.length} input(s) pinned to a cancelled or failed child` : ''}`); return 0;
+      }
       if (sub === 'cancel') { console.log(JSON.stringify(must(await api.post(`/admin/tasks/${rest[1]}/cancel`, { reason: flags.reason }), 'cancel'))); return 0; }
       if (sub === 'force-release') { console.log(JSON.stringify(must(await api.post(`/admin/tasks/${rest[1]}/force-release`), 'force-release'))); return 0; }
-      throw new Error('usage: baton tasks ls|show|create|prioritise|cancel|force-release|approve|reject');
+      throw new Error('usage: baton tasks ls|show|create|prioritise|cancel|force-release|approve|reject|retry');
     }
 
     case 'workflow': {
@@ -291,6 +297,8 @@ export async function run(argv) {
     case 'hook': {
       // Any other hook event, forwarded. Never blocks the agent on failure, except Stop which honours the server's block.
       const input = JSON.parse((await readStdin()) || '{}');
+      // The daemon's per-spawn session id scopes the lease release on session-end (see supervise.mjs).
+      if (process.env.BATON_SESSION && input.baton_session === undefined) input.baton_session = process.env.BATON_SESSION;
       const token = process.env.BATON_TOKEN ?? anyAgentToken(cfg).token;
       if (!token) { console.log('{}'); return 0; }
       try {
