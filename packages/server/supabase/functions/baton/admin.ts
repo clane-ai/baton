@@ -3,6 +3,7 @@
 import { sql } from "./db.ts";
 import { newToken, sha256Hex, type Ctx } from "./auth.ts";
 import { drainOutbox } from "./gh.ts";
+import { drainWebhooks } from "./webhooks.ts";
 
 type Json = Record<string, unknown>;
 // postgres.js serialises objects for jsonb parameters itself; never pre-stringify.
@@ -78,12 +79,37 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
         from baton.tasks t
        where (${p.get("state")}::text is null or t.state::text = ${p.get("state")})
          and (${p.get("role")}::text is null or t.role = ${p.get("role")})
+         and (${p.get("workflow_run")}::text is null or t.workflow_run = ${p.get("workflow_run")})
        order by (t.state = 'in_progress') desc, t.priority desc, t.created_at desc limit ${Math.min(1000, Number(p.get("limit") ?? 500))}`;
     return { status: 200, body: { ok: true, tasks: rows.map((x) => x.r) } };
   }
   if (seg[1] === "tasks" && seg.length === 2 && method === "POST") {
     const b = await readJson(req);
-    return { status: 200, body: await one(sql`select baton.task_create(${actor}, ${j(b)}::jsonb) as r`) };
+    const r = await one(sql`select baton.task_create(${actor}, ${j(b)}::jsonb) as r`);
+    try { await drainWebhooks(); } catch (e) { console.error("webhooks", e); }
+    return { status: 200, body: r };
+  }
+  // ---- webhooks: outbound event subscriptions for orchestrators
+  if (seg[1] === "webhooks" && seg.length === 2 && method === "GET") {
+    const rows = await sql`select w.id, w.url, w.events, w.active, w.created_by, w.created_at,
+      (select count(*)::int from baton.webhook_deliveries d where d.webhook_id = w.id and d.sent_at is null and d.attempts < 5) as pending,
+      (select max(sent_at) from baton.webhook_deliveries d where d.webhook_id = w.id) as last_sent
+      from baton.webhooks w order by w.created_at`;
+    return { status: 200, body: { ok: true, webhooks: rows } };
+  }
+  if (seg[1] === "webhooks" && seg.length === 2 && method === "POST") {
+    const b = await readJson(req);
+    const target = String(b.url ?? "");
+    if (!/^https?:\/\//.test(target)) return bad("PRECONDITION_FAILED", "url must be http(s)");
+    const secret = b.secret ? String(b.secret) : newToken().replace(/^btn_/, "whs_");
+    const events = Array.isArray(b.events) ? b.events.map(String) : b.events ? String(b.events).split(",").map((x) => x.trim()).filter(Boolean) : null;
+    const [row] = await sql`insert into baton.webhooks (url, secret, events, created_by) values (${target}, ${secret}, ${events}::text[], ${actor}) returning id, url, events, active`;
+    return { status: 200, body: { ok: true, webhook: row, secret } };
+  }
+  if (seg[1] === "webhooks" && seg[2] === "flush" && method === "POST") return { status: 200, body: await drainWebhooks(100) };
+  if (seg[1] === "webhooks" && seg.length === 3 && method === "DELETE") {
+    await sql`delete from baton.webhooks where id::text = ${seg[2]}`;
+    return { status: 200, body: { ok: true } };
   }
   if (seg[1] === "tasks" && seg.length >= 3) {
     const [{ id }] = await sql`select id from baton.tasks where id::text = ${seg[2]} or key = ${seg[2]} limit 1`.then((r) => r.length ? r : [{ id: null }]);
@@ -91,7 +117,7 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
     if (seg.length === 3 && method === "GET") return { status: 200, body: await one(sql`select baton.task_detail(${id}::uuid) as r`) };
     const b = method === "POST" ? await readJson(req) : {};
     if (seg[3] === "prioritise" && method === "POST") return { status: 200, body: await one(sql`select baton.task_reprioritise(${actor}, ${id}::uuid, ${Number(b.priority)}::int) as r`) };
-    if (seg[3] === "cancel" && method === "POST") return { status: 200, body: await one(sql`select baton.task_cancel(${actor}, ${id}::uuid, ${b.reason ? String(b.reason) : null}) as r`) };
+    if (seg[3] === "cancel" && method === "POST") { const r = await one(sql`select baton.task_cancel(${actor}, ${id}::uuid, ${b.reason ? String(b.reason) : null}) as r`); try { await drainWebhooks(); } catch { /* ignore */ } return { status: 200, body: r }; }
     if (seg[3] === "force-release" && method === "POST") return { status: 200, body: await one(sql`select baton.task_force_release(${actor}, ${id}::uuid) as r`) };
     if (seg[3] === "gate" && method === "POST") return { status: 200, body: await one(sql`select baton.run_gate(${id}::uuid) as r`) };
   }
@@ -99,7 +125,9 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
   // ---- messages
   if (seg[1] === "answer" && method === "POST") {
     const b = await readJson(req);
-    return { status: 200, body: await one(sql`select baton.answer(${actor}, null, ${String(b.message_id)}::uuid, ${String(b.body ?? "")}) as r`) };
+    const r = await one(sql`select baton.answer(${actor}, null, ${String(b.message_id)}::uuid, ${String(b.body ?? "")}) as r`);
+    try { await drainWebhooks(); } catch { /* ignore */ }
+    return { status: 200, body: r };
   }
   if (seg[1] === "messages" && method === "GET") {
     const unanswered = url.searchParams.get("unanswered") === "1";

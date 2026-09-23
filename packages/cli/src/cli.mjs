@@ -23,7 +23,8 @@ const HELP = `baton <command> [options]
   supervise --roles qa,frontend-dev [--interval 60] [--cwd .] [--once] [--install] [--model m] [--budget 2] [--max-turns 60] [--runtime claude|clane]
   work --role qa [--once] [--cwd .] [--runtime claude|clane]   run one agent session in the foreground
   status                                    agents, claims, lease countdowns, attention list
-  tasks ls [--state s] [--role r] | show <key> | create --title .. --spec .. --acceptance .. --role .. | prioritise <key> <n> | cancel <key> [--reason ..]
+  tasks ls [--state s] [--role r] [--run k] | show <key> | create --title .. --spec .. --acceptance .. --role .. [--run k] | prioritise <key> <n> | cancel <key> [--reason ..]
+  webhooks list | add --url .. [--events a,b*] | remove <id> | flush     event subscriptions for orchestrators
   answer <message-id> "<text>"
   agents add --name qa-01 --role qa [--machine m] [--store] | list | revoke <name>
   invite --roles qa,frontend-dev --name-prefix pilot-1 [--machine m] [--ttl-hours 24] | invite list
@@ -97,7 +98,7 @@ export async function run(argv) {
       const api = opApi(cfg);
       const sub = rest[0] ?? 'ls';
       if (sub === 'ls') {
-        const q = new URLSearchParams(); if (flags.state) q.set('state', String(flags.state)); if (flags.role) q.set('role', String(flags.role));
+        const q = new URLSearchParams(); if (flags.state) q.set('state', String(flags.state)); if (flags.role) q.set('role', String(flags.role)); if (flags.run) q.set('workflow_run', String(flags.run));
         const r = must(await api.get(`/admin/tasks?${q}`), 'tasks');
         table(r.tasks.map((t) => ({ key: t.key, state: t.state, role: t.role, pri: t.priority, att: `${t.attempts}/${t.max_attempts}`, cost: Number(t.cost_usd).toFixed(2), assignee: t.assignee_name ?? '', title: t.title.slice(0, 60) })),
           ['key', 'state', 'role', 'pri', 'att', 'cost', 'assignee', 'title']);
@@ -108,7 +109,7 @@ export async function run(argv) {
         const body = { title: flags.title, spec: flags.spec, acceptance: flags.acceptance, role: flags.role, priority: flags.priority ? Number(flags.priority) : undefined,
           produces: flags.produces ? String(flags.produces).split(',').map((k) => ({ kind: k.trim() })) : [],
           consumes: flags.consumes ? String(flags.consumes).split(',').map((k) => ({ kind: k.trim(), from_task: null })) : [],
-          scope: flags.scope ? String(flags.scope).split(',') : [], budget_usd: flags.budget ? Number(flags.budget) : undefined };
+          scope: flags.scope ? String(flags.scope).split(',') : [], budget_usd: flags.budget ? Number(flags.budget) : undefined, workflow_run: flags.run ? String(flags.run) : undefined };
         const r = must(await api.post('/admin/tasks', body), 'create');
         console.log(`${r.task.key} ${r.task.state} ${r.task.title}`); return 0;
       }
@@ -116,6 +117,25 @@ export async function run(argv) {
       if (sub === 'cancel') { console.log(JSON.stringify(must(await api.post(`/admin/tasks/${rest[1]}/cancel`, { reason: flags.reason }), 'cancel'))); return 0; }
       if (sub === 'force-release') { console.log(JSON.stringify(must(await api.post(`/admin/tasks/${rest[1]}/force-release`), 'force-release'))); return 0; }
       throw new Error('usage: baton tasks ls|show|create|prioritise|cancel|force-release');
+    }
+
+    case 'webhooks': {
+      const api = opApi(cfg);
+      const sub = rest[0] ?? 'list';
+      if (sub === 'list') {
+        const r = must(await api.get('/admin/webhooks'), 'webhooks');
+        table(r.webhooks.map((w) => ({ id: w.id, url: w.url, events: (w.events ?? ['*']).join(','), active: w.active, pending: w.pending, last_sent: w.last_sent ?? '' })), ['id', 'url', 'events', 'active', 'pending', 'last_sent']);
+        return 0;
+      }
+      if (sub === 'add') {
+        if (!flags.url) throw new Error('usage: baton webhooks add --url https://host/path [--events task_state_changed,gate_*] [--secret s]');
+        const r = must(await api.post('/admin/webhooks', { url: flags.url, events: flags.events, secret: flags.secret }), 'webhooks add');
+        console.log(`webhook ${r.webhook.id} -> ${r.webhook.url}\nsecret (shown once; X-Baton-Signature is sha256=HMAC-SHA256(body, secret)):\n\n  ${r.secret}\n`);
+        return 0;
+      }
+      if (sub === 'remove') { must(await api.del(`/admin/webhooks/${rest[1]}`), 'remove'); console.log('removed'); return 0; }
+      if (sub === 'flush') { console.log(JSON.stringify(must(await api.post('/admin/webhooks/flush'), 'flush'))); return 0; }
+      throw new Error('usage: baton webhooks list|add|remove|flush');
     }
 
     case 'answer': {

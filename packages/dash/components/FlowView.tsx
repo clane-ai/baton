@@ -100,6 +100,7 @@ function path(a: Node, b: Node): string {
 
 export default function FlowView() {
   const [showClosed, setShowClosed] = useState(false);
+  const [run, setRun] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const roles = usePoll<RolesResponse>("/api/roles", 60000);
   const tasks = usePoll<TasksResponse>("/api/tasks", 5000);
@@ -113,7 +114,8 @@ export default function FlowView() {
   const roleRank = (r: string) => { const i = stages.indexOf(r); return i < 0 ? 99 : i; };
 
   const all = tasks.data?.tasks ?? [];
-  const visible = useMemo(() => (showClosed ? all : all.filter((t) => t.state !== "done" && t.state !== "cancelled")), [all, showClosed]);
+  const runs = useMemo(() => [...new Set(all.map((t) => t.workflow_run).filter((r): r is string => !!r))].sort(), [all]);
+  const visible = useMemo(() => (showClosed ? all : all.filter((t) => t.state !== "done" && t.state !== "cancelled")).filter((t) => !run || t.workflow_run === run), [all, showClosed, run]);
   const edges = useMemo(() => edgesFor(all).filter((e) => visible.some((t) => t.id === e.from) && visible.some((t) => t.id === e.to)), [all, visible]);
   const g = useMemo(() => layout(visible, edges, roleRank), [visible, edges, stages]); // eslint-disable-line react-hooks/exhaustive-deps
   const pos = new Map(g.nodes.map((n) => [n.t.id, n]));
@@ -131,6 +133,17 @@ export default function FlowView() {
         <label className="lbl">
           <input type="checkbox" checked={showClosed} onChange={(e) => setShowClosed(e.target.checked)} /> show done and cancelled
         </label>
+        {runs.length ? (
+          <label className="lbl">
+            run{" "}
+            <select className="field" value={run} onChange={(e) => setRun(e.target.value)}>
+              <option value="">all runs</option>
+              {runs.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <span className="muted">{visible.length} tasks, {edges.length} links</span>
         <span className="spacer" />
         <span className="muted">solid: dependency or named artefact, dashed: artefact matched by kind</span>
@@ -192,7 +205,7 @@ export default function FlowView() {
                   <text x={NODE_W - 10} y={17} textAnchor="end" className="flow-state">{t.state.replace("_", " ")}</text>
                   <text x={10} y={34} className="flow-title">{t.title.length > 30 ? t.title.slice(0, 29) + "…" : t.title}</text>
                   <text x={10} y={49} className="flow-meta">
-                    {t.role}{t.assignee_name ? ` · @${t.assignee_name}` : ""}{t.attempts ? ` · att ${t.attempts}/${t.max_attempts}` : ""}
+                    {t.role}{t.workflow_run && !run ? ` · ${t.workflow_run}` : ""}{t.assignee_name ? ` · @${t.assignee_name}` : ""}{t.attempts ? ` · att ${t.attempts}/${t.max_attempts}` : ""}
                   </text>
                   {(t.cost_usd ?? 0) > 0 ? (
                     <text x={NODE_W - 10} y={49} textAnchor="end" className={`flow-meta${over ? " over" : ""}`}>{usd(t.cost_usd)}</text>

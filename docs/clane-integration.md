@@ -58,3 +58,11 @@ Decide early whether a workflow run is all-local, all-Baton, or genuinely mixed.
 4. Distribution: Baton's binary on the clane.sh install channel; a Clane hostname for the gateway (api.clane.sh/baton). Independent of 1 and 2.
 
 If 1 and 2 are approved: the Clane architect coordinates; the CLI owner (clane-ai-56) specifies the engine details, builds the run-end hook and owns the compiler seam; the gateway owner (clane-ai-f5) confirms cost attribution; the platform team owns instance reporting; Baton builds the runtime adapter, the hook command, the run key and the event subscription.
+
+## 5. Built on the Baton side (23 September 2026, afternoon)
+
+- **Clane CLI as worker**: `baton work|supervise --runtime clane`, see `docs/clane-runtime.md`. Proven live on TSK-0815.
+- **Workflow run key**: `workflow_run` on tasks, set with `baton tasks create --run <key>` or the `workflow_run` field of the task API; children inherit it (split, delegate); `baton tasks ls --run`; the Flow tab filters by run.
+- **Outbound webhooks**: `baton webhooks add --url … [--events task_state_changed,gate_*]` returns a secret once; every matching event is queued by a trigger and POSTed after state transitions (and on `baton webhooks flush`) with `X-Baton-Signature: sha256=<HMAC-SHA256 of the body>` and `X-Baton-Event`. Payload: `{id, webhook_id, event:{id, ts, type, payload, task_id, task_key, workflow_run, agent}, sent_at}`. Five attempts, then parked. Verified live with signed deliveries for `task_state_changed` and `task_reprioritised` on run `demo-run-1`.
+
+An orchestrator therefore needs only: create tasks with a run key, subscribe to `task_state_changed`, `gate_*`, `delegation_*` and `needs_human`-related events for that run, and read artefacts by task when a step completes.

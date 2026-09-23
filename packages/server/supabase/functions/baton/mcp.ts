@@ -3,6 +3,7 @@ import { sql, asAgent } from "./db.ts";
 import type { Agent } from "./auth.ts";
 import { uploadArtifact, signArtifact, sha256Hex } from "./storage.ts";
 import { drainOutbox } from "./gh.ts";
+import { drainWebhooks } from "./webhooks.ts";
 
 type Json = Record<string, unknown>;
 type ToolDef = { name: string; description: string; inputSchema: Json; mutating: boolean };
@@ -221,6 +222,7 @@ export async function callTool(agent: Agent, name: string, args: Json): Promise<
     if (hit) return { ...hit.response, idempotent_replay: true };
   }
   const result = await runTool(agent, name, args);
+  if (def.mutating && name !== "task_heartbeat" && name !== "task_progress") { try { await drainWebhooks(); } catch (e) { console.error("webhooks", e); } }
   if (def.mutating && key) {
     await sql`insert into baton.idempotency (agent_id, key, tool, response) values (${agent.id}::uuid, ${key}, ${name}, ${j(result)}::jsonb)
               on conflict do nothing`;
