@@ -66,3 +66,24 @@ If 1 and 2 are approved: the Clane architect coordinates; the CLI owner (clane-a
 - **Outbound webhooks**: `baton webhooks add --url … [--events task_state_changed,gate_*]` returns a secret once; every matching event is queued by a trigger and POSTed after state transitions (and on `baton webhooks flush`) with `X-Baton-Signature: sha256=<HMAC-SHA256 of the body>` and `X-Baton-Event`. Payload: `{id, webhook_id, event:{id, ts, type, payload, task_id, task_key, workflow_run, agent}, sent_at}`. Five attempts, then parked. Verified live with signed deliveries for `task_state_changed` and `task_reprioritised` on run `demo-run-1`.
 
 An orchestrator therefore needs only: create tasks with a run key, subscribe to `task_state_changed`, `gate_*`, `delegation_*` and `needs_human`-related events for that run, and read artefacts by task when a step completes.
+
+## 6. Proof: a Clane workflow manifest, compiled and executed by Clane workers (23 September 2026)
+
+Manifest: `docs/examples/workflows/locale-greetings/workflow.json`, in Clane's node-graph format (WorkflowManifest: inputs, outputs, definition.nodes with `role` nodes carrying `role_ref`, `instructions`, `output_key`, plus trigger and output nodes, and edges). Compiled with:
+
+```
+baton workflow compile docs/examples/workflows/locale-greetings/workflow.json --run locale-greetings-1 --input "Add farewellFor(locale) …"
+```
+
+which created four tasks with the run key: analyst TSK-0817 (task_spec), backend-dev TSK-0818 (config, after spec), frontend-dev TSK-0819 (build, after spec and config, both pinned as inputs), qa TSK-0820 (test_report, after implement). Executed with `baton supervise --roles analyst,backend-dev,frontend-dev,qa --runtime clane`: every step ran on the Clane CLI.
+
+| Time (UTC) | Step | What happened | Credits |
+|---|---|---|---|
+| 15:04:49 to 15:09:01 | analyst | read the repo, registered a task_spec naming `src/farewells.json` and its keys, gate passed, backend step promoted | 20 |
+| 15:10:00 to 15:12:00 | backend-dev | created the file, committed and pushed on `baton/TSK-0818`; two config shapes rejected by the schema, third accepted; gate passed, implement step promoted | 28 |
+| 15:15:17 to 15:21:01 | frontend-dev | read both inputs, implemented `farewellFor`, 8 tests, committed on `baton/TSK-0819` on top of the backend branch, registered a build; gate passed, verify step promoted | 46 |
+| 15:22:35 to 15:23:46 | qa | checked out the branch, ran the suite (8 passed), registered a test_report; gate passed; run 4/4 done | see log |
+
+The orchestrator side: a webhook subscribed to the run received 30 signed deliveries, all signatures valid, tracing the run from the first ready state to the last gate_passed, with the run key on every event. `baton workflow status --run locale-greetings-1` and the Flow tab filter show the same graph.
+
+Two things to know. The queue is shared: between steps, the daemon here also picked up the pilot machine's frontend-dev task, which is correct behaviour (whichever machine holds the role does the work) but worth remembering when several machines share a role. And Clane could not list the manifest from `~/.clane/workflows/` (its local listing parses more than the manifest); the CLI owner can say which field it wants. The compiler does not depend on that.
