@@ -1,0 +1,337 @@
+{
+  "$comment": "Procure-to-pay with a human approval, two integrations that are scripts (supplier ERP, bank), an LLM buyer, goods-in clerk and AP clerk, and two exclusive gateways. Compile: baton workflow compile docs/examples/workflows/p2p/workflow.json --run p2p-<n> --input 'PR-2026-<n>'. See README.md in this folder.",
+  "name": "Procure to pay",
+  "version": "0.1.0",
+  "description": "Requisition to payment: the buyer raises a purchase order, a person approves it, the supplier ERP (integration) acknowledges, ships and invoices, goods-in books the receipt, AP performs the three-way match, and the bank gateway (integration) schedules the payment. A rejected order becomes a rework note; a mismatched invoice becomes a dispute.",
+  "inputs": [
+    {
+      "name": "requisition",
+      "kind": "text",
+      "label": "Requisition number (PR-2026-nnn)",
+      "required": true
+    }
+  ],
+  "outputs": [
+    {
+      "name": "payment",
+      "description": "The payment instruction, or the rework or dispute note"
+    }
+  ],
+  "definition": {
+    "nodes": [
+      {
+        "id": "start",
+        "type": "trigger",
+        "data": {
+          "label": "Requisition received",
+          "config": {}
+        }
+      },
+      {
+        "id": "po",
+        "type": "role",
+        "data": {
+          "label": "Raise purchase order",
+          "instructions": "Raise a purchase order for the requisition named in the workflow input. Read inbox/requisitions/<PR>.pdf (or its .txt extract), masterdata/vendors.csv, masterdata/catalogue.csv and masterdata/policy.md. Register one purchase_order artefact with an honest policy_check.",
+          "config": {
+            "role_ref": "buyer",
+            "output_key": "purchase_order",
+            "baton": {
+              "produces": [
+                "purchase_order"
+              ],
+              "budget_usd": 1.5
+            }
+          }
+        }
+      },
+      {
+        "id": "approve",
+        "type": "approval",
+        "data": {
+          "label": "Approve purchase order",
+          "instructions": "A person with purchasing authority approves or rejects the purchase order, using its policy_check and the purchasing policy.",
+          "config": {
+            "baton": {
+              "deadline_in_minutes": 3
+            }
+          }
+        }
+      },
+      {
+        "id": "approved",
+        "type": "control",
+        "data": {
+          "label": "Approved?",
+          "outcomes": [
+            {
+              "id": "yes",
+              "label": "approved"
+            },
+            {
+              "id": "no",
+              "label": "rejected"
+            }
+          ],
+          "config": {
+            "decision": {
+              "from": "approve",
+              "kind": "review",
+              "field": "verdict",
+              "values": {
+                "yes": "approve",
+                "no": "request_changes"
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "send_po",
+        "type": "role",
+        "data": {
+          "label": "Send PO to supplier (ERP integration)",
+          "instructions": "Integration step, executed by the supplier-erp worker script: email the purchase order to the vendor, receive the acknowledgement, ship, and file the delivery note and the invoice under inbox/. Registers delivery_note and invoice.",
+          "config": {
+            "role_ref": "supplier-erp",
+            "output_key": "invoice",
+            "baton": {
+              "produces": [
+                "delivery_note",
+                "invoice"
+              ],
+              "max_attempts": 3
+            }
+          }
+        }
+      },
+      {
+        "id": "rework",
+        "type": "role",
+        "data": {
+          "label": "Rework note to requester",
+          "instructions": "The approver rejected the purchase order. Read the purchase_order and the review (its summary holds the reason) and register one handoff artefact: what was rejected, why, and what must change before the requisition can be resubmitted.",
+          "config": {
+            "role_ref": "buyer",
+            "output_key": "handoff",
+            "baton": {
+              "produces": [
+                "handoff"
+              ],
+              "budget_usd": 1
+            }
+          }
+        }
+      },
+      {
+        "id": "receive",
+        "type": "role",
+        "data": {
+          "label": "Book goods receipt",
+          "instructions": "Book the goods receipt for the delivered purchase order: compare the delivery_note, the warehouse count sheet inbox/deliveries/count-<PO>.txt and the purchase_order. Register one goods_receipt artefact that records what was actually received.",
+          "config": {
+            "role_ref": "receiving",
+            "output_key": "goods_receipt",
+            "baton": {
+              "produces": [
+                "goods_receipt"
+              ],
+              "budget_usd": 1.5
+            }
+          }
+        }
+      },
+      {
+        "id": "match",
+        "type": "role",
+        "data": {
+          "label": "Three-way match",
+          "instructions": "Perform the three-way match of purchase_order, goods_receipt and invoice using the tolerances in masterdata/policy.md. Register one invoice_match artefact whose status is matched or mismatched.",
+          "config": {
+            "role_ref": "ap-clerk",
+            "output_key": "invoice_match",
+            "baton": {
+              "produces": [
+                "invoice_match"
+              ],
+              "budget_usd": 1.5
+            }
+          }
+        }
+      },
+      {
+        "id": "matched",
+        "type": "control",
+        "data": {
+          "label": "Matched?",
+          "outcomes": [
+            {
+              "id": "ok",
+              "label": "matched"
+            },
+            {
+              "id": "bad",
+              "label": "mismatched"
+            }
+          ],
+          "config": {
+            "decision": {
+              "from": "match",
+              "kind": "invoice_match",
+              "field": "status",
+              "values": {
+                "ok": "matched",
+                "bad": "mismatched"
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "pay",
+        "type": "role",
+        "data": {
+          "label": "Schedule payment (bank integration)",
+          "instructions": "Integration step, executed by the bank worker script: create the payment instruction for the matched invoice and file the remittance advice. Registers payment.",
+          "config": {
+            "role_ref": "bank",
+            "output_key": "payment",
+            "baton": {
+              "produces": [
+                "payment"
+              ],
+              "max_attempts": 3
+            }
+          }
+        }
+      },
+      {
+        "id": "dispute",
+        "type": "role",
+        "data": {
+          "label": "Dispute the invoice",
+          "instructions": "The three-way match failed. Read the invoice_match and the invoice and register one handoff artefact that is the dispute email to the supplier: which lines, which numbers, what we expect.",
+          "config": {
+            "role_ref": "ap-clerk",
+            "output_key": "handoff",
+            "baton": {
+              "produces": [
+                "handoff"
+              ],
+              "budget_usd": 1
+            }
+          }
+        }
+      },
+      {
+        "id": "deliver",
+        "type": "output",
+        "data": {
+          "label": "Paid, reworked or disputed",
+          "config": {}
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "start",
+        "target": "po"
+      },
+      {
+        "id": "e2",
+        "source": "po",
+        "target": "approve"
+      },
+      {
+        "id": "e3",
+        "source": "approve",
+        "target": "approved"
+      },
+      {
+        "id": "e4",
+        "source": "approved",
+        "sourceHandle": "yes",
+        "target": "send_po"
+      },
+      {
+        "id": "e5",
+        "source": "approved",
+        "sourceHandle": "no",
+        "target": "rework"
+      },
+      {
+        "id": "e6",
+        "source": "po",
+        "target": "send_po"
+      },
+      {
+        "id": "e7",
+        "source": "send_po",
+        "target": "receive"
+      },
+      {
+        "id": "e8",
+        "source": "po",
+        "target": "receive"
+      },
+      {
+        "id": "e9",
+        "source": "receive",
+        "target": "match"
+      },
+      {
+        "id": "e10",
+        "source": "po",
+        "target": "match"
+      },
+      {
+        "id": "e11",
+        "source": "send_po",
+        "target": "match"
+      },
+      {
+        "id": "e12",
+        "source": "match",
+        "target": "matched"
+      },
+      {
+        "id": "e13",
+        "source": "matched",
+        "sourceHandle": "ok",
+        "target": "pay"
+      },
+      {
+        "id": "e14",
+        "source": "send_po",
+        "target": "pay"
+      },
+      {
+        "id": "e15",
+        "source": "matched",
+        "sourceHandle": "bad",
+        "target": "dispute"
+      },
+      {
+        "id": "e16",
+        "source": "send_po",
+        "target": "dispute"
+      },
+      {
+        "id": "e17",
+        "source": "pay",
+        "target": "deliver"
+      },
+      {
+        "id": "e18",
+        "source": "dispute",
+        "target": "deliver"
+      },
+      {
+        "id": "e19",
+        "source": "rework",
+        "target": "deliver"
+      }
+    ]
+  }
+}

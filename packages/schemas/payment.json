@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://clane.sh/baton/schemas/payment/v1",
+  "title": "payment",
+  "description": "A payment instruction accepted by the bank gateway for a matched invoice.",
+  "type": "object",
+  "required": [
+    "payment_ref",
+    "invoice_number",
+    "po_number",
+    "amount",
+    "currency",
+    "status",
+    "scheduled_for"
+  ],
+  "properties": {
+    "payment_ref": {
+      "type": "string"
+    },
+    "invoice_number": {
+      "type": "string"
+    },
+    "po_number": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "currency": {
+      "type": "string"
+    },
+    "beneficiary": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "iban": {
+          "type": "string"
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "scheduled",
+        "sent",
+        "rejected"
+      ]
+    },
+    "scheduled_for": {
+      "type": "string"
+    },
+    "remittance_path": {
+      "type": "string"
+    },
+    "vendor": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

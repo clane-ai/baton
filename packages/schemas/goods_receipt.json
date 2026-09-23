@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://clane.sh/baton/schemas/goods_receipt/v1",
+  "title": "goods_receipt",
+  "description": "What the warehouse actually received against a purchase order, line by line, with any discrepancy against the delivery note or the order.",
+  "type": "object",
+  "required": ["grn_number", "po_number", "received_at", "received_by", "lines", "complete"],
+  "properties": {
+    "grn_number": { "type": "string", "pattern": "^GRN-" }, "po_number": { "type": "string" }, "delivery_note_number": { "type": "string" },
+    "received_at": { "type": "string" }, "received_by": { "type": "string" },
+    "lines": { "type": "array", "minItems": 1, "items": { "type": "object", "required": ["line", "item", "quantity_ordered", "quantity_received", "condition"], "properties": {
+      "line": { "type": "integer" }, "sku": { "type": "string" }, "item": { "type": "string" },
+      "quantity_ordered": { "type": "number" }, "quantity_received": { "type": "number", "minimum": 0 },
+      "condition": { "type": "string", "enum": ["good", "damaged", "missing"] }, "note": { "type": "string" } } } },
+    "complete": { "type": "boolean", "description": "True when every line was received in full and in good condition." },
+    "discrepancies": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": true
+}

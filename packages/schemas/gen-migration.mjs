@@ -5,7 +5,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const kinds = ['user_story', 'task_spec', 'design_spec', 'api_contract', 'service_contract', 'build', 'test_report', 'review', 'migration', 'pr', 'db_schema', 'config', 'handoff'];
+const kinds = ['user_story', 'task_spec', 'design_spec', 'api_contract', 'service_contract', 'build', 'test_report', 'review', 'migration', 'pr', 'db_schema', 'config', 'handoff', 'purchase_order', 'delivery_note', 'invoice', 'goods_receipt', 'invoice_match', 'payment'];
 let sql = '-- Phase 5: artefact schemas (prd.md 10.3, decision 8). Source of truth: packages/schemas/*.json.\n';
 sql += '-- Regenerate with: node packages/schemas/gen-migration.mjs\n';
 for (const k of kinds) {

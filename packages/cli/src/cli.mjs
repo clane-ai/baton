@@ -119,9 +119,14 @@ export async function run(argv) {
       }
       if (sub === 'prioritise' || sub === 'prioritize') { console.log(JSON.stringify(must(await api.post(`/admin/tasks/${rest[1]}/prioritise`, { priority: Number(rest[2]) }), 'prioritise'))); return 0; }
       if (sub === 'approve' || sub === 'reject') { console.log(JSON.stringify(must(await api.post(`/admin/tasks/${rest[1]}/approve`, { verdict: sub === 'approve' ? 'approve' : 'reject', reason: flags.reason }), sub))); return 0; }
+      if (sub === 'retry') {
+        if (!rest[1]) throw new Error('usage: baton tasks retry <key> [--budget n] [--keep-attempts] [--reason ...]');
+        const r = must(await api.post(`/admin/tasks/${rest[1]}/retry`, { reset_attempts: !flags['keep-attempts'], budget_usd: flags.budget ? Number(flags.budget) : undefined, reason: flags.reason }), 'retry');
+        console.log(`${rest[1]} is back in the queue (${r.state})`); return 0;
+      }
       if (sub === 'cancel') { console.log(JSON.stringify(must(await api.post(`/admin/tasks/${rest[1]}/cancel`, { reason: flags.reason }), 'cancel'))); return 0; }
       if (sub === 'force-release') { console.log(JSON.stringify(must(await api.post(`/admin/tasks/${rest[1]}/force-release`), 'force-release'))); return 0; }
-      throw new Error('usage: baton tasks ls|show|create|prioritise|cancel|force-release|approve|reject');
+      throw new Error('usage: baton tasks ls|show|create|prioritise|cancel|force-release|approve|reject|retry');
     }
 
     case 'workflow': {
