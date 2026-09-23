@@ -140,11 +140,21 @@ baton answer <message-id> "Use an exclamation mark, same as greet()."
 
 The daemon respawns frontend-dev with your answer in its context.
 
-## 7. Multi-machine (if a second pilot is available)
+## 7. Delegation: one role hands work to another and continues
+
+Create a frontend-dev task that needs a file owned by the backend role:
+
+```
+baton tasks create --role frontend-dev --priority 300 --produces build --scope "src/**,test/**" \n  --title "Pilot: locale greetings" \n  --spec "Add greetingsFor(locale) reading src/greetings.json. That file is owned by backend-dev: do not create it. Call task_delegate to backend-dev with produces [config] describing the file (keys en, fr, de), then exit. When respawned with the config in your consumes, implement, test, commit on baton/<key>, register a build artefact. No pull request." \n  --acceptance "Given the backend config, when greetingsFor(fr) is called, then it returns the French greeting; npm test passes."
+```
+
+Run `baton supervise --roles frontend-dev,backend-dev --interval 15`. Expected: frontend-dev claims, calls task_delegate and exits (task blocked, child task ready for backend-dev); backend-dev is spawned, writes the file, registers a `config` artefact, submits; the parent returns to ready; frontend-dev is spawned again, its context says the delegated task is done, it implements and submits. `baton logs --task <parent>` shows task_delegated then delegation_returned. On the Flow tab the two tasks are joined by a "delegated" edge and a "config" edge.
+
+## 8. Multi-machine (if a second pilot is available)
 
 Two people, each with their own tokens and their own daemon, on the same product repo: one runs `--roles analyst`, the other `--roles frontend-dev`. Repeat step 6. Expected: identical behaviour, with `baton agents list` showing both machines and the messages travelling between them. This is the case the product exists for and the one we have not yet run with two separate accounts.
 
-## 8. What to send back
+## 9. What to send back
 
 - For every step whose result did not match: step number, what you saw, the task key, and the file from `~/.baton/logs/` for that session.
 - The output of `baton doctor --role qa` and `claude --version`.

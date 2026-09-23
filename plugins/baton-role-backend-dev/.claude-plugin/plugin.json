@@ -2,7 +2,7 @@
   "name": "baton-role-backend-dev",
   "displayName": "Baton role: backend-dev",
   "version": "0.1.0",
-  "description": "Builds APIs and migrations from a task_spec, delivering an api_contract, a PR and migrations. Enabling this plugin runs the session as the Baton backend-dev agent.",
+  "description": "Builds APIs, schemas, migrations and configuration from a task_spec or a delegation, delivering api_contract, db_schema, config, migration and pr artefacts. Enabling this plugin runs the session as the Baton backend-dev agent.",
   "author": {
     "name": "Clane AI"
   },

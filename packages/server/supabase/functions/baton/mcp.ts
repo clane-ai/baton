@@ -1,4 +1,4 @@
-// The MCP face: JSON-RPC over streamable HTTP, sixteen tools (prd.md section 10).
+// The MCP face: JSON-RPC over streamable HTTP, seventeen tools (prd.md section 10, docs/delegation.md).
 import { sql, asAgent } from "./db.ts";
 import type { Agent } from "./auth.ts";
 import { uploadArtifact, signArtifact, sha256Hex } from "./storage.ts";
@@ -41,6 +41,13 @@ export const TOOLS: ToolDef[] = [
       children: { type: "array", minItems: 1, items: { type: "object", required: ["title", "spec", "acceptance"], properties: {
         title: { type: "string" }, spec: { type: "string" }, acceptance: { type: "string" }, role: { type: "string" },
         consumes: { type: "array" }, produces: { type: "array" }, priority: { type: "integer" }, scope: { type: "array", items: { type: "string" } } } } }, ...idem } } },
+  { name: "task_delegate", mutating: true,
+    description: "Hand part of my task to another role and wait for the result. Creates a child task that must produce the artefact kinds I name (db_schema, api_contract, config, migration, handoff ...). My task goes to blocked and my lease is released: after this, exit. When the child passes its gate my task returns to ready with the child's artefacts in my consumes, and I am respawned to continue.",
+    inputSchema: { type: "object", required: ["task_id", "role", "title", "spec", "acceptance", "produces"], properties: {
+      task_id: uuid, role: { type: "string", description: "The role that owns this kind of work." }, title: { type: "string" },
+      spec: { type: "string", description: "Exactly what they must do and what I need back." }, acceptance: { type: "string", description: "Given / When / Then" },
+      produces: { type: "array", minItems: 1, items: { type: "string" }, description: "Artefact kinds they must register, which become my inputs." },
+      priority: { type: "integer" }, scope: { type: "array", items: { type: "string" }, description: "Paths they may write; empty means no restriction." }, ...idem } } },
   { name: "task_create", mutating: true,
     description: "Create a task for any role (used by analysts and for fix tasks). It becomes ready as soon as its preconditions hold.",
     inputSchema: { type: "object", required: ["title", "spec", "acceptance", "role"], properties: {
@@ -133,7 +140,10 @@ export async function runTool(agent: Agent, name: string, args: Json): Promise<J
       const [row] = await sql`select baton.task_json(baton.claim_next(${agent.id}::uuid, ${lease}::int)) as j`;
       if (!row?.j?.id) return { ok: true, none: true, message: "No work for your role right now. Stop and exit." };
       const t = row.j as Json;
+      const delegations = await sql`select key, title, produces, cost_usd from baton.tasks where parent_task = ${String(t.id)}::uuid and state = 'done' order by updated_at`;
       return { ok: true, task: t,
+               delegations: delegations.length ? delegations.map((d) => ({ key: d.key, title: d.title, produces: (d.produces as Json[]).map((p) => p.kind), cost_usd: d.cost_usd,
+                 read_with: `artifact_get task_id=<id of ${d.key}> (already pinned in your consumes)` })) : undefined,
                inputs: (t.consumes as Json[]).map((c) => `artifact_get kind=${c.kind}${c.from_task ? ` task_id=${c.from_task}` : ""}`),
                outputs: (t.produces as Json[]).map((p) => p.kind),
                heartbeat_every_seconds: Math.min(600, Math.floor(lease / 3)) };
@@ -149,6 +159,10 @@ export async function runTool(agent: Agent, name: string, args: Json): Promise<J
       return one(sql`select baton.task_release(${agent.id}::uuid, ${String(args.task_id)}::uuid, ${String(args.reason ?? "")}) as r`);
     case "task_split":
       return one(sql`select baton.task_split(${agent.id}::uuid, ${String(args.task_id)}::uuid, ${j(args.children ?? [])}::jsonb) as r`);
+    case "task_delegate":
+      return one(sql`select baton.task_delegate(${agent.id}::uuid, ${String(args.task_id)}::uuid, ${String(args.role ?? "")}, ${String(args.title ?? "")},
+                       ${String(args.spec ?? "")}, ${String(args.acceptance ?? "")}, ${j(Array.isArray(args.produces) ? args.produces : [])}::jsonb,
+                       ${args.priority == null ? null : Number(args.priority)}::int, ${Array.isArray(args.scope) && args.scope.length ? args.scope.map(String) : null}::text[]) as r`);
     case "task_create": {
       const { idempotency_key: _k, ...fields } = args;
       return one(sql`select baton.task_create(${`agent:${agent.id}`}, ${j(fields)}::jsonb) as r`);
@@ -214,7 +228,7 @@ export async function callTool(agent: Agent, name: string, args: Json): Promise<
   return result;
 }
 
-const SERVER_INSTRUCTIONS = `Baton coordination protocol. 1) whoami. If you hold a task, resume it; otherwise task_next. If none, stop and exit. 2) artifact_get for every kind in the task's consumes. 3) task_heartbeat at least every 10 minutes; LEASE_LOST means stop and exit. 4) task_progress after each meaningful step. 5) Missing information: task_ask, then exit. 6) Produce exactly the artefacts in produces, register with artifact_put. 7) task_submit; the service decides. 8) decision_log for durable decisions. 9) Stay in your role; task_create for other roles' work.`;
+const SERVER_INSTRUCTIONS = `Baton coordination protocol. 1) whoami. If you hold a task, resume it; otherwise task_next. If none, stop and exit. 2) artifact_get for every kind in the task's consumes. 3) task_heartbeat at least every 10 minutes; LEASE_LOST means stop and exit. 4) task_progress after each meaningful step. 5) Missing information: task_ask, then exit. Missing work that belongs to another role: task_delegate naming the artefact kinds you need back, then exit; you are respawned when it is done. 6) Produce exactly the artefacts in produces, register with artifact_put. 7) task_submit; the service decides. 8) decision_log for durable decisions. 9) Stay in your role; task_delegate when you must wait for another role, task_create when you need not.`;
 
 type Rpc = { jsonrpc?: string; id?: unknown; method?: string; params?: Json };
 

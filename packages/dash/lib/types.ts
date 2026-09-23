@@ -95,6 +95,7 @@ export type Task = {
   budget_usd: number | null;
   cost_usd: number | null;
   parent_task: string | null;
+  waiting_on?: string | null;
   github_issue: number | string | null;
   created_at: string;
   updated_at: string;

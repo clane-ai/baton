@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://clane.sh/baton/schemas/db_schema/v1",
+  "title": "db_schema",
+  "description": "Tables another role created or changed, so the consumer can code against them without reading the database.",
+  "type": "object",
+  "required": ["tables"],
+  "properties": {
+    "engine": { "type": "string", "description": "postgres, mysql, sqlite, mongodb, ..." },
+    "schema": { "type": "string" },
+    "connection_ref": { "type": "string", "description": "Where the connection details live (env var name, secret name). Never the secret itself." },
+    "migration_path": { "type": "string" },
+    "tables": {
+      "type": "array", "minItems": 1,
+      "items": { "type": "object", "required": ["name", "columns"], "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "purpose": { "type": "string" },
+        "primary_key": { "type": "array", "items": { "type": "string" } },
+        "columns": { "type": "array", "minItems": 1, "items": { "type": "object", "required": ["name", "type"], "properties": {
+          "name": { "type": "string", "minLength": 1 }, "type": { "type": "string", "minLength": 1 },
+          "nullable": { "type": "boolean" }, "default": { "type": "string" }, "references": { "type": "string" }, "description": { "type": "string" } } } },
+        "indexes": { "type": "array", "items": { "type": "string" } }
+      } }
+    },
+    "notes": { "type": "string" }
+  },
+  "additionalProperties": true
+}

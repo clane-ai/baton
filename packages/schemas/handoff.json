@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://clane.sh/baton/schemas/handoff/v1",
+  "title": "handoff",
+  "description": "The result of delegated work that fits no more specific kind: what was done, where, and what the consumer must know.",
+  "type": "object",
+  "required": ["summary"],
+  "properties": {
+    "summary": { "type": "string", "minLength": 1 },
+    "details": { "type": "string" },
+    "artifacts": { "type": "array", "items": { "type": "object", "required": ["path"], "properties": { "path": { "type": "string" }, "description": { "type": "string" } } } },
+    "references": { "type": "array", "items": { "type": "string" } },
+    "how_to_use": { "type": "string" },
+    "caveats": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": true
+}

@@ -2,7 +2,7 @@
 
 Coordination layer for teams of Claude Code agents that run on different machines under different accounts. One authoritative task queue with leases, typed artefact handoff, asynchronous messages, a complete event log with cost, a dashboard with four supervisor actions, and enforcement that holds even when an agent ignores every instruction.
 
-The specification is `prd.md`. The acceptance log is `docs/acceptance.md`. A recorded end-to-end run with live Claude Code agents, including two sessions talking to each other through Baton, is in `docs/e2e-run.md`. The manual test script for pilot users is `docs/pilot-test.md`.
+The specification is `prd.md`. The acceptance log is `docs/acceptance.md`. A recorded end-to-end run with live Claude Code agents, including two sessions talking to each other through Baton, is in `docs/e2e-run.md`. The manual test script for pilot users is `docs/pilot-test.md`. How an agent hands part of its task to another role and gets the result back is `docs/delegation.md`.
 
 ## Layout
 

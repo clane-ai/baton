@@ -52,7 +52,7 @@ function edgesFor(tasks: Task[]): Edge[] {
         if (p) add({ from: p.id, to: t.id, label: kind, inferred: true });
       }
     }
-    if (t.parent_task) add({ from: t.parent_task, to: t.id, label: "split", inferred: false });
+    if (t.parent_task) add({ from: t.parent_task, to: t.id, label: "delegated", inferred: false });
   }
   return edges;
 }
