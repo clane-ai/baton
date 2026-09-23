@@ -5,14 +5,14 @@ import { pool, q, reset, role, task } from './helpers.mjs';
 before(reset);
 after(() => pool.end());
 
-test('all nine tables exist in schema baton', async () => {
+test('all spine tables exist in schema baton', async () => {
   const { rows } = await q(
     `select tablename from pg_tables where schemaname = 'baton' order by tablename`,
   );
-  assert.deepEqual(
-    rows.map((r) => r.tablename),
-    ['agents', 'artifacts', 'claims', 'decisions', 'events', 'messages', 'roles', 'runs', 'tasks'],
-  );
+  const names = rows.map((r) => r.tablename);
+  for (const t of ['agents', 'artifacts', 'claims', 'decisions', 'events', 'messages', 'roles', 'runs', 'tasks']) {
+    assert.ok(names.includes(t), `missing table ${t}`);
+  }
 });
 
 test('task keys are generated as TSK-nnnn and increase', async () => {
