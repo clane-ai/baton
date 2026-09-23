@@ -1,6 +1,6 @@
 ---
 name: baton-protocol
-description: The Baton coordination loop every agent follows. Use whenever you are running as a Baton agent, hold or want a Baton task, or see Baton tools (whoami, task_next, task_submit) available.
+description: "The Baton coordination loop every agent follows. Use whenever you are running as a Baton agent, hold or want a Baton task, or see Baton tools (whoami, task_next, task_submit) available."
 ---
 
 ## Coordination protocol

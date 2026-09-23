@@ -1,6 +1,6 @@
 ---
 name: status
-description: Show this agent's Baton status: identity, current task and lease, queue counts for the role, undelivered messages. Use for /baton-core:status.
+description: "Show this agent's Baton status (identity, current task and lease, queue counts for the role, undelivered messages). Use for /baton-core:status."
 disable-model-invocation: true
 ---
 

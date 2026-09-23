@@ -1,6 +1,6 @@
 ---
 name: work
-description: Start the Baton loop interactively: whoami, task_next, then work the task to submission. Use when the user says /baton-core:work or asks you to pick up Baton work.
+description: "Start the Baton loop interactively (whoami, task_next, then work the task to submission). Use when the user says /baton-core:work or asks you to pick up Baton work."
 disable-model-invocation: true
 ---
 

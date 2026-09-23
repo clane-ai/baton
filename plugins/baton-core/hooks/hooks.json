@@ -5,14 +5,14 @@
       {
         "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash",
         "hooks": [
-          { "type": "command", "command": "npx -y @clane-ai/baton-cli gate pretool", "timeout": 15 }
+          { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/cli/bin/baton.mjs\" gate pretool", "timeout": 15 }
         ]
       }
     ],
     "SessionStart": [
       {
         "hooks": [
-          { "type": "command", "command": "npx -y @clane-ai/baton-cli hook session-start", "timeout": 15 }
+          { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/cli/bin/baton.mjs\" hook session-start", "timeout": 15 }
         ]
       }
     ],

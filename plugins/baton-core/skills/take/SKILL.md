@@ -1,6 +1,6 @@
 ---
 name: take
-description: Work one specific Baton task by key, for example /baton-core:take TSK-0042. Use when the user names a task key.
+description: "Work one specific Baton task by key, for example /baton-core:take TSK-0042. Use when the user names a task key."
 disable-model-invocation: true
 ---
 
