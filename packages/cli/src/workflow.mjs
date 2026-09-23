@@ -1,5 +1,7 @@
 // Compile a Clane workflow manifest into a Baton task graph (docs/clane-integration.md, decision 2).
 //
+// role_ref inside a role node's config is Baton's own convention (NodeData has label, instructions, outcomes and a
+// free-form config); a manifest authored in Clane's web editor must be checked for where it puts the role.
 // Supported input: the Clane node-graph manifest (WorkflowManifest: name, version, inputs, outputs,
 // definition.nodes[], definition.edges[]). Role nodes become tasks; trigger, output and note nodes
 // are structural; code, action, control and approval nodes are reported and left to the orchestrator.
@@ -39,7 +41,9 @@ function taskOf(node) {
 
 /** Plan without touching the server: [{node, role, produces, spec, acceptance, upstream: [nodeId], scope, budget}] plus skipped nodes. */
 export function plan(manifest, { input = '', run }) {
-  const nodes = manifest.definition.nodes; const edges = manifest.definition.edges ?? [];
+  const nodes = manifest.definition.nodes;
+  // A terminate edge ends the run on that outcome; it is control flow, never a data dependency.
+  const edges = (manifest.definition.edges ?? []).filter((e) => e.kind !== 'terminate');
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const order = topo(nodes, edges);
   const steps = []; const skipped = [];
