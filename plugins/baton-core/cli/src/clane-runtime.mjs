@@ -158,7 +158,7 @@ export async function spawnClaneAgent(opts) {
 
   const costUsd = totalCostUsd || 0;
   try {
-    await api.post('/runs/usage', { session_id: sessionId, tokens_in: tokensIn, tokens_out: tokensOut, model: modelSeen ?? 'clane', cost_usd: costUsd, exit_reason: `clane:${lastReason}${totalCredits ? `:credits=${totalCredits}` : ''}` });
+    await api.post('/runs/usage', { session_id: sessionId, tokens_in: tokensIn, tokens_out: tokensOut, model: modelSeen ?? 'clane', cost_usd: costUsd, credits: totalCredits, exit_reason: `clane:${lastReason}` });
   } catch { /* accounting never blocks */ }
   try { await api.post('/hooks/session-end', { session_id: sessionId, hook_event_name: 'SessionEnd', reason: `daemon:${lastReason}`, credits: totalCredits }); } catch { /* ignore */ }
   say(`[${opts.role}] clane run ${lastReason}: credits=${totalCredits} cost=$${costUsd.toFixed(4)} turns=${turns}`);

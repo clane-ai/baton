@@ -26,7 +26,8 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
   if (path === "/work-available" && method === "GET") {
     const role = url.searchParams.get("role") ?? (ctx.kind === "agent" ? ctx.agent.role : "");
     if (!role) return bad("PRECONDITION_FAILED", "role is required");
-    const r = await one(sql`select baton.work_available(${role}) as r`);
+    const agentId = ctx.kind === "agent" ? ctx.agent.id : null;
+    const r = await one(sql`select baton.work_available(${role}, ${agentId}::uuid) as r`);
     return { status: 200, body: { ...r, available: Number(r.ready) > 0 || Number(r.questions ?? 0) > 0 } };
   }
   if (path === "/runs/usage" && method === "POST") {
@@ -35,7 +36,7 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
     if (!agentId || !b.session_id) return bad("PRECONDITION_FAILED", "session_id (and agent_id for operators) required");
     const r = await one(sql`select baton.runs_usage(${agentId}::uuid, ${String(b.session_id)}, ${b.task_id ? String(b.task_id) : null}::uuid,
       ${Number(b.tokens_in ?? 0)}::bigint, ${Number(b.tokens_out ?? 0)}::bigint, ${Number(b.cost_usd ?? 0)}::numeric,
-      ${b.model ? String(b.model) : null}, ${b.exit_reason ? String(b.exit_reason) : null}) as r`);
+      ${b.model ? String(b.model) : null}, ${b.exit_reason ? String(b.exit_reason) : null}, ${Number(b.credits ?? 0)}::numeric) as r`);
     return { status: 200, body: r };
   }
   if (path === "/agent/inbox" && method === "GET" && ctx.kind === "agent") {
@@ -89,6 +90,37 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
     try { await drainWebhooks(); } catch (e) { console.error("webhooks", e); }
     return { status: 200, body: r };
   }
+  // ---- workflows and runs (definitions stored, runs with a derived status)
+  if (seg[1] === "workflows" && seg.length === 2 && method === "GET") {
+    const rows = await sql`select key, name, version, created_by, created_at, updated_at, (select count(*)::int from baton.workflow_runs r where r.workflow_key = w.key) as runs from baton.workflows w order by name`;
+    return { status: 200, body: { ok: true, workflows: rows } };
+  }
+  if (seg[1] === "workflows" && seg.length === 2 && method === "POST") {
+    const b = await readJson(req);
+    const key = String(b.key ?? "").trim(); if (!key) return bad("PRECONDITION_FAILED", "key is required");
+    const [row] = await sql`insert into baton.workflows (key, name, version, manifest, created_by) values (${key}, ${String(b.name ?? key)}, ${String(b.version ?? "")}, ${j(b.manifest ?? {})}::jsonb, ${actor})
+      on conflict (key) do update set name = excluded.name, version = excluded.version, manifest = excluded.manifest, updated_at = now() returning key, name, version`;
+    return { status: 200, body: { ok: true, workflow: row } };
+  }
+  if (seg[1] === "workflows" && seg.length === 3 && method === "GET") {
+    const [row] = await sql`select key, name, version, manifest, created_by, created_at from baton.workflows where key = ${seg[2]}`;
+    return row ? { status: 200, body: { ok: true, workflow: row } } : bad("NOT_FOUND", "no such workflow", 404);
+  }
+  if (seg[1] === "workflow-runs" && seg.length === 2 && method === "GET") {
+    return { status: 200, body: { ok: true, runs: await one(sql`select baton.workflow_runs_json(${Math.min(500, Number(url.searchParams.get("limit") ?? 100))}::int) as r`) } };
+  }
+  if (seg[1] === "workflow-runs" && seg.length === 2 && method === "POST") {
+    const b = await readJson(req);
+    const key = String(b.key ?? "").trim(); if (!key) return bad("PRECONDITION_FAILED", "key is required");
+    const [row] = await sql`insert into baton.workflow_runs (key, workflow_key, workflow_name, input, created_by)
+      values (${key}, ${b.workflow_key ? String(b.workflow_key) : null}, ${b.workflow_name ? String(b.workflow_name) : null}, ${b.input ? String(b.input) : null}, ${actor})
+      on conflict (key) do update set workflow_name = excluded.workflow_name, input = excluded.input returning key`;
+    return { status: 200, body: { ok: true, run: row } };
+  }
+  if (seg[1] === "workflow-runs" && seg.length === 3 && method === "GET") {
+    const r = await one(sql`select baton.workflow_run_json(${seg[2]}) as r`);
+    return r ? { status: 200, body: { ok: true, run: r } } : bad("NOT_FOUND", "no such run", 404);
+  }
   // ---- webhooks: outbound event subscriptions for orchestrators
   if (seg[1] === "webhooks" && seg.length === 2 && method === "GET") {
     const rows = await sql`select w.id, w.url, w.events, w.active, w.created_by, w.created_at,
@@ -118,6 +150,7 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
     const b = method === "POST" ? await readJson(req) : {};
     if (seg[3] === "prioritise" && method === "POST") return { status: 200, body: await one(sql`select baton.task_reprioritise(${actor}, ${id}::uuid, ${Number(b.priority)}::int) as r`) };
     if (seg[3] === "cancel" && method === "POST") { const r = await one(sql`select baton.task_cancel(${actor}, ${id}::uuid, ${b.reason ? String(b.reason) : null}) as r`); try { await drainWebhooks(); } catch { /* ignore */ } return { status: 200, body: r }; }
+    if (seg[3] === "approve" && method === "POST") { const r = await one(sql`select baton.task_approve(${actor}, ${id}::uuid, ${String(b.verdict ?? "approve")}, ${b.reason ? String(b.reason) : null}) as r`); try { await drainWebhooks(); } catch { /* ignore */ } return { status: 200, body: r }; }
     if (seg[3] === "force-release" && method === "POST") return { status: 200, body: await one(sql`select baton.task_force_release(${actor}, ${id}::uuid) as r`) };
     if (seg[3] === "gate" && method === "POST") return { status: 200, body: await one(sql`select baton.run_gate(${id}::uuid) as r`) };
   }

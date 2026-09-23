@@ -7,13 +7,14 @@ import { agoMs } from "@/lib/format";
 import NowView from "./NowView";
 import BoardView from "./BoardView";
 import FlowView from "./FlowView";
+import RunsView from "./RunsView";
 import StreamView from "./StreamView";
 import AttentionView from "./AttentionView";
 import SpendView from "./SpendView";
 
-const TABS = ["now", "board", "flow", "stream", "attention", "spend"] as const;
+const TABS = ["now", "board", "flow", "runs", "stream", "attention", "spend"] as const;
 type Tab = (typeof TABS)[number];
-const LABEL: Record<Tab, string> = { now: "Now", board: "Board", flow: "Flow", stream: "Stream", attention: "Attention", spend: "Spend" };
+const LABEL: Record<Tab, string> = { now: "Now", board: "Board", flow: "Flow", runs: "Runs", stream: "Stream", attention: "Attention", spend: "Spend" };
 
 function tabFromHash(): Tab {
   if (typeof window === "undefined") return "now";
@@ -89,6 +90,7 @@ export default function Dashboard() {
         {tab === "now" && <NowView status={status} now={now} />}
         {tab === "board" && <BoardView />}
         {tab === "flow" && <FlowView />}
+        {tab === "runs" && <RunsView />}
         {tab === "stream" && <StreamView />}
         {tab === "attention" && <AttentionView status={status} />}
         {tab === "spend" && <SpendView />}

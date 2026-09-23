@@ -1,6 +1,7 @@
 // The supervisor daemon (prd.md 12.2, 24) and the single-run spawner it shares with `baton work`.
 import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync, createWriteStream, existsSync } from 'node:fs';
+import { mkdirSync, writeFileSync, createWriteStream, existsSync, readFileSync, unlinkSync, openSync, closeSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { dirname } from 'node:path';
@@ -121,7 +122,26 @@ export function spawnAgent(opts) {
 }
 
 /** Poll loop. opts: { roles: string[], interval (s), once, cwd, ... spawn opts, log(line) } */
+/** One daemon per checkout per machine. Returns a release function, or throws naming the live pid. */
+export function acquireDaemonLock(cwd) {
+  mkdirSync(CONFIG_DIR, { recursive: true });
+  const file = join(CONFIG_DIR, `supervise-${createHash('sha1').update(String(cwd).toLowerCase()).digest('hex').slice(0, 12)}.lock`);
+  if (existsSync(file)) {
+    const pid = Number(readFileSync(file, 'utf8').trim());
+    let alive = false;
+    if (pid && pid !== process.pid) { try { process.kill(pid, 0); alive = true; } catch { alive = false; } }
+    if (alive) throw new Error(`another baton supervise (pid ${pid}) is already running for ${cwd}; stop it first or use a different --cwd`);
+    try { unlinkSync(file); } catch { /* stale */ }
+  }
+  const fd = openSync(file, 'wx'); writeFileSync(fd, String(process.pid)); closeSync(fd);
+  const release = () => { try { if (readFileSync(file, 'utf8').trim() === String(process.pid)) unlinkSync(file); } catch { /* gone */ } };
+  for (const sig of ['SIGINT', 'SIGTERM']) process.once(sig, () => { release(); process.exit(130); });
+  process.once('exit', release);
+  return release;
+}
+
 export async function supervise(cfg, opts) {
+  const releaseLock = opts.once ? null : acquireDaemonLock(opts.cwd);
   const running = new Map();     // role -> count
   const log = opts.log ?? ((l) => console.log(`${new Date().toISOString()} ${l}`));
   let spawned = 0;
@@ -153,10 +173,12 @@ export async function supervise(cfg, opts) {
   }
   log(`supervising roles ${opts.roles.join(', ')} every ${opts.interval}s (cwd ${opts.cwd})`);
   const maxTicks = opts.maxTicks ?? Infinity;
-  for (let i = 0; i < maxTicks; i++) {
-    await tick();
-    await new Promise((r) => setTimeout(r, opts.interval * 1000));
-  }
+  try {
+    for (let i = 0; i < maxTicks; i++) {
+      await tick();
+      await new Promise((r) => setTimeout(r, opts.interval * 1000));
+    }
+  } finally { releaseLock?.(); }
   return { spawned };
 }
 

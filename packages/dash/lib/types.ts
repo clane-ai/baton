@@ -94,6 +94,7 @@ export type Task = {
   max_attempts: number;
   budget_usd: number | null;
   cost_usd: number | null;
+  cost_credits?: number;
   parent_task: string | null;
   waiting_on?: string | null;
   workflow_run?: string | null;
@@ -177,9 +178,10 @@ export type EventsResponse = { ok: true; events: StreamEvent[] };
 export type SpendResponse = {
   ok: true;
   total_usd: number;
-  by_task: { id: string; key: string; title: string; role: string; state: TaskState; cost_usd: number; budget_usd: number | null }[];
-  by_role: { role: string; cost_usd: number }[];
-  by_day: { day: string; cost_usd: number }[];
+  total_credits?: number;
+  by_task: { id: string; key: string; title: string; role: string; state: TaskState; cost_usd: number; cost_credits?: number; budget_usd: number | null }[];
+  by_role: { role: string; cost_usd: number; credits?: number }[];
+  by_day: { day: string; cost_usd: number; credits?: number }[];
 };
 
 export type Role = {
@@ -190,3 +192,8 @@ export type Role = {
 };
 
 export type RolesResponse = { ok: true; roles: Role[] };
+
+export type WorkflowRunStep = { id: string; key: string; title: string; role: string; state: TaskState; attempts: number; cost_usd: number; cost_credits: number; depends_on: string[]; assignee: string | null; updated_at: string; produces: { kind: string }[] };
+export type WorkflowRun = { key: string; workflow_key: string | null; workflow_name: string | null; input: string | null; created_by: string; created_at: string; finished_at: string | null; status: string; counts: Record<string, number>; cost_usd: number; cost_credits: number; steps?: WorkflowRunStep[] };
+export type WorkflowRunsResponse = { ok: true; runs: WorkflowRun[] };
+export type WorkflowRunResponse = { ok: true; run: WorkflowRun };

@@ -24,9 +24,10 @@ const HELP = `baton <command> [options]
   supervise --roles qa,frontend-dev [--interval 60] [--cwd .] [--once] [--install] [--model m] [--budget 2] [--max-turns 60] [--runtime claude|clane]
   work --role qa [--once] [--cwd .] [--runtime claude|clane]   run one agent session in the foreground
   status                                    agents, claims, lease countdowns, attention list
-  tasks ls [--state s] [--role r] [--run k] | show <key> | create --title .. --spec .. --acceptance .. --role .. [--run k] | prioritise <key> <n> | cancel <key> [--reason ..]
+  tasks ls [--state s] [--role r] [--run k] | show <key> | create --title .. --spec .. --acceptance .. --role .. [--run k] [--affinity machine|agent] [--deadline iso]
+        | prioritise <key> <n> | cancel <key> [--reason ..] | approve <key> | reject <key> --reason ..   (operator approval tasks)
   webhooks list | add --url .. [--events a,b*] | remove <id> | flush     event subscriptions for orchestrators
-  workflow compile <workflow.json> --run <key> [--input ..] [--dry-run] | status --run <key>   Clane manifest -> Baton task graph
+  workflow compile <workflow.json> --run <key> [--input ..] [--affinity m] [--dry-run] | status --run <key> | runs | list
   answer <message-id> "<text>"
   agents add --name qa-01 --role qa [--machine m] [--store] | list | revoke <name>
   invite --roles qa,frontend-dev --name-prefix pilot-1 [--machine m] [--ttl-hours 24] | invite list
@@ -111,14 +112,16 @@ export async function run(argv) {
         const body = { title: flags.title, spec: flags.spec, acceptance: flags.acceptance, role: flags.role, priority: flags.priority ? Number(flags.priority) : undefined,
           produces: flags.produces ? String(flags.produces).split(',').map((k) => ({ kind: k.trim() })) : [],
           consumes: flags.consumes ? String(flags.consumes).split(',').map((k) => ({ kind: k.trim(), from_task: null })) : [],
-          scope: flags.scope ? String(flags.scope).split(',') : [], budget_usd: flags.budget ? Number(flags.budget) : undefined, workflow_run: flags.run ? String(flags.run) : undefined };
+          scope: flags.scope ? String(flags.scope).split(',') : [], budget_usd: flags.budget ? Number(flags.budget) : undefined, workflow_run: flags.run ? String(flags.run) : undefined,
+          affinity: flags.affinity ? String(flags.affinity) : undefined, deadline: flags.deadline ? new Date(String(flags.deadline)).toISOString() : undefined };
         const r = must(await api.post('/admin/tasks', body), 'create');
         console.log(`${r.task.key} ${r.task.state} ${r.task.title}`); return 0;
       }
       if (sub === 'prioritise' || sub === 'prioritize') { console.log(JSON.stringify(must(await api.post(`/admin/tasks/${rest[1]}/prioritise`, { priority: Number(rest[2]) }), 'prioritise'))); return 0; }
+      if (sub === 'approve' || sub === 'reject') { console.log(JSON.stringify(must(await api.post(`/admin/tasks/${rest[1]}/approve`, { verdict: sub === 'approve' ? 'approve' : 'reject', reason: flags.reason }), sub))); return 0; }
       if (sub === 'cancel') { console.log(JSON.stringify(must(await api.post(`/admin/tasks/${rest[1]}/cancel`, { reason: flags.reason }), 'cancel'))); return 0; }
       if (sub === 'force-release') { console.log(JSON.stringify(must(await api.post(`/admin/tasks/${rest[1]}/force-release`), 'force-release'))); return 0; }
-      throw new Error('usage: baton tasks ls|show|create|prioritise|cancel|force-release');
+      throw new Error('usage: baton tasks ls|show|create|prioritise|cancel|force-release|approve|reject');
     }
 
     case 'workflow': {
@@ -127,7 +130,7 @@ export async function run(argv) {
         const path = rest[1]; if (!path) throw new Error('usage: baton workflow compile <workflow.json> --run <key> [--input "text"] [--dry-run]');
         const manifest = loadManifest(path);
         const run = flags.run ? String(flags.run) : `${String(manifest.name).toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now().toString(36)}`;
-        const r = await compile(cfg, manifest, { input: flags.input ? String(flags.input) : '', run, dryRun: !!flags['dry-run'] });
+        const r = await compile(cfg, manifest, { input: flags.input ? String(flags.input) : '', run, dryRun: !!flags['dry-run'], affinity: flags.affinity ? String(flags.affinity) : undefined });
         console.log(`workflow "${manifest.name}" ${manifest.version ?? ''} -> run ${run}${flags['dry-run'] ? ' (dry run)' : ''}`);
         table(r.tasks.map((t) => ({ node: t.node, role: t.role, task: t.key ?? '-', state: t.state ?? '-', produces: t.produces.join(','), after: t.depends_on.join(',') })), ['node', 'role', 'task', 'state', 'produces', 'after']);
         for (const k of r.skipped) console.log(`skipped ${k.id} (${k.type}): ${k.reason}`);
@@ -136,14 +139,23 @@ export async function run(argv) {
       }
       if (sub === 'status') {
         const run = String(flags.run ?? rest[1] ?? ''); if (!run) throw new Error('usage: baton workflow status --run <key>');
-        const r = must(await opApi(cfg).get(`/admin/tasks?workflow_run=${encodeURIComponent(run)}`), 'tasks');
-        const ts = [...r.tasks].sort((a, b) => b.priority - a.priority);
-        table(ts.map((t) => ({ key: t.key, state: t.state, role: t.role, att: `${t.attempts}/${t.max_attempts}`, cost: Number(t.cost_usd).toFixed(2), assignee: t.assignee_name ?? '', title: t.title.slice(0, 60) })), ['key', 'state', 'role', 'att', 'cost', 'assignee', 'title']);
-        const done = ts.filter((t) => t.state === 'done').length;
-        console.log(`${done}/${ts.length} done${ts.some((t) => t.state === 'needs_human') ? '; needs a human' : ''}`);
+        const r = must(await opApi(cfg).get(`/admin/workflow-runs/${encodeURIComponent(run)}`), 'run');
+        const ts = r.run.steps;
+        table(ts.map((t) => ({ key: t.key, state: t.state, role: t.role, att: t.attempts, usd: Number(t.cost_usd).toFixed(2), credits: Number(t.cost_credits).toFixed(0), assignee: t.assignee ?? '', title: t.title.slice(0, 60) })), ['key', 'state', 'role', 'att', 'usd', 'credits', 'assignee', 'title']);
+        console.log(`run ${r.run.key} (${r.run.workflow_name ?? '-'}): ${r.run.status}, ${r.run.counts.done ?? 0}/${ts.length} done, ${Number(r.run.cost_usd).toFixed(2)}, ${Number(r.run.cost_credits).toFixed(0)} credits${r.run.finished_at ? ', finished ' + r.run.finished_at : ''}`);
         return 0;
       }
-      throw new Error('usage: baton workflow compile|status');
+      if (sub === 'runs') {
+        const r = must(await opApi(cfg).get('/admin/workflow-runs'), 'runs');
+        table(r.runs.map((x) => ({ run: x.key, workflow: x.workflow_name ?? '', status: x.status, done: `${x.counts.done ?? 0}/${Object.values(x.counts).reduce((a, b) => a + Number(b), 0)}`, usd: Number(x.cost_usd).toFixed(2), credits: Number(x.cost_credits).toFixed(0), started: String(x.created_at).slice(0, 16), finished: x.finished_at ? String(x.finished_at).slice(0, 16) : '' })), ['run', 'workflow', 'status', 'done', 'usd', 'credits', 'started', 'finished']);
+        return 0;
+      }
+      if (sub === 'list') {
+        const r = must(await opApi(cfg).get('/admin/workflows'), 'workflows');
+        table(r.workflows.map((w) => ({ key: w.key, name: w.name, version: w.version, runs: w.runs, updated: String(w.updated_at).slice(0, 16) })), ['key', 'name', 'version', 'runs', 'updated']);
+        return 0;
+      }
+      throw new Error('usage: baton workflow compile|status|runs|list');
     }
 
     case 'webhooks': {

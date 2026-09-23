@@ -253,3 +253,8 @@ tr.expanded td { background: #fafaf7; }
 .flow-label { font-family: var(--mono); font-size: 10px; fill: var(--ink-3); paint-order: stroke; stroke: var(--panel); stroke-width: 3px; }
 .flow-node:hover rect { filter: brightness(0.97); }
 .lbl input[type="checkbox"] { vertical-align: middle; margin-right: 4px; }
+
+/* Runs view */
+.progress { display: inline-block; width: 120px; height: 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; vertical-align: middle; overflow: hidden; }
+.progress-bar { height: 100%; background: #63e6be; }
+tr.selected td { background: #f3f0ff; }

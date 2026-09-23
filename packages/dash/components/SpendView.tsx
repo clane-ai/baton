@@ -43,6 +43,7 @@ export default function SpendView() {
           <div className="panel-h">Total</div>
           <div className="panel-b">
             <div className="total">{usd(s.data?.total_usd, 4)}</div>
+            {s.data?.total_credits ? <div className="muted">{Number(s.data.total_credits).toFixed(0)} gateway credits (Clane runs; not converted to dollars)</div> : null}
             <div className="muted">
               across {byTask.length} {byTask.length === 1 ? "task" : "tasks"} and {byRole.length} {byRole.length === 1 ? "role" : "roles"}
             </div>
