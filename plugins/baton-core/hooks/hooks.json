@@ -1,5 +1,5 @@
 {
-  "description": "The Baton gates (prd.md 13.4). PreToolUse and SessionStart are command hooks: the lease gate fails closed when the server is unreachable, and Claude Code does not support HTTP hooks for SessionStart. The rest report over HTTP; hook URLs must be literal (the validator rejects ${user_config} in url), so the server address is fixed here and only the token comes from user config.",
+  "description": "The Baton gates (prd.md 13.4). Every hook is a command hook through the CLI shipped inside this plugin, which reads the agent token from BATON_TOKEN or ~/.baton/config.json (set by the supervisor daemon, or by `baton agents add --store`). Command hooks are used because Claude Code does not support HTTP hooks for SessionStart and does not substitute user config into HTTP hook headers, and because the lease gate must fail closed when the server is unreachable.",
   "hooks": {
     "PreToolUse": [
       {
@@ -10,52 +10,25 @@
       }
     ],
     "SessionStart": [
-      {
-        "hooks": [
-          { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/cli/bin/baton.mjs\" hook session-start", "timeout": 15 }
-        ]
-      }
+      { "hooks": [{ "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/cli/bin/baton.mjs\" hook session-start", "timeout": 15 }] }
     ],
     "UserPromptSubmit": [
-      {
-        "hooks": [
-          { "type": "http", "url": "https://yemmiowsudakdviqqlnt.supabase.co/functions/v1/baton/hooks/prompt",
-            "headers": { "Authorization": "Bearer ${user_config.agentToken}" }, "timeout": 10 }
-        ]
-      }
+      { "hooks": [{ "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/cli/bin/baton.mjs\" hook prompt", "timeout": 15 }] }
     ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__plugin_baton-core_baton__.*",
-        "hooks": [
-          { "type": "http", "url": "https://yemmiowsudakdviqqlnt.supabase.co/functions/v1/baton/hooks/tool",
-            "headers": { "Authorization": "Bearer ${user_config.agentToken}" }, "timeout": 10 }
-        ]
+        "hooks": [{ "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/cli/bin/baton.mjs\" hook tool", "timeout": 15 }]
       }
     ],
     "PostToolUseFailure": [
-      {
-        "hooks": [
-          { "type": "http", "url": "https://yemmiowsudakdviqqlnt.supabase.co/functions/v1/baton/hooks/tool-failure",
-            "headers": { "Authorization": "Bearer ${user_config.agentToken}" }, "timeout": 10 }
-        ]
-      }
+      { "hooks": [{ "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/cli/bin/baton.mjs\" hook tool-failure", "timeout": 15 }] }
     ],
     "Stop": [
-      {
-        "hooks": [
-          { "type": "http", "url": "https://yemmiowsudakdviqqlnt.supabase.co/functions/v1/baton/hooks/turn-end",
-            "headers": { "Authorization": "Bearer ${user_config.agentToken}" }, "timeout": 10 }
-        ]
-      }
+      { "hooks": [{ "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/cli/bin/baton.mjs\" hook turn-end", "timeout": 15 }] }
     ],
     "SessionEnd": [
-      {
-        "hooks": [
-          { "type": "http", "url": "https://yemmiowsudakdviqqlnt.supabase.co/functions/v1/baton/hooks/session-end",
-            "headers": { "Authorization": "Bearer ${user_config.agentToken}" }, "timeout": 10 }
-        ]
-      }
+      { "hooks": [{ "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/cli/bin/baton.mjs\" hook session-end", "timeout": 15 }] }
     ]
   }
 }

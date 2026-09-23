@@ -1,7 +1,7 @@
 {
   "name": "baton-core",
   "displayName": "Baton Core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Coordination tools, protocol and enforcement gates for Baton agents.",
   "author": { "name": "Clane AI" },
   "keywords": ["baton", "agents", "coordination"],
@@ -9,16 +9,9 @@
     "serverUrl": {
       "type": "string",
       "title": "Baton server URL",
-      "description": "Base URL of the Baton service, for example https://<ref>.supabase.co/functions/v1/baton",
-      "required": true,
+      "description": "Base URL of the Baton service. The agent token is not asked here: it comes from BATON_TOKEN or ~/.baton/config.json (run `baton agents add --name <name> --role <role> --store`).",
+      "required": false,
       "default": "https://yemmiowsudakdviqqlnt.supabase.co/functions/v1/baton"
-    },
-    "agentToken": {
-      "type": "string",
-      "title": "Agent token",
-      "description": "This machine's Baton agent token (btn_...). Created with: baton agents add --name <name> --role <role>",
-      "required": true,
-      "sensitive": true
     }
   }
 }
