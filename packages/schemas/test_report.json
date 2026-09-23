@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://clane.sh/baton/schemas/test_report/v1",
+  "title": "test_report",
+  "type": "object",
+  "required": ["passed", "failed", "summary"],
+  "properties": {
+    "build_sha": { "type": "string" },
+    "suite": { "type": "string" },
+    "passed": { "type": "integer", "minimum": 0 },
+    "failed": { "type": "integer", "minimum": 0 },
+    "skipped": { "type": "integer", "minimum": 0 },
+    "failures": {
+      "type": "array",
+      "items": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" }, "message": { "type": "string" }, "file": { "type": "string" } } }
+    },
+    "summary": { "type": "string", "minLength": 1 }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://clane.sh/baton/schemas/task_spec/v1",
+  "title": "task_spec",
+  "type": "object",
+  "required": ["title", "summary", "requirements", "acceptance"],
+  "properties": {
+    "title": { "type": "string", "minLength": 1 },
+    "summary": { "type": "string", "minLength": 1 },
+    "user_story": { "type": "string" },
+    "scope": { "type": "array", "items": { "type": "string" } },
+    "requirements": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+    "fields": { "type": "array", "items": { "type": "object", "required": ["name", "type"], "properties": { "name": { "type": "string" }, "type": { "type": "string" }, "validation": { "type": "string" } } } },
+    "api": { "type": "array", "items": { "type": "object", "required": ["method", "path"], "properties": { "method": { "type": "string" }, "path": { "type": "string" }, "purpose": { "type": "string" } } } },
+    "acceptance": { "type": "array", "minItems": 1, "items": { "type": "object", "required": ["given", "when", "then"], "properties": { "given": { "type": "string" }, "when": { "type": "string" }, "then": { "type": "string" } } } },
+    "open_questions": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://clane.sh/baton/schemas/build/v1",
+  "title": "build",
+  "type": "object",
+  "required": ["sha", "test_command"],
+  "properties": {
+    "sha": { "type": "string", "minLength": 1 },
+    "branch": { "type": "string" },
+    "repo": { "type": "string" },
+    "how_to_run": { "type": "string" },
+    "test_command": { "type": "string", "minLength": 1 },
+    "notes": { "type": "string" }
+  },
+  "additionalProperties": true
+}

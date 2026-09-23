@@ -7,13 +7,14 @@ import { Api } from './api.mjs';
 import { CONFIG_DIR, agentTokenFor } from './config.mjs';
 import { roleDefinition, allowedTools, systemPromptFor, runPromptFor } from './roles.mjs';
 
-// Interim cost estimate per million tokens (input, output). The final figure comes from the result message.
+// Interim cost estimate per million tokens (input, output). Cache reads cost a tenth, cache
+// writes a quarter more. The final figure comes from the result message and replaces this.
 const PRICE = [
   [/haiku/i, [1, 5]], [/opus/i, [15, 75]], [/sonnet/i, [3, 15]],
 ];
-function estimateCost(model, tin, tout) {
+function estimateCost(model, u) {
   const [, [pi, po]] = PRICE.find(([re]) => re.test(model ?? '')) ?? [null, [3, 15]];
-  return (tin * pi + tout * po) / 1e6;
+  return (u.input * pi + u.cacheWrite * pi * 1.25 + u.cacheRead * pi * 0.1 + u.output * po) / 1e6;
 }
 
 const EXIT_REASON = { 0: 'completed', 1: 'error', 2: 'budget_or_auth', 130: 'interrupted', 143: 'terminated' };
@@ -65,14 +66,15 @@ export function spawnAgent(opts) {
 
   return new Promise((resolve) => {
     const child = spawn(claudeBinary(), args, { cwd: opts.cwd, env, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
-    let sessionId = null, modelSeen = model, tin = 0, tout = 0, costUsd = 0, turns = 0, resultSeen = false, buf = '';
+    let sessionId = null, modelSeen = model, costUsd = 0, turns = 0, resultSeen = false, buf = '';
+    const u = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
     let lastPost = Date.now();
 
     const post = async (final) => {
       if (!sessionId) return;
       try {
-        await api.post('/runs/usage', { session_id: sessionId, tokens_in: tin, tokens_out: tout, model: modelSeen,
-          cost_usd: final?.cost ?? estimateCost(modelSeen, tin, tout), exit_reason: final?.reason });
+        await api.post('/runs/usage', { session_id: sessionId, tokens_in: u.input + u.cacheRead + u.cacheWrite, tokens_out: u.output, model: modelSeen,
+          cost_usd: final?.cost ?? estimateCost(modelSeen, u), exit_reason: final?.reason });
       } catch { /* the hooks report too; never block the agent on accounting */ }
     };
 
@@ -82,7 +84,7 @@ export function spawnAgent(opts) {
       if (m.type === 'system' && m.subtype === 'init') { sessionId = m.session_id; modelSeen = m.model ?? model; }
       if (m.type === 'assistant') {
         turns++;
-        const u = m.message?.usage; if (u) { tin += (u.input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0); tout += u.output_tokens ?? 0; }
+        const mu = m.message?.usage; if (mu) { u.input += mu.input_tokens ?? 0; u.cacheWrite += mu.cache_creation_input_tokens ?? 0; u.cacheRead += mu.cache_read_input_tokens ?? 0; u.output += mu.output_tokens ?? 0; }
         for (const c of m.message?.content ?? []) {
           if (c.type === 'text' && c.text && !opts.quiet) opts.onLine?.(`[${opts.role}] ${c.text.trim().split('\n')[0].slice(0, 200)}`);
           if (c.type === 'tool_use' && !opts.quiet) opts.onLine?.(`[${opts.role}] -> ${c.name}${c.input?.task_id ? ' ' + String(c.input.task_id).slice(0, 8) : ''}`);
@@ -92,7 +94,7 @@ export function spawnAgent(opts) {
       if (m.type === 'result') {
         resultSeen = true;
         sessionId = m.session_id ?? sessionId;
-        costUsd = Number(m.total_cost_usd ?? estimateCost(modelSeen, tin, tout));
+        costUsd = Number(m.total_cost_usd ?? estimateCost(modelSeen, u));
         turns = m.num_turns ?? turns;
         if (!opts.quiet) opts.onLine?.(`[${opts.role}] result: ${m.subtype} cost=$${costUsd.toFixed(4)} turns=${turns}${m.is_error ? ' (error)' : ''}`);
       }

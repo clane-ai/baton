@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://clane.sh/baton/schemas/review/v1",
+  "title": "review",
+  "type": "object",
+  "required": ["verdict", "summary", "findings"],
+  "properties": {
+    "verdict": { "type": "string", "enum": ["approve", "request_changes"] },
+    "summary": { "type": "string", "minLength": 1 },
+    "findings": { "type": "array", "items": { "type": "object", "required": ["severity", "note"], "properties": {
+      "severity": { "type": "string", "enum": ["blocker", "major", "minor"] }, "file": { "type": "string" }, "line": { "type": "integer" }, "note": { "type": "string" } } } }
+  },
+  "additionalProperties": true
+}

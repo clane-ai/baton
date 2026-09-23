@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://clane.sh/baton/schemas/user_story/v1",
+  "title": "user_story",
+  "type": "object",
+  "required": ["as_a", "i_want", "so_that"],
+  "properties": {
+    "title": { "type": "string" },
+    "as_a": { "type": "string", "minLength": 1 },
+    "i_want": { "type": "string", "minLength": 1 },
+    "so_that": { "type": "string", "minLength": 1 },
+    "notes": { "type": "string" },
+    "links": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://clane.sh/baton/schemas/design_spec/v1",
+  "title": "design_spec",
+  "type": "object",
+  "required": ["screens"],
+  "properties": {
+    "screens": {
+      "type": "array", "minItems": 1,
+      "items": { "type": "object", "required": ["name", "components"], "properties": {
+        "name": { "type": "string" }, "route": { "type": "string" }, "layout": { "type": "string" },
+        "components": { "type": "array", "items": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" }, "props": { "type": "object" }, "states": { "type": "array", "items": { "type": "string" } } } } },
+        "copy": { "type": "object" } } }
+    },
+    "tokens": { "type": "object" },
+    "accessibility": { "type": "array", "items": { "type": "string" } },
+    "notes": { "type": "string" }
+  },
+  "additionalProperties": true
+}

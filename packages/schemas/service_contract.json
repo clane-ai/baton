@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://clane.sh/baton/schemas/service_contract/v1",
+  "title": "service_contract",
+  "type": "object",
+  "required": ["service", "endpoints"],
+  "properties": {
+    "service": { "type": "string", "minLength": 1 },
+    "endpoints": { "type": "array", "minItems": 1, "items": { "type": "object", "required": ["method", "path"], "properties": { "method": { "type": "string" }, "path": { "type": "string" }, "request": { "type": "object" }, "response": { "type": "object" } } } },
+    "models": { "type": "array", "items": { "type": "object", "properties": { "provider": { "type": "string" }, "model": { "type": "string" }, "purpose": { "type": "string" } } } },
+    "limits": { "type": "object" }
+  },
+  "additionalProperties": true
+}

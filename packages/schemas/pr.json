@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://clane.sh/baton/schemas/pr/v1",
+  "title": "pr",
+  "description": "Validated against the artefact's meta (a PR has no content blob). Either a number (existing PR) or a branch (the service opens it) is required.",
+  "type": "object",
+  "required": ["repo"],
+  "properties": {
+    "repo": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" },
+    "number": { "type": "integer", "minimum": 1 },
+    "branch": { "type": "string" },
+    "head_sha": { "type": "string" },
+    "url": { "type": "string" },
+    "title": { "type": "string" },
+    "ci_status": { "type": "string", "enum": ["pending", "success", "failure"] },
+    "merged": { "type": "boolean" }
+  },
+  "anyOf": [{ "required": ["number"] }, { "required": ["branch"] }],
+  "additionalProperties": true
+}
