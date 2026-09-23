@@ -38,10 +38,12 @@ for (const r of runs.sort((a, b) => a.key.localeCompare(b.key))) {
   }
   const done = (name) => steps.find((x) => x.step.startsWith(name))?.state === 'done';
   const actual = done('Schedule payment') ? 'paid' : done('Dispute') ? 'disputed' : done('Rework') ? 'rejected' : `incomplete (${run.status})`;
-  const human = humanLog.filter((h) => h.requisition === run.input);
+  const approvalKey = steps.find((x) => x.role === 'operator')?.key;
+  const human = humanLog.filter((h) => h.task === approvalKey);
   const decision = human.find((h) => h.verdict);
   const evRun = steps.flatMap((s) => [s.first_claim, s.finished_at]).filter(Boolean).sort();
   results.push({ run: run.key, requisition: run.input, label: sc.label, expected: sc.expect, actual, success: actual === sc.expect, status: run.status,
+    batch: Number(run.key.split('-').pop()) >= 110 ? 'rerun' : 'first',
     started_at: evRun[0] ?? run.created_at, finished_at: run.finished_at ?? evRun[evRun.length - 1] ?? null,
     elapsed_minutes: evRun.length ? +((new Date(evRun[evRun.length - 1]) - new Date(evRun[0])) / 60000).toFixed(1) : null,
     cost_usd: Number(run.cost_usd), cost_credits: Number(run.cost_credits),
@@ -49,10 +51,20 @@ for (const r of runs.sort((a, b) => a.key.localeCompare(b.key))) {
     steps });
 }
 const llmSteps = results.flatMap((r) => r.steps.filter((s) => LLM_ROLES.has(s.role) && s.state === 'done'));
+// First pass = the gate accepted the first artefact the agent registered (no schema rejection, no gate failure).
+// Attempts are not used here: a lease lost to another session also counts as an attempt.
+const firstPass = (s) => s.artifact_rejected === 0 && s.gate_failed === 0;
+const batchOf = (r) => r.batch;
+const batchStats = (name) => { const rs = results.filter((r) => r.batch === name); const st = rs.flatMap((r) => r.steps.filter((s) => LLM_ROLES.has(s.role) && s.state === 'done'));
+  return { runs: rs.length, succeeded: rs.filter((r) => r.success).length, llm_steps: st.length, first_pass: st.filter(firstPass).length, first_pass_pct: st.length ? Math.round(100 * st.filter(firstPass).length / st.length) : 0,
+    schema_rejections: st.reduce((n, s) => n + s.artifact_rejected, 0), rejections_per_step: st.length ? +(st.reduce((n, s) => n + s.artifact_rejected, 0) / st.length).toFixed(2) : 0,
+    attempts_lost_to_overlap: st.filter((s) => s.attempts > 1 && s.artifact_rejected === 0 && s.gate_failed === 0 && !s.released.length).length + st.filter((s) => s.attempts > 1 && (s.artifact_rejected > 0 || s.gate_failed > 0)).length,
+    cost_usd: +rs.reduce((n, r) => n + r.cost_usd, 0).toFixed(4), avg_elapsed_minutes: rs.length ? +(rs.reduce((n, r) => n + (r.elapsed_minutes ?? 0), 0) / rs.length).toFixed(1) : 0 }; };
 const summary = {
+  batches: { first: batchStats('first'), rerun: batchStats('rerun') },
   runs: results.length, succeeded: results.filter((r) => r.success).length, success_pct: results.length ? Math.round(100 * results.filter((r) => r.success).length / results.length) : 0,
-  llm_steps_done: llmSteps.length, llm_steps_first_pass: llmSteps.filter((s) => s.artifact_rejected === 0 && s.gate_failed === 0 && s.attempts <= 1).length,
-  llm_first_pass_pct: llmSteps.length ? Math.round(100 * llmSteps.filter((s) => s.artifact_rejected === 0 && s.gate_failed === 0 && s.attempts <= 1).length / llmSteps.length) : 0,
+  llm_steps_done: llmSteps.length, llm_steps_first_pass: llmSteps.filter(firstPass).length,
+  llm_first_pass_pct: llmSteps.length ? Math.round(100 * llmSteps.filter(firstPass).length / llmSteps.length) : 0,
   schema_rejections: llmSteps.reduce((n, s) => n + s.artifact_rejected, 0), gate_failures: llmSteps.reduce((n, s) => n + s.gate_failed, 0),
   integration_releases: results.flatMap((r) => r.steps.filter((s) => !LLM_ROLES.has(s.role) && s.role !== 'operator')).reduce((n, s) => n + s.released.length, 0),
   human_decisions: results.filter((r) => r.human).length, human_correct: results.filter((r) => r.human && ((r.expected === 'rejected') === (r.human.verdict === 'reject'))).length,

@@ -1,8 +1,9 @@
 // HTTP client for the Baton service.
 export class Api {
-  constructor(baseUrl, token) {
+  constructor(baseUrl, token, extraHeaders = {}) {
     this.base = baseUrl.replace(/\/+$/, '');
     this.token = token;
+    this.extraHeaders = extraHeaders;
   }
 
   async request(method, path, body, { timeoutMs = 20000 } = {}) {
@@ -11,7 +12,7 @@ export class Api {
     try {
       const r = await fetch(`${this.base}${path}`, {
         method,
-        headers: { 'content-type': 'application/json', ...(this.token ? { authorization: `Bearer ${this.token}` } : {}) },
+        headers: { 'content-type': 'application/json', ...(this.token ? { authorization: `Bearer ${this.token}` } : {}), ...this.extraHeaders },
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: ctrl.signal,
       });

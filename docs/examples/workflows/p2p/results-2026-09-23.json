@@ -1,0 +1,3792 @@
+{
+  "scored_at": "2026-09-23T17:16:50.719Z",
+  "summary": {
+    "batches": {
+      "first": {
+        "runs": 8,
+        "succeeded": 8,
+        "llm_steps": 24,
+        "first_pass": 4,
+        "first_pass_pct": 17,
+        "schema_rejections": 27,
+        "rejections_per_step": 1.13,
+        "attempts_lost_to_overlap": 5,
+        "cost_usd": 4.6575,
+        "avg_elapsed_minutes": 5.8
+      },
+      "rerun": {
+        "runs": 3,
+        "succeeded": 3,
+        "llm_steps": 10,
+        "first_pass": 9,
+        "first_pass_pct": 90,
+        "schema_rejections": 1,
+        "rejections_per_step": 0.1,
+        "attempts_lost_to_overlap": 0,
+        "cost_usd": 1.1927,
+        "avg_elapsed_minutes": 2.9
+      }
+    },
+    "runs": 11,
+    "succeeded": 11,
+    "success_pct": 100,
+    "llm_steps_done": 34,
+    "llm_steps_first_pass": 13,
+    "llm_first_pass_pct": 38,
+    "schema_rejections": 28,
+    "gate_failures": 0,
+    "integration_releases": 1,
+    "human_decisions": 11,
+    "human_correct": 11,
+    "human_avg_wait_seconds": 95,
+    "total_cost_usd": 5.8502,
+    "total_credits": 0,
+    "avg_elapsed_minutes": 5
+  },
+  "results": [
+    {
+      "run": "p2p-101",
+      "requisition": "PR-2026-101",
+      "label": "clean order, under limit",
+      "expected": "paid",
+      "actual": "paid",
+      "success": true,
+      "status": "done",
+      "batch": "first",
+      "started_at": "2026-09-23T16:42:12.377Z",
+      "finished_at": "2026-09-23T16:44:34.615999+00:00",
+      "elapsed_minutes": 2.4,
+      "cost_usd": 0.616,
+      "cost_credits": 0,
+      "human": {
+        "verdict": "approve",
+        "reason": "Within my authority (5520 EUR of 10000), approved vendor Nordlicht Computing GmbH, prices at catalogue, cost centre CC-410. Buyer note: Total 5,520.00 EUR falls in the 2,000.01-10,000 band, so manager approval is required. Vendor V-1001 is approved. Requisition estimates match the catalogue prices (1,200.00 and 180.00), so no price differences.",
+        "waited_seconds": 31,
+        "think_seconds": 30,
+        "forgotten": false,
+        "nudged": false
+      },
+      "steps": [
+        {
+          "key": "TSK-0830",
+          "step": "Raise purchase order",
+          "role": "buyer",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 1,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:42:12.377Z",
+          "finished_at": "2026-09-23T16:42:31.101Z",
+          "cost_usd": 0.3088,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "purchase_order",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "NL-LT14",
+                    "item": "Nordlicht Pro 14 laptop, 32 GB, 1 TB",
+                    "line": 1,
+                    "unit": "each",
+                    "quantity": 4,
+                    "line_total": 4800,
+                    "unit_price": 1200,
+                    "description": "Nordlicht Pro 14 laptop, 32 GB, 1 TB"
+                  },
+                  {
+                    "sku": "NL-DOCK",
+                    "item": "USB-C docking station",
+                    "line": 2,
+                    "unit": "each",
+                    "quantity": 4,
+                    "line_total": 720,
+                    "unit_price": 180,
+                    "description": "USB-C docking station"
+                  }
+                ],
+                "total": 5520,
+                "vendor": {
+                  "id": "V-1001",
+                  "name": "Nordlicht Computing GmbH",
+                  "email": "orders@nordlicht-computing.example"
+                },
+                "currency": "EUR",
+                "needed_by": "2026-10-09",
+                "po_number": "PO-2026-101",
+                "vendor_id": "V-1001",
+                "deliver_to": "Goods-in, Unit 4, Northwest Business Park, Dublin 15",
+                "cost_center": "CC-410",
+                "requisition": "PR-2026-101",
+                "vendor_name": "Nordlicht Computing GmbH",
+                "policy_check": {
+                  "notes": "Total 5,520.00 EUR falls in the 2,000.01-10,000 band, so manager approval is required. Vendor V-1001 is approved. Requisition estimates match the catalogue prices (1,200.00 and 180.00), so no price differences.",
+                  "approver_level": "manager",
+                  "vendor_approved": true,
+                  "approval_required": true
+                },
+                "payment_terms": "30 days"
+              },
+              "created_at": "2026-09-23T16:42:31.053136+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0831",
+          "step": "Approve purchase order",
+          "role": "operator",
+          "state": "done",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:43:10.679Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "review",
+              "content": {
+                "summary": "Within my authority (5520 EUR of 10000), approved vendor Nordlicht Computing GmbH, prices at catalogue, cost centre CC-410. Buyer note: Total 5,520.00 EUR falls in the 2,000.01-10,000 band, so manager approval is required. Vendor V-1001 is approved. Requisition estimates match the catalogue prices (1,200.00 and 180.00), so no price differences.",
+                "verdict": "approve",
+                "findings": []
+              },
+              "created_at": "2026-09-23T16:43:10.679591+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0832",
+          "step": "Send PO to supplier (ERP integration)",
+          "role": "supplier-erp",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:43:12.643Z",
+          "finished_at": "2026-09-23T16:43:15.947Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "review",
+            "task": "7db071c0-d010-4e42-9e5a-60c152203bd4",
+            "field": "verdict",
+            "equals": "approve",
+            "gateway": "approved",
+            "outcome": "yes"
+          },
+          "artefacts": [
+            {
+              "kind": "invoice",
+              "content": {
+                "tax": 0,
+                "bank": {
+                  "bic": "COBADEFFXXX",
+                  "iban": "DE89370400440532013000"
+                },
+                "lines": [
+                  {
+                    "sku": "NL-LT14",
+                    "item": "Nordlicht Pro 14 laptop, 32 GB, 1 TB",
+                    "line": 1,
+                    "quantity": 4,
+                    "line_total": 4800,
+                    "unit_price": 1200
+                  },
+                  {
+                    "sku": "NL-DOCK",
+                    "item": "USB-C docking station",
+                    "line": 2,
+                    "quantity": 4,
+                    "line_total": 720,
+                    "unit_price": 180
+                  }
+                ],
+                "total": 5520,
+                "due_at": "2026-10-27",
+                "vendor": "Nordlicht Computing GmbH",
+                "currency": "EUR",
+                "subtotal": 5520,
+                "issued_at": "2026-09-27",
+                "po_number": "PO-2026-101",
+                "email_path": "inbox/invoices/INV-2026-101.eml",
+                "document_path": "inbox/invoices/INV-2026-101.pdf",
+                "invoice_number": "INV-2026-101"
+              },
+              "created_at": "2026-09-23T16:43:15.899279+00:00"
+            },
+            {
+              "kind": "delivery_note",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "NL-LT14",
+                    "item": "Nordlicht Pro 14 laptop, 32 GB, 1 TB",
+                    "line": 1,
+                    "quantity_shipped": 4
+                  },
+                  {
+                    "sku": "NL-DOCK",
+                    "item": "USB-C docking station",
+                    "line": 2,
+                    "quantity_shipped": 4
+                  }
+                ],
+                "vendor": "Nordlicht Computing GmbH",
+                "carrier": "DHL Freight",
+                "tracking": "DHL1010042IE",
+                "po_number": "PO-2026-101",
+                "email_path": "inbox/deliveries/DN-2026-101.eml",
+                "shipped_at": "2026-09-26",
+                "document_path": "inbox/deliveries/DN-2026-101.pdf",
+                "delivery_note_number": "DN-2026-101"
+              },
+              "created_at": "2026-09-23T16:43:15.546452+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0833",
+          "step": "Rework note to requester",
+          "role": "buyer",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:43:10.679Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "review",
+            "task": "7db071c0-d010-4e42-9e5a-60c152203bd4",
+            "field": "verdict",
+            "equals": "request_changes",
+            "gateway": "approved",
+            "outcome": "no"
+          },
+          "artefacts": []
+        },
+        {
+          "key": "TSK-0834",
+          "step": "Book goods receipt",
+          "role": "receiving",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 1,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:43:38.528Z",
+          "finished_at": "2026-09-23T16:43:53.123Z",
+          "cost_usd": 0.1527,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "goods_receipt",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "NL-LT14",
+                    "item": "Nordlicht Pro 14 laptop, 32 GB, 1 TB",
+                    "line": 1,
+                    "condition": "good",
+                    "quantity_ordered": 4,
+                    "quantity_received": 4
+                  },
+                  {
+                    "sku": "NL-DOCK",
+                    "item": "USB-C docking station",
+                    "line": 2,
+                    "condition": "good",
+                    "quantity_ordered": 4,
+                    "quantity_received": 4
+                  }
+                ],
+                "complete": true,
+                "po_number": "PO-2026-101",
+                "grn_number": "GRN-2026-2026101",
+                "received_at": "2026-09-27",
+                "received_by": "receiving (baton)",
+                "discrepancies": [],
+                "delivery_note_number": "DN-2026-101"
+              },
+              "created_at": "2026-09-23T16:43:53.082393+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0835",
+          "step": "Three-way match",
+          "role": "ap-clerk",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 1,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:44:13.037Z",
+          "finished_at": "2026-09-23T16:44:28.391Z",
+          "cost_usd": 0.1545,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "invoice_match",
+              "content": {
+                "lines": [
+                  {
+                    "ok": true,
+                    "sku": "NL-LT14",
+                    "line": 1,
+                    "variance": "",
+                    "ordered_qty": 4,
+                    "invoiced_qty": 4,
+                    "received_qty": 4,
+                    "po_unit_price": 1200,
+                    "invoice_unit_price": 1200
+                  },
+                  {
+                    "ok": true,
+                    "sku": "NL-DOCK",
+                    "line": 2,
+                    "variance": "",
+                    "ordered_qty": 4,
+                    "invoiced_qty": 4,
+                    "received_qty": 4,
+                    "po_unit_price": 180,
+                    "invoice_unit_price": 180
+                  }
+                ],
+                "status": "matched",
+                "summary": "INV-2026-101 matches PO-2026-101 and GRN-2026-2026101 on both lines; 5,520.00 EUR payable.",
+                "currency": "EUR",
+                "po_number": "PO-2026-101",
+                "variances": [],
+                "grn_number": "GRN-2026-2026101",
+                "invoice_total": 5520,
+                "matched_total": 5520,
+                "amount_payable": 5520,
+                "invoice_number": "INV-2026-101"
+              },
+              "created_at": "2026-09-23T16:44:28.343191+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0836",
+          "step": "Schedule payment (bank integration)",
+          "role": "bank",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:44:31.685Z",
+          "finished_at": "2026-09-23T16:44:34.615Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "invoice_match",
+            "task": "2dc52353-1fbb-4278-82d6-66494070e4de",
+            "field": "status",
+            "equals": "matched",
+            "gateway": "matched",
+            "outcome": "ok"
+          },
+          "artefacts": [
+            {
+              "kind": "payment",
+              "content": {
+                "amount": 5520,
+                "status": "scheduled",
+                "vendor": "Nordlicht Computing GmbH",
+                "currency": "EUR",
+                "po_number": "PO-2026-101",
+                "beneficiary": {
+                  "iban": "DE89370400440532013000",
+                  "name": "Nordlicht Computing GmbH"
+                },
+                "payment_ref": "PAY-2026-101",
+                "scheduled_for": "2026-10-27",
+                "invoice_number": "INV-2026-101",
+                "remittance_path": "outbox/remittance-INV-2026-101.eml"
+              },
+              "created_at": "2026-09-23T16:44:34.568831+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0837",
+          "step": "Dispute the invoice",
+          "role": "ap-clerk",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:44:28.391Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "invoice_match",
+            "task": "2dc52353-1fbb-4278-82d6-66494070e4de",
+            "field": "status",
+            "equals": "mismatched",
+            "gateway": "matched",
+            "outcome": "bad"
+          },
+          "artefacts": []
+        }
+      ]
+    },
+    {
+      "run": "p2p-102",
+      "requisition": "PR-2026-102",
+      "label": "clean order, two lines",
+      "expected": "paid",
+      "actual": "paid",
+      "success": true,
+      "status": "done",
+      "batch": "first",
+      "started_at": "2026-09-23T16:42:46.325Z",
+      "finished_at": "2026-09-23T16:46:19.324362+00:00",
+      "elapsed_minutes": 3.5,
+      "cost_usd": 0.4799,
+      "cost_credits": 0,
+      "human": {
+        "verdict": "approve",
+        "reason": "Within my authority (2285 EUR of 10000), approved vendor Atlantic Office Supplies Ltd, prices at catalogue, cost centre CC-120. Buyer note: Total 2,285.00 EUR exceeds 2,000 so manager approval is required (within manager limit of 10,000). Vendor V-1002 is approved. Requisition prices match catalogue prices; no differences.",
+        "waited_seconds": 106,
+        "think_seconds": 50,
+        "forgotten": true,
+        "nudged": true
+      },
+      "steps": [
+        {
+          "key": "TSK-0838",
+          "step": "Raise purchase order",
+          "role": "buyer",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 1,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:42:46.325Z",
+          "finished_at": "2026-09-23T16:43:03.563Z",
+          "cost_usd": 0.1961,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "purchase_order",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "AO-CHAIR",
+                    "item": "Ergonomic task chair",
+                    "line": 1,
+                    "unit": "each",
+                    "quantity": 6,
+                    "line_total": 2040,
+                    "unit_price": 340,
+                    "description": "Ergonomic task chair"
+                  },
+                  {
+                    "sku": "AO-PAPER",
+                    "item": "Copy paper A4, box of 5 reams",
+                    "line": 2,
+                    "unit": "box",
+                    "quantity": 10,
+                    "line_total": 245,
+                    "unit_price": 24.5,
+                    "description": "Copy paper A4, box of 5 reams"
+                  }
+                ],
+                "total": 2285,
+                "vendor": {
+                  "id": "V-1002",
+                  "name": "Atlantic Office Supplies Ltd",
+                  "email": "sales@atlantic-office.example",
+                  "payment_terms": "30 days"
+                },
+                "currency": "EUR",
+                "po_number": "PO-2026-102",
+                "vendor_id": "V-1002",
+                "cost_center": "CC-120",
+                "requisition": "PR-2026-102",
+                "policy_check": {
+                  "notes": "Total 2,285.00 EUR exceeds 2,000 so manager approval is required (within manager limit of 10,000). Vendor V-1002 is approved. Requisition prices match catalogue prices; no differences.",
+                  "approver_level": "manager",
+                  "vendor_approved": true,
+                  "approval_required": true
+                }
+              },
+              "created_at": "2026-09-23T16:43:03.514875+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0839",
+          "step": "Approve purchase order",
+          "role": "operator",
+          "state": "done",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:45:06.224Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "review",
+              "content": {
+                "summary": "Within my authority (2285 EUR of 10000), approved vendor Atlantic Office Supplies Ltd, prices at catalogue, cost centre CC-120. Buyer note: Total 2,285.00 EUR exceeds 2,000 so manager approval is required (within manager limit of 10,000). Vendor V-1002 is approved. Requisition prices match catalogue prices; no differences.",
+                "verdict": "approve",
+                "findings": []
+              },
+              "created_at": "2026-09-23T16:45:06.224226+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0840",
+          "step": "Send PO to supplier (ERP integration)",
+          "role": "supplier-erp",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:45:08.756Z",
+          "finished_at": "2026-09-23T16:45:11.864Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "review",
+            "task": "f3d0ef59-c47c-487b-8591-16e84be6cd7b",
+            "field": "verdict",
+            "equals": "approve",
+            "gateway": "approved",
+            "outcome": "yes"
+          },
+          "artefacts": [
+            {
+              "kind": "invoice",
+              "content": {
+                "tax": 0,
+                "bank": {
+                  "bic": "AIBKIE2D",
+                  "iban": "IE29AIBK93115212345678"
+                },
+                "lines": [
+                  {
+                    "sku": "AO-CHAIR",
+                    "item": "Ergonomic task chair",
+                    "line": 1,
+                    "quantity": 6,
+                    "line_total": 2040,
+                    "unit_price": 340
+                  },
+                  {
+                    "sku": "AO-PAPER",
+                    "item": "Copy paper A4, box of 5 reams",
+                    "line": 2,
+                    "quantity": 10,
+                    "line_total": 245,
+                    "unit_price": 24.5
+                  }
+                ],
+                "total": 2285,
+                "due_at": "2026-10-27",
+                "vendor": "Atlantic Office Supplies Ltd",
+                "currency": "EUR",
+                "subtotal": 2285,
+                "issued_at": "2026-09-27",
+                "po_number": "PO-2026-102",
+                "email_path": "inbox/invoices/INV-2026-102.eml",
+                "document_path": "inbox/invoices/INV-2026-102.pdf",
+                "invoice_number": "INV-2026-102"
+              },
+              "created_at": "2026-09-23T16:45:11.817648+00:00"
+            },
+            {
+              "kind": "delivery_note",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "AO-CHAIR",
+                    "item": "Ergonomic task chair",
+                    "line": 1,
+                    "quantity_shipped": 6
+                  },
+                  {
+                    "sku": "AO-PAPER",
+                    "item": "Copy paper A4, box of 5 reams",
+                    "line": 2,
+                    "quantity_shipped": 10
+                  }
+                ],
+                "vendor": "Atlantic Office Supplies Ltd",
+                "carrier": "DHL Freight",
+                "tracking": "DHL1020042IE",
+                "po_number": "PO-2026-102",
+                "email_path": "inbox/deliveries/DN-2026-102.eml",
+                "shipped_at": "2026-09-26",
+                "document_path": "inbox/deliveries/DN-2026-102.pdf",
+                "delivery_note_number": "DN-2026-102"
+              },
+              "created_at": "2026-09-23T16:45:11.552735+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0841",
+          "step": "Rework note to requester",
+          "role": "buyer",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:45:06.224Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "review",
+            "task": "f3d0ef59-c47c-487b-8591-16e84be6cd7b",
+            "field": "verdict",
+            "equals": "request_changes",
+            "gateway": "approved",
+            "outcome": "no"
+          },
+          "artefacts": []
+        },
+        {
+          "key": "TSK-0842",
+          "step": "Book goods receipt",
+          "role": "receiving",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 1,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:45:21.378Z",
+          "finished_at": "2026-09-23T16:45:36.402Z",
+          "cost_usd": 0.1406,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "goods_receipt",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "AO-CHAIR",
+                    "item": "Ergonomic task chair",
+                    "line": 1,
+                    "condition": "good",
+                    "quantity_ordered": 6,
+                    "quantity_received": 6
+                  },
+                  {
+                    "sku": "AO-PAPER",
+                    "item": "Copy paper A4, box of 5 reams",
+                    "line": 2,
+                    "condition": "good",
+                    "quantity_ordered": 10,
+                    "quantity_received": 10
+                  }
+                ],
+                "complete": true,
+                "po_number": "PO-2026-102",
+                "grn_number": "GRN-2026-102",
+                "received_at": "2026-09-27",
+                "received_by": "receiving (baton)",
+                "discrepancies": []
+              },
+              "created_at": "2026-09-23T16:45:36.354689+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0843",
+          "step": "Three-way match",
+          "role": "ap-clerk",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 1,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:45:55.703Z",
+          "finished_at": "2026-09-23T16:46:09.763Z",
+          "cost_usd": 0.1432,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "invoice_match",
+              "content": {
+                "lines": [
+                  {
+                    "ok": true,
+                    "sku": "AO-CHAIR",
+                    "line": 1,
+                    "variance": "",
+                    "ordered_qty": 6,
+                    "invoiced_qty": 6,
+                    "received_qty": 6,
+                    "po_unit_price": 340,
+                    "invoice_unit_price": 340
+                  },
+                  {
+                    "ok": true,
+                    "sku": "AO-PAPER",
+                    "line": 2,
+                    "variance": "",
+                    "ordered_qty": 10,
+                    "invoiced_qty": 10,
+                    "received_qty": 10,
+                    "po_unit_price": 24.5,
+                    "invoice_unit_price": 24.5
+                  }
+                ],
+                "status": "matched",
+                "summary": "INV-2026-102 matches PO-2026-102 and GRN-2026-102 on all lines; 2,285.00 EUR payable.",
+                "currency": "EUR",
+                "po_number": "PO-2026-102",
+                "variances": [],
+                "grn_number": "GRN-2026-102",
+                "invoice_total": 2285,
+                "matched_total": 2285,
+                "amount_payable": 2285,
+                "invoice_number": "INV-2026-102"
+              },
+              "created_at": "2026-09-23T16:46:09.719543+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0844",
+          "step": "Schedule payment (bank integration)",
+          "role": "bank",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:46:16.336Z",
+          "finished_at": "2026-09-23T16:46:19.324Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "invoice_match",
+            "task": "ade3edf6-7ea0-4834-8377-5a5d24f87658",
+            "field": "status",
+            "equals": "matched",
+            "gateway": "matched",
+            "outcome": "ok"
+          },
+          "artefacts": [
+            {
+              "kind": "payment",
+              "content": {
+                "amount": 2285,
+                "status": "scheduled",
+                "vendor": "Atlantic Office Supplies Ltd",
+                "currency": "EUR",
+                "po_number": "PO-2026-102",
+                "beneficiary": {
+                  "iban": "IE29AIBK93115212345678",
+                  "name": "Atlantic Office Supplies Ltd"
+                },
+                "payment_ref": "PAY-2026-102",
+                "scheduled_for": "2026-10-27",
+                "invoice_number": "INV-2026-102",
+                "remittance_path": "outbox/remittance-INV-2026-102.eml"
+              },
+              "created_at": "2026-09-23T16:46:19.276672+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0845",
+          "step": "Dispute the invoice",
+          "role": "ap-clerk",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:46:09.763Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "invoice_match",
+            "task": "ade3edf6-7ea0-4834-8377-5a5d24f87658",
+            "field": "status",
+            "equals": "mismatched",
+            "gateway": "matched",
+            "outcome": "bad"
+          },
+          "artefacts": []
+        }
+      ]
+    },
+    {
+      "run": "p2p-103",
+      "requisition": "PR-2026-103",
+      "label": "over the approver limit (director level)",
+      "expected": "rejected",
+      "actual": "rejected",
+      "success": true,
+      "status": "done",
+      "batch": "first",
+      "started_at": "2026-09-23T16:43:20.165Z",
+      "finished_at": "2026-09-23T16:47:15.71966+00:00",
+      "elapsed_minutes": 3.9,
+      "cost_usd": 0.2292,
+      "cost_credits": 0,
+      "human": {
+        "verdict": "reject",
+        "reason": "escalate: 25200 EUR is above my authority of 10000; needs director sign-off",
+        "waited_seconds": 25,
+        "think_seconds": 24,
+        "forgotten": false,
+        "nudged": false
+      },
+      "steps": [
+        {
+          "key": "TSK-0846",
+          "step": "Raise purchase order",
+          "role": "buyer",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 1,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:43:20.165Z",
+          "finished_at": "2026-09-23T16:43:34.049Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "purchase_order",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "NL-SRV2U",
+                    "item": "Rack server 2U, 2x CPU, 256 GB",
+                    "line": 1,
+                    "unit": "each",
+                    "quantity": 3,
+                    "line_total": 25200,
+                    "unit_price": 8400,
+                    "description": "Rack server 2U, 2x CPU, 256 GB"
+                  }
+                ],
+                "total": 25200,
+                "vendor": {
+                  "id": "V-1001",
+                  "name": "Nordlicht Computing GmbH",
+                  "email": "orders@nordlicht-computing.example"
+                },
+                "currency": "EUR",
+                "needed_by": "2026-11-01",
+                "po_number": "PO-2026-103",
+                "vendor_id": "V-1001",
+                "deliver_to": "Goods-in, Unit 4, Northwest Business Park, Dublin 15",
+                "cost_center": "CC-430",
+                "requisition": "PR-2026-103",
+                "policy_check": {
+                  "notes": "Total 25,200.00 EUR falls in the 10,000.01-50,000 band, so director approval is required. Every PO goes to the approval step, but the approver's authority is manager level (limit 10,000), so this order exceeds their authority and should be rejected with reason 'escalate' for routing to a director. Vendor V-1001 is approved. Requisition estimated price 8,400.00 matches the catalogue price; no difference.",
+                  "approver_level": "director",
+                  "vendor_approved": true,
+                  "approval_required": true
+                },
+                "payment_terms": "30 days"
+              },
+              "created_at": "2026-09-23T16:43:34.005811+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0847",
+          "step": "Approve purchase order",
+          "role": "operator",
+          "state": "done",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:44:04.793Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "review",
+              "content": {
+                "summary": "escalate: 25200 EUR is above my authority of 10000; needs director sign-off",
+                "verdict": "request_changes",
+                "findings": []
+              },
+              "created_at": "2026-09-23T16:44:04.793981+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0848",
+          "step": "Send PO to supplier (ERP integration)",
+          "role": "supplier-erp",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:44:04.793Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "review",
+            "task": "c80f3f26-bfe9-4999-971c-8d71dbfa9943",
+            "field": "verdict",
+            "equals": "approve",
+            "gateway": "approved",
+            "outcome": "yes"
+          },
+          "artefacts": []
+        },
+        {
+          "key": "TSK-0849",
+          "step": "Rework note to requester",
+          "role": "buyer",
+          "state": "done",
+          "attempts": 2,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [
+            "session ended: daemon:completed"
+          ],
+          "first_claim": "2026-09-23T16:46:45.485Z",
+          "finished_at": "2026-09-23T16:47:15.719Z",
+          "cost_usd": 0.2292,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "review",
+            "task": "c80f3f26-bfe9-4999-971c-8d71dbfa9943",
+            "field": "verdict",
+            "equals": "request_changes",
+            "gateway": "approved",
+            "outcome": "no"
+          },
+          "artefacts": [
+            {
+              "kind": "handoff",
+              "content": {
+                "caveats": [
+                  "Rejection reason is escalation for authority level, not a vendor, price or quantity issue.",
+                  "Approver authority is manager level (limit 10,000 EUR); director sign-off is required for the 25,200.00 EUR total.",
+                  "Order needed by 2026-11-01, so director approval should be sought promptly to protect that date."
+                ],
+                "details": "The order itself is not wrong: vendor V-1001 is approved, and the unit price of 8,400.00 EUR matches the catalogue. The rejection is only about approval level. At 25,200.00 EUR the order is in the 10,000.01-50,000 band, which requires director approval. Before resubmitting, route PO-2026-103 to a director for sign-off; no change to lines, quantities or prices is needed unless the requester wants to reduce the scope. If the requester changes the quantity or vendor, the buyer will re-raise the order and re-run the policy check.",
+                "summary": "PO-2026-103 (PR-2026-103, Nordlicht Computing GmbH, 3 x NL-SRV2U rack server, total 25,200.00 EUR) was rejected by the approver with reason 'escalate': 25,200 EUR is above the approver's authority of 10,000 and needs director sign-off."
+              },
+              "created_at": "2026-09-23T16:47:15.672841+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0850",
+          "step": "Book goods receipt",
+          "role": "receiving",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:44:04.793Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": []
+        },
+        {
+          "key": "TSK-0851",
+          "step": "Three-way match",
+          "role": "ap-clerk",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:44:04.793Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": []
+        },
+        {
+          "key": "TSK-0852",
+          "step": "Schedule payment (bank integration)",
+          "role": "bank",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:44:04.793Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "invoice_match",
+            "task": "92c75ddc-35c2-43f1-b73b-8ae88e40a213",
+            "field": "status",
+            "equals": "matched",
+            "gateway": "matched",
+            "outcome": "ok"
+          },
+          "artefacts": []
+        },
+        {
+          "key": "TSK-0853",
+          "step": "Dispute the invoice",
+          "role": "ap-clerk",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:44:04.793Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "invoice_match",
+            "task": "92c75ddc-35c2-43f1-b73b-8ae88e40a213",
+            "field": "status",
+            "equals": "mismatched",
+            "gateway": "matched",
+            "outcome": "bad"
+          },
+          "artefacts": []
+        }
+      ]
+    },
+    {
+      "run": "p2p-104",
+      "requisition": "PR-2026-104",
+      "label": "supplier overbills unit price (+11%)",
+      "expected": "disputed",
+      "actual": "disputed",
+      "success": true,
+      "status": "done",
+      "batch": "first",
+      "started_at": "2026-09-23T16:43:37.672Z",
+      "finished_at": "2026-09-23T16:49:49.42586+00:00",
+      "elapsed_minutes": 6.2,
+      "cost_usd": 0.5637,
+      "cost_credits": 0,
+      "human": {
+        "verdict": "approve",
+        "reason": "Within my authority (2050 EUR of 10000), approved vendor Nordlicht Computing GmbH, prices at catalogue, cost centre CC-220. Buyer note: Total 2,050.00 EUR exceeds the 2,000 buyer limit, so manager approval is required (within the approver's 10,000 authority). Vendor V-1001 is approved. Requisition unit price 410.00 matches the catalogue price 410.00; no difference. Note: the covering email subject mentions a supplier overbilling (+11%), which is not reflected in the requisition or catalogue; ordered at the contracted price.",
+        "waited_seconds": 155,
+        "think_seconds": 41,
+        "forgotten": false,
+        "nudged": false
+      },
+      "steps": [
+        {
+          "key": "TSK-0854",
+          "step": "Raise purchase order",
+          "role": "buyer",
+          "state": "done",
+          "attempts": 2,
+          "artifact_rejected": 5,
+          "gate_failed": 0,
+          "released": [
+            "session ended: daemon:completed"
+          ],
+          "first_claim": "2026-09-23T16:43:37.672Z",
+          "finished_at": "2026-09-23T16:44:24.825Z",
+          "cost_usd": 0.3972,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "purchase_order",
+              "content": {
+                "id": "PO-2026-104",
+                "lines": [
+                  {
+                    "id": "1",
+                    "sku": "NL-MON27",
+                    "item": "27-inch 4K monitor",
+                    "line": 1,
+                    "unit": "each",
+                    "quantity": 5,
+                    "line_total": 2050,
+                    "unit_price": 410,
+                    "description": "27-inch 4K monitor"
+                  }
+                ],
+                "total": 2050,
+                "vendor": {
+                  "id": "V-1001",
+                  "name": "Nordlicht Computing GmbH",
+                  "email": "orders@nordlicht-computing.example",
+                  "vendor_id": "V-1001"
+                },
+                "currency": "EUR",
+                "po_number": "PO-2026-104",
+                "vendor_id": "V-1001",
+                "cost_center": "CC-220",
+                "requisition": "PR-2026-104",
+                "vendor_name": "Nordlicht Computing GmbH",
+                "policy_check": {
+                  "notes": "Total 2,050.00 EUR exceeds the 2,000 buyer limit, so manager approval is required (within the approver's 10,000 authority). Vendor V-1001 is approved. Requisition unit price 410.00 matches the catalogue price 410.00; no difference. Note: the covering email subject mentions a supplier overbilling (+11%), which is not reflected in the requisition or catalogue; ordered at the contracted price.",
+                  "approver_level": "manager",
+                  "vendor_approved": true,
+                  "approval_required": true
+                },
+                "payment_terms": "30 days"
+              },
+              "created_at": "2026-09-23T16:44:24.785313+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0855",
+          "step": "Approve purchase order",
+          "role": "operator",
+          "state": "done",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:46:50.437Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "review",
+              "content": {
+                "summary": "Within my authority (2050 EUR of 10000), approved vendor Nordlicht Computing GmbH, prices at catalogue, cost centre CC-220. Buyer note: Total 2,050.00 EUR exceeds the 2,000 buyer limit, so manager approval is required (within the approver's 10,000 authority). Vendor V-1001 is approved. Requisition unit price 410.00 matches the catalogue price 410.00; no difference. Note: the covering email subject mentions a supplier overbilling (+11%), which is not reflected in the requisition or catalogue; ordered at the contracted price.",
+                "verdict": "approve",
+                "findings": []
+              },
+              "created_at": "2026-09-23T16:46:50.437752+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0856",
+          "step": "Send PO to supplier (ERP integration)",
+          "role": "supplier-erp",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:46:57.933Z",
+          "finished_at": "2026-09-23T16:47:00.933Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "review",
+            "task": "2d9358f1-fb10-4f0d-80cf-bb770aa24f21",
+            "field": "verdict",
+            "equals": "approve",
+            "gateway": "approved",
+            "outcome": "yes"
+          },
+          "artefacts": [
+            {
+              "kind": "invoice",
+              "content": {
+                "tax": 0,
+                "bank": {
+                  "bic": "COBADEFFXXX",
+                  "iban": "DE89370400440532013000"
+                },
+                "lines": [
+                  {
+                    "sku": "NL-MON27",
+                    "item": "27-inch 4K monitor",
+                    "line": 1,
+                    "quantity": 5,
+                    "line_total": 2275,
+                    "unit_price": 455
+                  }
+                ],
+                "total": 2275,
+                "due_at": "2026-10-27",
+                "vendor": "Nordlicht Computing GmbH",
+                "currency": "EUR",
+                "subtotal": 2275,
+                "issued_at": "2026-09-27",
+                "po_number": "PO-2026-104",
+                "email_path": "inbox/invoices/INV-2026-104.eml",
+                "document_path": "inbox/invoices/INV-2026-104.pdf",
+                "invoice_number": "INV-2026-104"
+              },
+              "created_at": "2026-09-23T16:47:00.889679+00:00"
+            },
+            {
+              "kind": "delivery_note",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "NL-MON27",
+                    "item": "27-inch 4K monitor",
+                    "line": 1,
+                    "quantity_shipped": 5
+                  }
+                ],
+                "vendor": "Nordlicht Computing GmbH",
+                "carrier": "DHL Freight",
+                "tracking": "DHL1040042IE",
+                "po_number": "PO-2026-104",
+                "email_path": "inbox/deliveries/DN-2026-104.eml",
+                "shipped_at": "2026-09-26",
+                "document_path": "inbox/deliveries/DN-2026-104.pdf",
+                "delivery_note_number": "DN-2026-104"
+              },
+              "created_at": "2026-09-23T16:47:00.611956+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0857",
+          "step": "Rework note to requester",
+          "role": "buyer",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:46:50.437Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "review",
+            "task": "2d9358f1-fb10-4f0d-80cf-bb770aa24f21",
+            "field": "verdict",
+            "equals": "request_changes",
+            "gateway": "approved",
+            "outcome": "no"
+          },
+          "artefacts": []
+        },
+        {
+          "key": "TSK-0858",
+          "step": "Book goods receipt",
+          "role": "receiving",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 1,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:47:20.447Z",
+          "finished_at": "2026-09-23T16:47:34.061Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "goods_receipt",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "NL-MON27",
+                    "item": "27-inch 4K monitor",
+                    "line": 1,
+                    "condition": "good",
+                    "quantity_ordered": 5,
+                    "quantity_received": 5
+                  }
+                ],
+                "complete": true,
+                "po_number": "PO-2026-104",
+                "grn_number": "GRN-2026-104",
+                "received_at": "2026-09-27T09:40:00",
+                "received_by": "receiving (baton)",
+                "discrepancies": [],
+                "delivery_note_number": "DN-2026-104"
+              },
+              "created_at": "2026-09-23T16:47:34.020786+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0859",
+          "step": "Three-way match",
+          "role": "ap-clerk",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 1,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:47:38.050Z",
+          "finished_at": "2026-09-23T16:47:54.647Z",
+          "cost_usd": 0.091,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "invoice_match",
+              "content": {
+                "lines": [
+                  {
+                    "ok": false,
+                    "sku": "NL-MON27",
+                    "line": 1,
+                    "variance": "Unit price 455.00 exceeds PO price 410.00 by 45.00 (10.98%), above the 1% tolerance (max 414.10). Quantity matches: 5 ordered, 5 received good, 5 invoiced.",
+                    "ordered_qty": 5,
+                    "invoiced_qty": 5,
+                    "received_qty": 5,
+                    "po_unit_price": 410,
+                    "invoice_unit_price": 455
+                  }
+                ],
+                "status": "mismatched",
+                "summary": "INV-2026-104 mismatched: unit price 455.00 vs PO 410.00 (+10.98%, tolerance 1%); nothing payable.",
+                "currency": "EUR",
+                "po_number": "PO-2026-104",
+                "variances": [
+                  "Line 1 NL-MON27: invoice unit price 455.00 vs PO 410.00 = +45.00 per unit (+10.98%), tolerance is 1%. Overbilled 225.00 over 5 units.",
+                  "Invoice total 2,275.00 does not equal the matched-line total 2,050.00 (PO value); difference 225.00."
+                ],
+                "grn_number": "GRN-2026-104",
+                "amount_payable": 0,
+                "invoice_number": "INV-2026-104"
+              },
+              "created_at": "2026-09-23T16:47:54.606432+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0860",
+          "step": "Schedule payment (bank integration)",
+          "role": "bank",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:47:54.647Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "invoice_match",
+            "task": "4f42e06b-31a9-42fb-8e79-518cf9618047",
+            "field": "status",
+            "equals": "matched",
+            "gateway": "matched",
+            "outcome": "ok"
+          },
+          "artefacts": []
+        },
+        {
+          "key": "TSK-0861",
+          "step": "Dispute the invoice",
+          "role": "ap-clerk",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:49:32.095Z",
+          "finished_at": "2026-09-23T16:49:49.425Z",
+          "cost_usd": 0.0755,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "invoice_match",
+            "task": "4f42e06b-31a9-42fb-8e79-518cf9618047",
+            "field": "status",
+            "equals": "mismatched",
+            "gateway": "matched",
+            "outcome": "bad"
+          },
+          "artefacts": [
+            {
+              "kind": "handoff",
+              "content": {
+                "caveats": [
+                  "Payment is on hold: amount_payable is 0 and the invoice due date is 2026-10-27, so the dispute needs resolving before then.",
+                  "Buyer to confirm PO price EUR 410.00 is the contracted price if the supplier produces a price amendment.",
+                  "Buyer to follow up if no corrected invoice or credit note of EUR 225.00 arrives.",
+                  "Delivery and quantity are not in dispute (5 received good, 5 invoiced)."
+                ],
+                "details": "Dear Nordlicht Computing GmbH accounts receivable team,\n\nWe have matched your invoice INV-2026-104 (issued 2026-09-27, total EUR 2,275.00) against our purchase order PO-2026-104 and goods receipt GRN-2026-104 (your delivery note DN-2026-104). We cannot release payment because the unit price does not agree with the contract.\n\nLine 1, NL-MON27 (27-inch 4K monitor):\n- Quantity: 5 ordered, 5 received in good condition, 5 invoiced. Quantity agrees.\n- Unit price: invoiced EUR 455.00 against PO price EUR 410.00, i.e. +EUR 45.00 per unit (+10.98%). Our tolerance is 1% (maximum EUR 414.10).\n- Overbilling: 5 x EUR 45.00 = EUR 225.00.\n\nInvoice total EUR 2,275.00 versus the correct value of EUR 2,050.00 (5 x EUR 410.00). Difference: EUR 225.00.\n\nWhat we expect: either (a) a corrected invoice for EUR 2,050.00 with the unit price at EUR 410.00, with INV-2026-104 cancelled, or (b) a credit note for EUR 225.00 referencing INV-2026-104. If you believe a different price was agreed, please send the supporting quotation or contract amendment. Payment of the invoice (due 2026-10-27) is on hold until this is resolved; nothing is payable on the current invoice.\n\nPlease reply quoting PO-2026-104 and INV-2026-104.\n\nKind regards,\nAccounts Payable",
+                "summary": "Invoice INV-2026-104 (PO-2026-104): unit price overbilled by EUR 225.00 - credit note or corrected invoice required"
+              },
+              "created_at": "2026-09-23T16:49:49.384207+00:00"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": "p2p-105",
+      "requisition": "PR-2026-105",
+      "label": "short delivery (8 of 10), invoiced for 10",
+      "expected": "disputed",
+      "actual": "disputed",
+      "success": true,
+      "status": "done",
+      "batch": "first",
+      "started_at": "2026-09-23T16:44:28.968Z",
+      "finished_at": "2026-09-23T17:05:07.338951+00:00",
+      "elapsed_minutes": 20.6,
+      "cost_usd": 1.1653,
+      "cost_credits": 0,
+      "human": {
+        "verdict": "approve",
+        "reason": "Within my authority (6200 EUR of 10000), approved vendor Atlantic Office Supplies Ltd, prices at catalogue, cost centre CC-310. Buyer note: Total 6,200.00 EUR falls in the 2,000.01-10,000 band, so manager approval is needed (within the approver's 10,000 limit). Vendor V-1002 is approved. Requisition estimate 620.00 matches the catalogue price, so there is no price difference. Ordered quantity is 10 as on the requisition form; the covering email subject mentions a short delivery (8 of 10), which does not change the order quantity.",
+        "waited_seconds": 114,
+        "think_seconds": 50,
+        "forgotten": false,
+        "nudged": false
+      },
+      "steps": [
+        {
+          "key": "TSK-0862",
+          "step": "Raise purchase order",
+          "role": "buyer",
+          "state": "done",
+          "attempts": 2,
+          "artifact_rejected": 2,
+          "gate_failed": 0,
+          "released": [
+            "session ended: daemon:completed"
+          ],
+          "first_claim": "2026-09-23T16:44:28.968Z",
+          "finished_at": "2026-09-23T16:45:08.020Z",
+          "cost_usd": 0.4863,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "purchase_order",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "AO-DESK",
+                    "item": "Sit-stand desk 160 cm",
+                    "line": 1,
+                    "unit": "each",
+                    "quantity": 10,
+                    "line_total": 6200,
+                    "unit_price": 620,
+                    "description": "Sit-stand desk 160 cm"
+                  }
+                ],
+                "total": 6200,
+                "vendor": {
+                  "id": "V-1002",
+                  "name": "Atlantic Office Supplies Ltd",
+                  "email": "sales@atlantic-office.example",
+                  "vendor_id": "V-1002",
+                  "payment_terms": "30 days"
+                },
+                "currency": "EUR",
+                "needed_by": "2026-10-20",
+                "po_number": "PO-2026-105",
+                "deliver_to": "Goods-in, Unit 4, Northwest Business Park, Dublin 15",
+                "cost_center": "CC-310",
+                "requisition": "PR-2026-105",
+                "policy_check": {
+                  "notes": "Total 6,200.00 EUR falls in the 2,000.01-10,000 band, so manager approval is needed (within the approver's 10,000 limit). Vendor V-1002 is approved. Requisition estimate 620.00 matches the catalogue price, so there is no price difference. Ordered quantity is 10 as on the requisition form; the covering email subject mentions a short delivery (8 of 10), which does not change the order quantity.",
+                  "approver_level": "manager",
+                  "vendor_approved": true,
+                  "approval_required": true
+                }
+              },
+              "created_at": "2026-09-23T16:45:07.970363+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0863",
+          "step": "Approve purchase order",
+          "role": "operator",
+          "state": "done",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:46:08.308Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "review",
+              "content": {
+                "summary": "Within my authority (6200 EUR of 10000), approved vendor Atlantic Office Supplies Ltd, prices at catalogue, cost centre CC-310. Buyer note: Total 6,200.00 EUR falls in the 2,000.01-10,000 band, so manager approval is needed (within the approver's 10,000 limit). Vendor V-1002 is approved. Requisition estimate 620.00 matches the catalogue price, so there is no price difference. Ordered quantity is 10 as on the requisition form; the covering email subject mentions a short delivery (8 of 10), which does not change the order quantity.",
+                "verdict": "approve",
+                "findings": []
+              },
+              "created_at": "2026-09-23T16:46:08.308512+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0864",
+          "step": "Send PO to supplier (ERP integration)",
+          "role": "supplier-erp",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:46:09.046Z",
+          "finished_at": "2026-09-23T16:46:12.176Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "review",
+            "task": "8948ba76-0ece-4cec-8626-cdff3ac5c3d3",
+            "field": "verdict",
+            "equals": "approve",
+            "gateway": "approved",
+            "outcome": "yes"
+          },
+          "artefacts": [
+            {
+              "kind": "invoice",
+              "content": {
+                "tax": 0,
+                "bank": {
+                  "bic": "AIBKIE2D",
+                  "iban": "IE29AIBK93115212345678"
+                },
+                "lines": [
+                  {
+                    "sku": "AO-DESK",
+                    "item": "Sit-stand desk 160 cm",
+                    "line": 1,
+                    "quantity": 10,
+                    "line_total": 6200,
+                    "unit_price": 620
+                  }
+                ],
+                "total": 6200,
+                "due_at": "2026-10-27",
+                "vendor": "Atlantic Office Supplies Ltd",
+                "currency": "EUR",
+                "subtotal": 6200,
+                "issued_at": "2026-09-27",
+                "po_number": "PO-2026-105",
+                "email_path": "inbox/invoices/INV-2026-105.eml",
+                "document_path": "inbox/invoices/INV-2026-105.pdf",
+                "invoice_number": "INV-2026-105"
+              },
+              "created_at": "2026-09-23T16:46:12.127557+00:00"
+            },
+            {
+              "kind": "delivery_note",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "AO-DESK",
+                    "item": "Sit-stand desk 160 cm",
+                    "line": 1,
+                    "quantity_shipped": 8
+                  }
+                ],
+                "vendor": "Atlantic Office Supplies Ltd",
+                "carrier": "DHL Freight",
+                "tracking": "DHL1050042IE",
+                "po_number": "PO-2026-105",
+                "email_path": "inbox/deliveries/DN-2026-105.eml",
+                "shipped_at": "2026-09-26",
+                "document_path": "inbox/deliveries/DN-2026-105.pdf",
+                "delivery_note_number": "DN-2026-105"
+              },
+              "created_at": "2026-09-23T16:46:11.872548+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0865",
+          "step": "Rework note to requester",
+          "role": "buyer",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:46:08.308Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "review",
+            "task": "8948ba76-0ece-4cec-8626-cdff3ac5c3d3",
+            "field": "verdict",
+            "equals": "request_changes",
+            "gateway": "approved",
+            "outcome": "no"
+          },
+          "artefacts": []
+        },
+        {
+          "key": "TSK-0866",
+          "step": "Book goods receipt",
+          "role": "receiving",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 1,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:46:29.643Z",
+          "finished_at": "2026-09-23T16:46:50.006Z",
+          "cost_usd": 0.108,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "goods_receipt",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "AO-DESK",
+                    "item": "Sit-stand desk 160 cm",
+                    "line": 1,
+                    "condition": "good",
+                    "quantity_ordered": 10,
+                    "quantity_received": 8
+                  }
+                ],
+                "complete": false,
+                "po_number": "PO-2026-105",
+                "grn_number": "GRN-2026-2026105",
+                "received_at": "2026-09-27",
+                "received_by": "receiving (baton)",
+                "discrepancies": [
+                  "Line 1 AO-DESK Sit-stand desk 160 cm: short delivery. 10 ordered, 8 counted by the warehouse, 2 outstanding.",
+                  "Delivery note DN-2026-105 also shows only 8 shipped, so the count matches the note but not the order. The 8 received are undamaged."
+                ],
+                "delivery_note_number": "DN-2026-105"
+              },
+              "created_at": "2026-09-23T16:46:49.956001+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0867",
+          "step": "Three-way match",
+          "role": "ap-clerk",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 1,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:47:03.912Z",
+          "finished_at": "2026-09-23T16:47:20.592Z",
+          "cost_usd": 0.1014,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "invoice_match",
+              "content": {
+                "lines": [
+                  {
+                    "ok": false,
+                    "sku": "AO-DESK",
+                    "line": 1,
+                    "variance": "Invoiced 10 but only 8 received in good condition (2 short, 2 x 620.00 = 1,240.00 EUR over-billed). Unit price 620.00 equals PO price, within 1% tolerance.",
+                    "ordered_qty": 10,
+                    "invoiced_qty": 10,
+                    "received_qty": 8,
+                    "po_unit_price": 620,
+                    "invoice_unit_price": 620
+                  }
+                ],
+                "status": "mismatched",
+                "summary": "INV-2026-105 mismatched: 10 desks invoiced, 8 received; nothing payable until credit note or corrected invoice.",
+                "currency": "EUR",
+                "po_number": "PO-2026-105",
+                "variances": [
+                  "Line 1 AO-DESK: invoiced qty 10 vs received qty 8 (ordered 10); 2 units billed but not delivered, 1,240.00 EUR. Quantity tolerance is none.",
+                  "Invoice total 6,200.00 EUR does not equal the sum of matched lines 4,960.00 EUR (8 x 620.00); difference 1,240.00 EUR."
+                ],
+                "grn_number": "GRN-2026-2026105",
+                "invoice_total": 6200,
+                "matched_total": 4960,
+                "amount_payable": 0,
+                "invoice_number": "INV-2026-105"
+              },
+              "created_at": "2026-09-23T16:47:20.551841+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0868",
+          "step": "Schedule payment (bank integration)",
+          "role": "bank",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:47:20.592Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "invoice_match",
+            "task": "ff8ba20c-7cc4-4ae1-8fd9-bd21a1c019ac",
+            "field": "status",
+            "equals": "matched",
+            "gateway": "matched",
+            "outcome": "ok"
+          },
+          "artefacts": []
+        },
+        {
+          "key": "TSK-0869",
+          "step": "Dispute the invoice",
+          "role": "ap-clerk",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [
+            "session ended: daemon:completed",
+            "session ended: daemon:completed",
+            "session ended: daemon:completed"
+          ],
+          "first_claim": "2026-09-23T16:49:53.997Z",
+          "finished_at": "2026-09-23T17:05:07.338Z",
+          "cost_usd": 0.4696,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "invoice_match",
+            "task": "ff8ba20c-7cc4-4ae1-8fd9-bd21a1c019ac",
+            "field": "status",
+            "equals": "mismatched",
+            "gateway": "matched",
+            "outcome": "bad"
+          },
+          "artefacts": [
+            {
+              "kind": "handoff",
+              "content": {
+                "caveats": [
+                  "Amount payable is 0 until a credit note, corrected invoice, or delivery of the 2 missing desks is received and re-matched.",
+                  "Invoice due date is 2026-10-27; buyer should confirm the supplier reply before then to avoid a late-payment claim.",
+                  "Buyer to confirm whether the 2 missing desks are still required or the PO should be reduced to 8.",
+                  "Invoice was issued 2026-09-27, after the shipping date of 2026-09-26; nothing indicates a second shipment.",
+                  "Email must be sent to the supplier by the buyer or AP; this artefact is the draft only."
+                ],
+                "details": "Dear Atlantic Office Supplies Ltd accounts team,\n\nWe have matched your invoice INV-2026-105 (issued 2026-09-27, total EUR 6,200.00) against our purchase order PO-2026-105, your delivery note DN-2026-105 (DHL Freight, tracking DHL1050042IE) and our goods receipt GRN-2026-2026105. The invoice does not agree and we cannot approve it for payment.\n\nLine 1, AO-DESK Sit-stand desk 160 cm:\n- Ordered (PO-2026-105): 10 at EUR 620.00\n- Shipped per your delivery note DN-2026-105: 8\n- Received in good condition (GRN-2026-2026105): 8\n- Invoiced: 10 at EUR 620.00 = EUR 6,200.00\n\nThe unit price matches the PO. The quantity does not: 2 desks are billed but were not delivered, an over-billing of 2 x EUR 620.00 = EUR 1,240.00. The amount we can reconcile is 8 x EUR 620.00 = EUR 4,960.00.\n\nWhat we expect, either of:\n1. A credit note for EUR 1,240.00 against INV-2026-105, or a corrected invoice for 8 units totalling EUR 4,960.00 (and cancellation of INV-2026-105), if the remaining 2 desks will not be supplied; or\n2. Delivery of the missing 2 desks against PO-2026-105 with a delivery note, after which we will receive them and match the invoice as billed.\n\nPlease reply with which option you will take and the expected date. No payment will be released on INV-2026-105 (due 2026-10-27) until this is resolved.\n\nKind regards,\nAccounts Payable",
+                "summary": "Dispute: Invoice INV-2026-105 / PO-2026-105 - 2 sit-stand desks billed but not delivered (EUR 1,240.00)"
+              },
+              "created_at": "2026-09-23T17:05:07.288916+00:00"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": "p2p-106",
+      "requisition": "PR-2026-106",
+      "label": "vendor not approved",
+      "expected": "rejected",
+      "actual": "rejected",
+      "success": true,
+      "status": "done",
+      "batch": "first",
+      "started_at": "2026-09-23T16:45:20.397Z",
+      "finished_at": "2026-09-23T16:49:15.986421+00:00",
+      "elapsed_minutes": 3.9,
+      "cost_usd": 0.3892,
+      "cost_credits": 0,
+      "human": {
+        "verdict": "reject",
+        "reason": "QuickParts Trading is not an approved vendor; onboard the vendor first or pick an approved one",
+        "waited_seconds": 204,
+        "think_seconds": 46,
+        "forgotten": false,
+        "nudged": false
+      },
+      "steps": [
+        {
+          "key": "TSK-0870",
+          "step": "Raise purchase order",
+          "role": "buyer",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 2,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:45:20.397Z",
+          "finished_at": "2026-09-23T16:45:44.814Z",
+          "cost_usd": 0.2286,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "purchase_order",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "QP-SSD2",
+                    "item": "2 TB NVMe SSD",
+                    "line": 1,
+                    "quantity": 12,
+                    "line_total": 1788,
+                    "unit_price": 149,
+                    "description": "2 TB NVMe SSD"
+                  }
+                ],
+                "total": 1788,
+                "vendor": {
+                  "id": "V-2001",
+                  "name": "QuickParts Trading",
+                  "email": "hello@quickparts.example",
+                  "vendor_id": "V-2001",
+                  "payment_terms": "prepaid"
+                },
+                "currency": "EUR",
+                "po_number": "PO-2026-106",
+                "cost_center": "CC-410",
+                "requisition": "PR-2026-106",
+                "policy_check": {
+                  "notes": "WARNING: vendor V-2001 QuickParts Trading is marked approved=no in the vendor master; policy says it may not receive a PO and the approver must reject until the vendor is onboarded. Total 1,788.00 EUR is within the 2,000 no-approver band (buyer may release), but all POs go to the approval step. Catalogue unit price 149.00 EUR matches the requisition estimate; no price difference. Payment terms are prepaid.",
+                  "approver_level": "none",
+                  "vendor_approved": false,
+                  "approval_required": false
+                }
+              },
+              "created_at": "2026-09-23T16:45:44.773057+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0871",
+          "step": "Approve purchase order",
+          "role": "operator",
+          "state": "done",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:48:41.251Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "review",
+              "content": {
+                "summary": "QuickParts Trading is not an approved vendor; onboard the vendor first or pick an approved one",
+                "verdict": "request_changes",
+                "findings": []
+              },
+              "created_at": "2026-09-23T16:48:41.251895+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0872",
+          "step": "Send PO to supplier (ERP integration)",
+          "role": "supplier-erp",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:48:41.251Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "review",
+            "task": "66cf77b8-9c1e-43d5-861f-0e16eb530642",
+            "field": "verdict",
+            "equals": "approve",
+            "gateway": "approved",
+            "outcome": "yes"
+          },
+          "artefacts": []
+        },
+        {
+          "key": "TSK-0873",
+          "step": "Rework note to requester",
+          "role": "buyer",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:49:02.166Z",
+          "finished_at": "2026-09-23T16:49:15.986Z",
+          "cost_usd": 0.1606,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "review",
+            "task": "66cf77b8-9c1e-43d5-861f-0e16eb530642",
+            "field": "verdict",
+            "equals": "request_changes",
+            "gateway": "approved",
+            "outcome": "no"
+          },
+          "artefacts": [
+            {
+              "kind": "handoff",
+              "content": {
+                "caveats": [
+                  "The amount (1,788.00 EUR) is inside the 2,000 no-approver band, so the sole blocker is vendor status, not value.",
+                  "QuickParts payment terms are prepaid; prepayment to an unapproved vendor should not be made until onboarding is complete.",
+                  "The catalogue price of 149.00 EUR matched the requisition estimate. A different vendor may have a different price or no catalogue entry."
+                ],
+                "details": "Before PR-2026-106 can be resubmitted, one of the following must happen: (1) the requester or procurement gets QuickParts Trading (V-2001) onboarded and marked approved=yes in the vendor master, or (2) the requester nominates an approved vendor that supplies the 2 TB NVMe SSD, with a catalogue price for it. The buyer will then raise a new PO against the approved vendor at the contracted catalogue price. Quantity (12) and cost centre (CC-410) stay as on the requisition unless the requester changes them.",
+                "summary": "PO-2026-106 (PR-2026-106, 12 x 2 TB NVMe SSD QP-SSD2 at 149.00 EUR, total 1,788.00 EUR, cost centre CC-410) was rejected by the approver: QuickParts Trading (V-2001) is not an approved vendor; onboard the vendor first or pick an approved one."
+              },
+              "created_at": "2026-09-23T16:49:15.940966+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0874",
+          "step": "Book goods receipt",
+          "role": "receiving",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:48:41.251Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": []
+        },
+        {
+          "key": "TSK-0875",
+          "step": "Three-way match",
+          "role": "ap-clerk",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:48:41.251Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": []
+        },
+        {
+          "key": "TSK-0876",
+          "step": "Schedule payment (bank integration)",
+          "role": "bank",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:48:41.251Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "invoice_match",
+            "task": "c6a13021-9bb6-4fe7-b4aa-4407c89c5ae4",
+            "field": "status",
+            "equals": "matched",
+            "gateway": "matched",
+            "outcome": "ok"
+          },
+          "artefacts": []
+        },
+        {
+          "key": "TSK-0877",
+          "step": "Dispute the invoice",
+          "role": "ap-clerk",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:48:41.251Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "invoice_match",
+            "task": "c6a13021-9bb6-4fe7-b4aa-4407c89c5ae4",
+            "field": "status",
+            "equals": "mismatched",
+            "gateway": "matched",
+            "outcome": "bad"
+          },
+          "artefacts": []
+        }
+      ]
+    },
+    {
+      "run": "p2p-107",
+      "requisition": "PR-2026-107",
+      "label": "clean order in USD; supplier ERP times out once",
+      "expected": "paid",
+      "actual": "paid",
+      "success": true,
+      "status": "done",
+      "batch": "first",
+      "started_at": "2026-09-23T16:45:54.384Z",
+      "finished_at": "2026-09-23T16:49:24.942093+00:00",
+      "elapsed_minutes": 3.5,
+      "cost_usd": 0.6216,
+      "cost_credits": 0,
+      "human": {
+        "verdict": "approve",
+        "reason": "Within my authority (1160 USD of 10000), approved vendor Meridian Cloud Services, prices at catalogue, cost centre CC-440. Buyer note: Total 1,160.00 USD is within the 2,000 buyer-release limit (no approver signature needed by amount; the process still routes every PO to the approval step). Vendor V-1003 is approved. Requisition prices match the contracted catalogue prices (MC-VM8 310.00, MC-STOR 230.00); no differences.",
+        "waited_seconds": 157,
+        "think_seconds": 31,
+        "forgotten": false,
+        "nudged": false
+      },
+      "steps": [
+        {
+          "key": "TSK-0878",
+          "step": "Raise purchase order",
+          "role": "buyer",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 2,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:45:54.384Z",
+          "finished_at": "2026-09-23T16:46:14.908Z",
+          "cost_usd": 0.2013,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "purchase_order",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "MC-VM8",
+                    "item": "Cloud VM 8 vCPU, monthly",
+                    "line": 1,
+                    "unit": "month",
+                    "quantity": 3,
+                    "line_total": 930,
+                    "unit_price": 310,
+                    "description": "Cloud VM 8 vCPU, monthly"
+                  },
+                  {
+                    "sku": "MC-STOR",
+                    "item": "Object storage 10 TB, monthly",
+                    "line": 2,
+                    "unit": "month",
+                    "quantity": 1,
+                    "line_total": 230,
+                    "unit_price": 230,
+                    "description": "Object storage 10 TB, monthly"
+                  }
+                ],
+                "total": 1160,
+                "vendor": {
+                  "id": "V-1003",
+                  "name": "Meridian Cloud Services",
+                  "email": "billing@meridian-cloud.example",
+                  "vendor_id": "V-1003",
+                  "payment_terms": "14 days"
+                },
+                "currency": "USD",
+                "needed_by": "2026-10-01",
+                "po_number": "PO-2026-107",
+                "requester": "Hannah Murphy",
+                "deliver_to": "Goods-in, Unit 4, Northwest Business Park, Dublin 15",
+                "cost_center": "CC-440",
+                "requisition": "PR-2026-107",
+                "policy_check": {
+                  "notes": "Total 1,160.00 USD is within the 2,000 buyer-release limit (no approver signature needed by amount; the process still routes every PO to the approval step). Vendor V-1003 is approved. Requisition prices match the contracted catalogue prices (MC-VM8 310.00, MC-STOR 230.00); no differences.",
+                  "approver_level": "none",
+                  "vendor_approved": true,
+                  "approval_required": false
+                }
+              },
+              "created_at": "2026-09-23T16:46:14.865711+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0879",
+          "step": "Approve purchase order",
+          "role": "operator",
+          "state": "done",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:47:53.633Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "review",
+              "content": {
+                "summary": "Within my authority (1160 USD of 10000), approved vendor Meridian Cloud Services, prices at catalogue, cost centre CC-440. Buyer note: Total 1,160.00 USD is within the 2,000 buyer-release limit (no approver signature needed by amount; the process still routes every PO to the approval step). Vendor V-1003 is approved. Requisition prices match the contracted catalogue prices (MC-VM8 310.00, MC-STOR 230.00); no differences.",
+                "verdict": "approve",
+                "findings": []
+              },
+              "created_at": "2026-09-23T16:47:53.633597+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0880",
+          "step": "Send PO to supplier (ERP integration)",
+          "role": "supplier-erp",
+          "state": "done",
+          "attempts": 2,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [
+            "supplier ERP timeout (HTTP 504); retry later"
+          ],
+          "first_claim": "2026-09-23T16:48:01.662Z",
+          "finished_at": "2026-09-23T16:48:07.542Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "review",
+            "task": "ea872268-6658-4c02-8193-cc048db80bda",
+            "field": "verdict",
+            "equals": "approve",
+            "gateway": "approved",
+            "outcome": "yes"
+          },
+          "artefacts": [
+            {
+              "kind": "invoice",
+              "content": {
+                "tax": 0,
+                "bank": {
+                  "bic": "NWBKGB2L",
+                  "iban": "GB29NWBK60161331926819"
+                },
+                "lines": [
+                  {
+                    "sku": "MC-VM8",
+                    "item": "Cloud VM 8 vCPU, monthly",
+                    "line": 1,
+                    "quantity": 3,
+                    "line_total": 930,
+                    "unit_price": 310
+                  },
+                  {
+                    "sku": "MC-STOR",
+                    "item": "Object storage 10 TB, monthly",
+                    "line": 2,
+                    "quantity": 1,
+                    "line_total": 230,
+                    "unit_price": 230
+                  }
+                ],
+                "total": 1160,
+                "due_at": "2026-10-11",
+                "vendor": "Meridian Cloud Services",
+                "currency": "USD",
+                "subtotal": 1160,
+                "issued_at": "2026-09-27",
+                "po_number": "PO-2026-107",
+                "email_path": "inbox/invoices/INV-2026-107.eml",
+                "document_path": "inbox/invoices/INV-2026-107.pdf",
+                "invoice_number": "INV-2026-107"
+              },
+              "created_at": "2026-09-23T16:48:07.493711+00:00"
+            },
+            {
+              "kind": "delivery_note",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "MC-VM8",
+                    "item": "Cloud VM 8 vCPU, monthly",
+                    "line": 1,
+                    "quantity_shipped": 3
+                  },
+                  {
+                    "sku": "MC-STOR",
+                    "item": "Object storage 10 TB, monthly",
+                    "line": 2,
+                    "quantity_shipped": 1
+                  }
+                ],
+                "vendor": "Meridian Cloud Services",
+                "carrier": "DHL Freight",
+                "tracking": "DHL1070042IE",
+                "po_number": "PO-2026-107",
+                "email_path": "inbox/deliveries/DN-2026-107.eml",
+                "shipped_at": "2026-09-26",
+                "document_path": "inbox/deliveries/DN-2026-107.pdf",
+                "delivery_note_number": "DN-2026-107"
+              },
+              "created_at": "2026-09-23T16:48:07.235141+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0881",
+          "step": "Rework note to requester",
+          "role": "buyer",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:47:53.633Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "review",
+            "task": "ea872268-6658-4c02-8193-cc048db80bda",
+            "field": "verdict",
+            "equals": "request_changes",
+            "gateway": "approved",
+            "outcome": "no"
+          },
+          "artefacts": []
+        },
+        {
+          "key": "TSK-0882",
+          "step": "Book goods receipt",
+          "role": "receiving",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 1,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:48:28.129Z",
+          "finished_at": "2026-09-23T16:48:42.557Z",
+          "cost_usd": 0.1418,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "goods_receipt",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "MC-VM8",
+                    "item": "Cloud VM 8 vCPU, monthly",
+                    "line": 1,
+                    "condition": "good",
+                    "quantity_ordered": 3,
+                    "quantity_received": 3
+                  },
+                  {
+                    "sku": "MC-STOR",
+                    "item": "Object storage 10 TB, monthly",
+                    "line": 2,
+                    "condition": "good",
+                    "quantity_ordered": 1,
+                    "quantity_received": 1
+                  }
+                ],
+                "complete": true,
+                "po_number": "PO-2026-107",
+                "grn_number": "GRN-2026-107",
+                "received_at": "2026-09-27",
+                "received_by": "receiving (baton)",
+                "discrepancies": [],
+                "delivery_note_number": "DN-2026-107"
+              },
+              "created_at": "2026-09-23T16:48:42.517601+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0883",
+          "step": "Three-way match",
+          "role": "ap-clerk",
+          "state": "done",
+          "attempts": 2,
+          "artifact_rejected": 1,
+          "gate_failed": 0,
+          "released": [
+            "session ended: daemon:completed"
+          ],
+          "first_claim": "2026-09-23T16:48:45.821Z",
+          "finished_at": "2026-09-23T16:49:18.966Z",
+          "cost_usd": 0.2785,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "invoice_match",
+              "content": {
+                "lines": [
+                  {
+                    "ok": true,
+                    "sku": "MC-VM8",
+                    "line": 1,
+                    "variance": "",
+                    "ordered_qty": 3,
+                    "invoiced_qty": 3,
+                    "received_qty": 3,
+                    "po_unit_price": 310,
+                    "invoice_unit_price": 310
+                  },
+                  {
+                    "ok": true,
+                    "sku": "MC-STOR",
+                    "line": 2,
+                    "variance": "",
+                    "ordered_qty": 1,
+                    "invoiced_qty": 1,
+                    "received_qty": 1,
+                    "po_unit_price": 230,
+                    "invoice_unit_price": 230
+                  }
+                ],
+                "status": "matched",
+                "summary": "INV-2026-107 matches PO-2026-107 and GRN-2026-107 on both lines; 1,160.00 USD payable.",
+                "currency": "USD",
+                "po_number": "PO-2026-107",
+                "variances": [],
+                "grn_number": "GRN-2026-107",
+                "invoice_total": 1160,
+                "matched_total": 1160,
+                "amount_payable": 1160,
+                "invoice_number": "INV-2026-107"
+              },
+              "created_at": "2026-09-23T16:49:18.924472+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0884",
+          "step": "Schedule payment (bank integration)",
+          "role": "bank",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:49:22.259Z",
+          "finished_at": "2026-09-23T16:49:24.942Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "invoice_match",
+            "task": "53c7f3e4-07f3-4861-9e94-84df3ae2d856",
+            "field": "status",
+            "equals": "matched",
+            "gateway": "matched",
+            "outcome": "ok"
+          },
+          "artefacts": [
+            {
+              "kind": "payment",
+              "content": {
+                "amount": 1160,
+                "status": "scheduled",
+                "vendor": "Meridian Cloud Services",
+                "currency": "USD",
+                "po_number": "PO-2026-107",
+                "beneficiary": {
+                  "iban": "GB29NWBK60161331926819",
+                  "name": "Meridian Cloud Services"
+                },
+                "payment_ref": "PAY-2026-107",
+                "scheduled_for": "2026-10-11",
+                "invoice_number": "INV-2026-107",
+                "remittance_path": "outbox/remittance-INV-2026-107.eml"
+              },
+              "created_at": "2026-09-23T16:49:24.899609+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0885",
+          "step": "Dispute the invoice",
+          "role": "ap-clerk",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:49:18.966Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "invoice_match",
+            "task": "53c7f3e4-07f3-4861-9e94-84df3ae2d856",
+            "field": "status",
+            "equals": "mismatched",
+            "gateway": "matched",
+            "outcome": "bad"
+          },
+          "artefacts": []
+        }
+      ]
+    },
+    {
+      "run": "p2p-108",
+      "requisition": "PR-2026-108",
+      "label": "services order, one damaged-flag noise line (0 damaged)",
+      "expected": "paid",
+      "actual": "paid",
+      "success": true,
+      "status": "done",
+      "batch": "first",
+      "started_at": "2026-09-23T16:46:28.541Z",
+      "finished_at": "2026-09-23T16:48:48.243459+00:00",
+      "elapsed_minutes": 2.3,
+      "cost_usd": 0.5926,
+      "cost_credits": 0,
+      "human": {
+        "verdict": "approve",
+        "reason": "Within my authority (6900 EUR of 10000), approved vendor Brightpath Consulting, prices at catalogue, cost centre CC-150. Buyer note: Vendor V-1004 is approved. Requisition price 1,150.00 matches catalogue price 1,150.00 for BP-DAY; no difference. Total 6,900.00 EUR (ex VAT) falls in 2,000.01-10,000 band: manager approval required, within approver authority (limit 10,000).",
+        "waited_seconds": 126,
+        "think_seconds": 20,
+        "forgotten": false,
+        "nudged": false
+      },
+      "steps": [
+        {
+          "key": "TSK-0886",
+          "step": "Raise purchase order",
+          "role": "buyer",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 1,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:46:28.541Z",
+          "finished_at": "2026-09-23T16:46:41.235Z",
+          "cost_usd": 0.1045,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "purchase_order",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "BP-DAY",
+                    "item": "Senior consultant day",
+                    "line": 1,
+                    "unit": "day",
+                    "quantity": 6,
+                    "line_total": 6900,
+                    "unit_price": 1150,
+                    "description": "Senior consultant day"
+                  }
+                ],
+                "total": 6900,
+                "vendor": {
+                  "id": "V-1004",
+                  "name": "Brightpath Consulting",
+                  "email": "accounts@brightpath.example"
+                },
+                "currency": "EUR",
+                "needed_by": "2026-10-31",
+                "po_number": "PO-2026-108",
+                "vendor_id": "V-1004",
+                "deliver_to": "Goods-in, Unit 4, Northwest Business Park, Dublin 15",
+                "cost_center": "CC-150",
+                "requisition": "PR-2026-108",
+                "vendor_name": "Brightpath Consulting",
+                "policy_check": {
+                  "notes": "Vendor V-1004 is approved. Requisition price 1,150.00 matches catalogue price 1,150.00 for BP-DAY; no difference. Total 6,900.00 EUR (ex VAT) falls in 2,000.01-10,000 band: manager approval required, within approver authority (limit 10,000).",
+                  "approver_level": "manager",
+                  "vendor_approved": true,
+                  "approval_required": true
+                },
+                "payment_terms": "30 days"
+              },
+              "created_at": "2026-09-23T16:46:41.193722+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0887",
+          "step": "Approve purchase order",
+          "role": "operator",
+          "state": "done",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:47:21.453Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "review",
+              "content": {
+                "summary": "Within my authority (6900 EUR of 10000), approved vendor Brightpath Consulting, prices at catalogue, cost centre CC-150. Buyer note: Vendor V-1004 is approved. Requisition price 1,150.00 matches catalogue price 1,150.00 for BP-DAY; no difference. Total 6,900.00 EUR (ex VAT) falls in 2,000.01-10,000 band: manager approval required, within approver authority (limit 10,000).",
+                "verdict": "approve",
+                "findings": []
+              },
+              "created_at": "2026-09-23T16:47:21.453768+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0888",
+          "step": "Send PO to supplier (ERP integration)",
+          "role": "supplier-erp",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:47:24.288Z",
+          "finished_at": "2026-09-23T16:47:27.162Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "review",
+            "task": "1ceb8278-009d-45ac-9385-c85c62332fb4",
+            "field": "verdict",
+            "equals": "approve",
+            "gateway": "approved",
+            "outcome": "yes"
+          },
+          "artefacts": [
+            {
+              "kind": "invoice",
+              "content": {
+                "tax": 0,
+                "bank": {
+                  "bic": "IRCEIE2D",
+                  "iban": "IE64IRCE92050112345678"
+                },
+                "lines": [
+                  {
+                    "sku": "BP-DAY",
+                    "item": "Senior consultant day",
+                    "line": 1,
+                    "quantity": 6,
+                    "line_total": 6900,
+                    "unit_price": 1150
+                  }
+                ],
+                "total": 6900,
+                "due_at": "2026-10-27",
+                "vendor": "Brightpath Consulting",
+                "currency": "EUR",
+                "subtotal": 6900,
+                "issued_at": "2026-09-27",
+                "po_number": "PO-2026-108",
+                "email_path": "inbox/invoices/INV-2026-108.eml",
+                "document_path": "inbox/invoices/INV-2026-108.pdf",
+                "invoice_number": "INV-2026-108"
+              },
+              "created_at": "2026-09-23T16:47:27.120055+00:00"
+            },
+            {
+              "kind": "delivery_note",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "BP-DAY",
+                    "item": "Senior consultant day",
+                    "line": 1,
+                    "quantity_shipped": 6
+                  }
+                ],
+                "vendor": "Brightpath Consulting",
+                "carrier": "DHL Freight",
+                "tracking": "DHL1080042IE",
+                "po_number": "PO-2026-108",
+                "email_path": "inbox/deliveries/DN-2026-108.eml",
+                "shipped_at": "2026-09-26",
+                "document_path": "inbox/deliveries/DN-2026-108.pdf",
+                "delivery_note_number": "DN-2026-108"
+              },
+              "created_at": "2026-09-23T16:47:26.871118+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0889",
+          "step": "Rework note to requester",
+          "role": "buyer",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:47:21.453Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "review",
+            "task": "1ceb8278-009d-45ac-9385-c85c62332fb4",
+            "field": "verdict",
+            "equals": "request_changes",
+            "gateway": "approved",
+            "outcome": "no"
+          },
+          "artefacts": []
+        },
+        {
+          "key": "TSK-0890",
+          "step": "Book goods receipt",
+          "role": "receiving",
+          "state": "done",
+          "attempts": 2,
+          "artifact_rejected": 1,
+          "gate_failed": 0,
+          "released": [
+            "session ended: daemon:completed"
+          ],
+          "first_claim": "2026-09-23T16:47:37.142Z",
+          "finished_at": "2026-09-23T16:48:08.220Z",
+          "cost_usd": 0.27,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "goods_receipt",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "BP-DAY",
+                    "item": "Senior consultant day",
+                    "line": 1,
+                    "condition": "good",
+                    "quantity_ordered": 6,
+                    "quantity_received": 6
+                  }
+                ],
+                "complete": true,
+                "po_number": "PO-2026-108",
+                "grn_number": "GRN-2026-2026108",
+                "received_at": "2026-09-27T09:40:00Z",
+                "received_by": "receiving (baton)",
+                "discrepancies": [],
+                "delivery_note_number": "DN-2026-108"
+              },
+              "created_at": "2026-09-23T16:48:08.17833+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0891",
+          "step": "Three-way match",
+          "role": "ap-clerk",
+          "state": "done",
+          "attempts": 2,
+          "artifact_rejected": 1,
+          "gate_failed": 0,
+          "released": [
+            "session ended: daemon:completed"
+          ],
+          "first_claim": "2026-09-23T16:48:11.821Z",
+          "finished_at": "2026-09-23T16:48:43.413Z",
+          "cost_usd": 0.2181,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "invoice_match",
+              "content": {
+                "lines": [
+                  {
+                    "ok": true,
+                    "sku": "BP-DAY",
+                    "line": 1,
+                    "variance": "",
+                    "ordered_qty": 6,
+                    "invoiced_qty": 6,
+                    "received_qty": 6,
+                    "po_unit_price": 1150,
+                    "invoice_unit_price": 1150
+                  }
+                ],
+                "status": "matched",
+                "summary": "INV-2026-108 matches PO-2026-108 and GRN-2026-2026108: 6 days at 1,150.00, total 6,900.00 EUR.",
+                "currency": "EUR",
+                "po_number": "PO-2026-108",
+                "variances": [],
+                "grn_number": "GRN-2026-2026108",
+                "invoice_total": 6900,
+                "matched_total": 6900,
+                "amount_payable": 6900,
+                "invoice_number": "INV-2026-108"
+              },
+              "created_at": "2026-09-23T16:48:43.370775+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0892",
+          "step": "Schedule payment (bank integration)",
+          "role": "bank",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T16:48:45.652Z",
+          "finished_at": "2026-09-23T16:48:48.243Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "invoice_match",
+            "task": "955b77bf-5d91-4490-af78-eb7bcba1f6bc",
+            "field": "status",
+            "equals": "matched",
+            "gateway": "matched",
+            "outcome": "ok"
+          },
+          "artefacts": [
+            {
+              "kind": "payment",
+              "content": {
+                "amount": 6900,
+                "status": "scheduled",
+                "vendor": "Brightpath Consulting",
+                "currency": "EUR",
+                "po_number": "PO-2026-108",
+                "beneficiary": {
+                  "iban": "IE64IRCE92050112345678",
+                  "name": "Brightpath Consulting"
+                },
+                "payment_ref": "PAY-2026-108",
+                "scheduled_for": "2026-10-27",
+                "invoice_number": "INV-2026-108",
+                "remittance_path": "outbox/remittance-INV-2026-108.eml"
+              },
+              "created_at": "2026-09-23T16:48:48.201067+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0893",
+          "step": "Dispute the invoice",
+          "role": "ap-clerk",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T16:48:43.413Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "invoice_match",
+            "task": "955b77bf-5d91-4490-af78-eb7bcba1f6bc",
+            "field": "status",
+            "equals": "mismatched",
+            "gateway": "matched",
+            "outcome": "bad"
+          },
+          "artefacts": []
+        }
+      ]
+    },
+    {
+      "run": "p2p-114",
+      "requisition": "PR-2026-104",
+      "label": "supplier overbills unit price (+11%)",
+      "expected": "disputed",
+      "actual": "disputed",
+      "success": true,
+      "status": "done",
+      "batch": "rerun",
+      "started_at": "2026-09-23T17:04:50.794Z",
+      "finished_at": "2026-09-23T17:08:09.907309+00:00",
+      "elapsed_minutes": 3.3,
+      "cost_usd": 0.5272,
+      "cost_credits": 0,
+      "human": {
+        "verdict": "approve",
+        "reason": "Within my authority (2050 EUR of 10000), approved vendor Nordlicht Computing GmbH, prices at catalogue, cost centre CC-220. Buyer note: Total 2,050.00 EUR falls in the 2,000.01-10,000 band, so manager approval is needed. Vendor V-1001 is approved (30 days terms). Requisition price 410.00 matches the catalogue price, so there is no difference. The documents give no budget figure for CC-220, so within_budget is true only because policy sets no limit that this order breaches.",
+        "waited_seconds": 41,
+        "think_seconds": 40,
+        "forgotten": false,
+        "nudged": false
+      },
+      "steps": [
+        {
+          "key": "TSK-0894",
+          "step": "Raise purchase order",
+          "role": "buyer",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T17:04:50.794Z",
+          "finished_at": "2026-09-23T17:05:04.805Z",
+          "cost_usd": 0.1647,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "purchase_order",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "NL-MON27",
+                    "item": "27-inch 4K monitor",
+                    "line": 1,
+                    "unit": "each",
+                    "quantity": 5,
+                    "line_total": 2050,
+                    "unit_price": 410
+                  }
+                ],
+                "total": 2050,
+                "vendor": {
+                  "id": "V-1001",
+                  "name": "Nordlicht Computing GmbH",
+                  "email": "orders@nordlicht-computing.example",
+                  "approved": true
+                },
+                "currency": "EUR",
+                "needed_by": "2026-10-10",
+                "po_number": "PO-2026-104",
+                "requester": "Sean Byrne",
+                "cost_center": "CC-220",
+                "requisition": "PR-2026-104",
+                "policy_check": {
+                  "notes": "Total 2,050.00 EUR falls in the 2,000.01-10,000 band, so manager approval is needed. Vendor V-1001 is approved (30 days terms). Requisition price 410.00 matches the catalogue price, so there is no difference. The documents give no budget figure for CC-220, so within_budget is true only because policy sets no limit that this order breaches.",
+                  "within_budget": true,
+                  "approver_level": "manager",
+                  "vendor_approved": true,
+                  "approval_required": true
+                },
+                "delivery_address": "Goods-in, Unit 4, Northwest Business Park, Dublin 15"
+              },
+              "created_at": "2026-09-23T17:05:04.658596+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0895",
+          "step": "Approve purchase order",
+          "role": "operator",
+          "state": "done",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T17:05:46.997Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "review",
+              "content": {
+                "summary": "Within my authority (2050 EUR of 10000), approved vendor Nordlicht Computing GmbH, prices at catalogue, cost centre CC-220. Buyer note: Total 2,050.00 EUR falls in the 2,000.01-10,000 band, so manager approval is needed. Vendor V-1001 is approved (30 days terms). Requisition price 410.00 matches the catalogue price, so there is no difference. The documents give no budget figure for CC-220, so within_budget is true only because policy sets no limit that this order breaches.",
+                "verdict": "approve",
+                "findings": []
+              },
+              "created_at": "2026-09-23T17:05:46.997661+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0896",
+          "step": "Send PO to supplier (ERP integration)",
+          "role": "supplier-erp",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T17:05:48.794Z",
+          "finished_at": "2026-09-23T17:05:51.734Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "review",
+            "task": "58bc7f29-8fea-4dd3-b2f4-dc82e3294bcd",
+            "field": "verdict",
+            "equals": "approve",
+            "gateway": "approved",
+            "outcome": "yes"
+          },
+          "artefacts": [
+            {
+              "kind": "invoice",
+              "content": {
+                "tax": 0,
+                "bank": {
+                  "bic": "COBADEFFXXX",
+                  "iban": "DE89370400440532013000"
+                },
+                "lines": [
+                  {
+                    "sku": "NL-MON27",
+                    "item": "27-inch 4K monitor",
+                    "line": 1,
+                    "quantity": 5,
+                    "line_total": 2275,
+                    "unit_price": 455
+                  }
+                ],
+                "total": 2275,
+                "due_at": "2026-10-27",
+                "vendor": "Nordlicht Computing GmbH",
+                "currency": "EUR",
+                "subtotal": 2275,
+                "issued_at": "2026-09-27",
+                "po_number": "PO-2026-104",
+                "email_path": "inbox/invoices/INV-2026-104.eml",
+                "vendor_email": "orders@nordlicht-computing.example",
+                "document_path": "inbox/invoices/INV-2026-104.pdf",
+                "invoice_number": "INV-2026-104"
+              },
+              "created_at": "2026-09-23T17:05:51.692583+00:00"
+            },
+            {
+              "kind": "delivery_note",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "NL-MON27",
+                    "item": "27-inch 4K monitor",
+                    "line": 1,
+                    "quantity_shipped": 5
+                  }
+                ],
+                "vendor": "Nordlicht Computing GmbH",
+                "carrier": "DHL Freight",
+                "tracking": "DHL1040042IE",
+                "po_number": "PO-2026-104",
+                "email_path": "inbox/deliveries/DN-2026-104.eml",
+                "shipped_at": "2026-09-26",
+                "document_path": "inbox/deliveries/DN-2026-104.pdf",
+                "delivery_note_number": "DN-2026-104"
+              },
+              "created_at": "2026-09-23T17:05:51.436278+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0897",
+          "step": "Rework note to requester",
+          "role": "buyer",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T17:05:46.997Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "review",
+            "task": "58bc7f29-8fea-4dd3-b2f4-dc82e3294bcd",
+            "field": "verdict",
+            "equals": "request_changes",
+            "gateway": "approved",
+            "outcome": "no"
+          },
+          "artefacts": []
+        },
+        {
+          "key": "TSK-0898",
+          "step": "Book goods receipt",
+          "role": "receiving",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T17:06:15.186Z",
+          "finished_at": "2026-09-23T17:06:26.093Z",
+          "cost_usd": 0.1437,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "goods_receipt",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "NL-MON27",
+                    "item": "27-inch 4K monitor",
+                    "line": 1,
+                    "note": "Counted 5, 0 damaged, ok",
+                    "condition": "good",
+                    "quantity_ordered": 5,
+                    "quantity_received": 5
+                  }
+                ],
+                "complete": true,
+                "po_number": "PO-2026-104",
+                "grn_number": "GRN-2026-104",
+                "received_at": "2026-09-27T09:40:00",
+                "received_by": "receiving (baton)",
+                "discrepancies": [],
+                "delivery_note_number": "DN-2026-104"
+              },
+              "created_at": "2026-09-23T17:06:26.053217+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0899",
+          "step": "Three-way match",
+          "role": "ap-clerk",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T17:06:48.942Z",
+          "finished_at": "2026-09-23T17:07:01.730Z",
+          "cost_usd": 0.1331,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "invoice_match",
+              "content": {
+                "lines": [
+                  {
+                    "ok": false,
+                    "item": "27-inch 4K monitor",
+                    "line": 1,
+                    "variance": "Invoice unit price 455.00 exceeds PO unit price 410.00 by 45.00 (10.98%), above the 1% tolerance (max allowed 414.10). Quantity agrees: 5 ordered, 5 received good, 5 invoiced.",
+                    "ordered_qty": 5,
+                    "invoiced_qty": 5,
+                    "received_qty": 5,
+                    "po_unit_price": 410,
+                    "invoice_unit_price": 455
+                  }
+                ],
+                "status": "mismatched",
+                "summary": "Mismatched: quantities agree (5/5/5) but the unit price is 10.98% above the contracted 410.00, against a 1% tolerance. Overbilled by 225.00. Nothing payable until a credit note or corrected invoice at 410.00 per unit (total 2,050.00) arrives.",
+                "po_number": "PO-2026-104",
+                "tolerance": {
+                  "quantity": 0,
+                  "price_pct": 1
+                },
+                "variances": [
+                  "Line 1 (NL-MON27, 27-inch 4K monitor): invoiced at 455.00 per unit vs PO 410.00, +45.00 per unit (10.98%), tolerance 1%. Line overbilled by 225.00 (invoice line 2,275.00 vs PO line 2,050.00).",
+                  "Invoice total 2,275.00 does not equal the sum of matched lines (0.00 matched); PO total is 2,050.00."
+                ],
+                "grn_number": "GRN-2026-104",
+                "amount_payable": 0,
+                "invoice_number": "INV-2026-104"
+              },
+              "created_at": "2026-09-23T17:07:01.689195+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0900",
+          "step": "Schedule payment (bank integration)",
+          "role": "bank",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T17:07:01.730Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "invoice_match",
+            "task": "df8ea430-6fc3-4bb4-bb0f-fe268794c3b7",
+            "field": "status",
+            "equals": "matched",
+            "gateway": "matched",
+            "outcome": "ok"
+          },
+          "artefacts": []
+        },
+        {
+          "key": "TSK-0901",
+          "step": "Dispute the invoice",
+          "role": "ap-clerk",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T17:07:56.286Z",
+          "finished_at": "2026-09-23T17:08:09.907Z",
+          "cost_usd": 0.0857,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "invoice_match",
+            "task": "df8ea430-6fc3-4bb4-bb0f-fe268794c3b7",
+            "field": "status",
+            "equals": "mismatched",
+            "gateway": "matched",
+            "outcome": "bad"
+          },
+          "artefacts": [
+            {
+              "kind": "handoff",
+              "content": {
+                "caveats": [
+                  "Buyer to confirm PO-2026-104 price of EUR 410.00 per unit is the contracted price and that no price amendment was agreed with the supplier.",
+                  "Invoice due date is 2026-10-27; payment must stay on hold until a credit note or corrected invoice at EUR 410.00 per unit (total EUR 2,050.00) arrives and is re-matched.",
+                  "Follow up with the supplier if no response is received before the due date.",
+                  "Do not pay the invoice as issued; amount payable is 0."
+                ],
+                "details": "To: orders@nordlicht-computing.example\nFrom: Accounts Payable\n\nDear Nordlicht Computing GmbH,\n\nWe have reviewed your invoice INV-2026-104 dated 2026-09-27 (total EUR 2,275.00, due 2026-10-27) against our purchase order PO-2026-104, delivery note DN-2026-104 and our goods receipt GRN-2026-104. We are unable to pay it as issued.\n\nLine 1 – NL-MON27, 27-inch 4K monitor:\n- Quantity: ordered 5, received in good condition 5, invoiced 5. Quantities agree.\n- Unit price: invoiced EUR 455.00, contracted PO price EUR 410.00. The difference is EUR 45.00 per unit (10.98%), well above our 1% price tolerance (maximum acceptable EUR 414.10).\n- Line value: invoiced EUR 2,275.00 vs correct EUR 2,050.00. We have been overbilled by EUR 225.00.\n\nWhat we expect: either (a) a credit note for EUR 225.00 referencing INV-2026-104, or (b) a corrected invoice for 5 x EUR 410.00 = EUR 2,050.00 (no tax), referencing PO-2026-104. If you believe a different price was agreed, please send the supporting quotation or agreement.\n\nPayment of INV-2026-104 is on hold until we receive the credit note or corrected invoice. Please reply to this email with your response.\n\nKind regards,\nAccounts Payable",
+                "summary": "Dispute: Invoice INV-2026-104 (PO-2026-104) – unit price 455.00 vs agreed 410.00"
+              },
+              "created_at": "2026-09-23T17:08:09.866817+00:00"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": "p2p-115",
+      "requisition": "PR-2026-105",
+      "label": "short delivery (8 of 10), invoiced for 10",
+      "expected": "disputed",
+      "actual": "disputed",
+      "success": true,
+      "status": "done",
+      "batch": "rerun",
+      "started_at": "2026-09-23T17:05:23.429Z",
+      "finished_at": "2026-09-23T17:08:46.590512+00:00",
+      "elapsed_minutes": 3.4,
+      "cost_usd": 0.3895,
+      "cost_credits": 0,
+      "human": {
+        "verdict": "approve",
+        "reason": "Within my authority (6200 EUR of 10000), approved vendor Atlantic Office Supplies Ltd, prices at catalogue, cost centre CC-310. Buyer note: Total 6,200.00 EUR falls in the 2,000.01-10,000 band, so manager approval is needed; within the approver's 10,000 authority. Vendor V-1002 is approved (30 days). Requisition price 620.00 matches the catalogue price, so there is no difference. No budget data was provided; within_budget is set true because the total is inside the approver's authority.",
+        "waited_seconds": 37,
+        "think_seconds": 36,
+        "forgotten": false,
+        "nudged": false
+      },
+      "steps": [
+        {
+          "key": "TSK-0902",
+          "step": "Raise purchase order",
+          "role": "buyer",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T17:05:23.429Z",
+          "finished_at": "2026-09-23T17:05:33.385Z",
+          "cost_usd": 0.0884,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "purchase_order",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "AO-DESK",
+                    "item": "Sit-stand desk 160 cm",
+                    "line": 1,
+                    "unit": "each",
+                    "quantity": 10,
+                    "line_total": 6200,
+                    "unit_price": 620
+                  }
+                ],
+                "total": 6200,
+                "vendor": {
+                  "id": "V-1002",
+                  "name": "Atlantic Office Supplies Ltd",
+                  "email": "sales@atlantic-office.example",
+                  "approved": true
+                },
+                "currency": "EUR",
+                "needed_by": "2026-10-20",
+                "po_number": "PO-2026-105",
+                "requester": "Aoife Kelly",
+                "cost_center": "CC-310",
+                "requisition": "PR-2026-105",
+                "policy_check": {
+                  "notes": "Total 6,200.00 EUR falls in the 2,000.01-10,000 band, so manager approval is needed; within the approver's 10,000 authority. Vendor V-1002 is approved (30 days). Requisition price 620.00 matches the catalogue price, so there is no difference. No budget data was provided; within_budget is set true because the total is inside the approver's authority.",
+                  "within_budget": true,
+                  "approver_level": "manager",
+                  "vendor_approved": true,
+                  "approval_required": true
+                },
+                "delivery_address": "Goods-in, Unit 4, Northwest Business Park, Dublin 15"
+              },
+              "created_at": "2026-09-23T17:05:33.321402+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0903",
+          "step": "Approve purchase order",
+          "role": "operator",
+          "state": "done",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T17:06:33.834Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "review",
+              "content": {
+                "summary": "Within my authority (6200 EUR of 10000), approved vendor Atlantic Office Supplies Ltd, prices at catalogue, cost centre CC-310. Buyer note: Total 6,200.00 EUR falls in the 2,000.01-10,000 band, so manager approval is needed; within the approver's 10,000 authority. Vendor V-1002 is approved (30 days). Requisition price 620.00 matches the catalogue price, so there is no difference. No budget data was provided; within_budget is set true because the total is inside the approver's authority.",
+                "verdict": "approve",
+                "findings": []
+              },
+              "created_at": "2026-09-23T17:06:33.834673+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0904",
+          "step": "Send PO to supplier (ERP integration)",
+          "role": "supplier-erp",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T17:06:37.391Z",
+          "finished_at": "2026-09-23T17:06:40.338Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "review",
+            "task": "3b7c4304-81fb-4f99-99e7-6fccf1835872",
+            "field": "verdict",
+            "equals": "approve",
+            "gateway": "approved",
+            "outcome": "yes"
+          },
+          "artefacts": [
+            {
+              "kind": "invoice",
+              "content": {
+                "tax": 0,
+                "bank": {
+                  "bic": "AIBKIE2D",
+                  "iban": "IE29AIBK93115212345678"
+                },
+                "lines": [
+                  {
+                    "sku": "AO-DESK",
+                    "item": "Sit-stand desk 160 cm",
+                    "line": 1,
+                    "quantity": 10,
+                    "line_total": 6200,
+                    "unit_price": 620
+                  }
+                ],
+                "total": 6200,
+                "due_at": "2026-10-27",
+                "vendor": "Atlantic Office Supplies Ltd",
+                "currency": "EUR",
+                "subtotal": 6200,
+                "issued_at": "2026-09-27",
+                "po_number": "PO-2026-105",
+                "email_path": "inbox/invoices/INV-2026-105.eml",
+                "vendor_email": "sales@atlantic-office.example",
+                "document_path": "inbox/invoices/INV-2026-105.pdf",
+                "invoice_number": "INV-2026-105"
+              },
+              "created_at": "2026-09-23T17:06:40.295645+00:00"
+            },
+            {
+              "kind": "delivery_note",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "AO-DESK",
+                    "item": "Sit-stand desk 160 cm",
+                    "line": 1,
+                    "quantity_shipped": 8
+                  }
+                ],
+                "vendor": "Atlantic Office Supplies Ltd",
+                "carrier": "DHL Freight",
+                "tracking": "DHL1050042IE",
+                "po_number": "PO-2026-105",
+                "email_path": "inbox/deliveries/DN-2026-105.eml",
+                "shipped_at": "2026-09-26",
+                "document_path": "inbox/deliveries/DN-2026-105.pdf",
+                "delivery_note_number": "DN-2026-105"
+              },
+              "created_at": "2026-09-23T17:06:40.046094+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0905",
+          "step": "Rework note to requester",
+          "role": "buyer",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T17:06:33.834Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "review",
+            "task": "3b7c4304-81fb-4f99-99e7-6fccf1835872",
+            "field": "verdict",
+            "equals": "request_changes",
+            "gateway": "approved",
+            "outcome": "no"
+          },
+          "artefacts": []
+        },
+        {
+          "key": "TSK-0906",
+          "step": "Book goods receipt",
+          "role": "receiving",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T17:07:05.936Z",
+          "finished_at": "2026-09-23T17:07:18.398Z",
+          "cost_usd": 0.1315,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "goods_receipt",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "AO-DESK",
+                    "item": "Sit-stand desk 160 cm",
+                    "line": 1,
+                    "note": "Short delivery: 8 counted of 10 ordered, 2 outstanding. None damaged. Delivery note also shipped 8.",
+                    "condition": "good",
+                    "quantity_ordered": 10,
+                    "quantity_received": 8
+                  }
+                ],
+                "complete": false,
+                "po_number": "PO-2026-105",
+                "grn_number": "GRN-2026-105",
+                "received_at": "2026-09-27T09:40:00",
+                "received_by": "receiving (baton)",
+                "discrepancies": [
+                  "Line 1 AO-DESK Sit-stand desk 160 cm: short delivery, 10 ordered but only 8 received (2 outstanding). The delivery note also shows only 8 shipped, so the supplier under-shipped against the order; the count matches the note.",
+                  "The count sheet note says 'short against delivery note', but the count of 8 equals the delivery note quantity of 8. The shortfall is against the purchase order only."
+                ],
+                "delivery_note_number": "DN-2026-105"
+              },
+              "created_at": "2026-09-23T17:07:18.351252+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0907",
+          "step": "Three-way match",
+          "role": "ap-clerk",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T17:07:23.416Z",
+          "finished_at": "2026-09-23T17:07:37.268Z",
+          "cost_usd": 0.0882,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "invoice_match",
+              "content": {
+                "lines": [
+                  {
+                    "ok": false,
+                    "item": "Sit-stand desk 160 cm",
+                    "line": 1,
+                    "variance": "Invoiced 10 but only 8 received in good condition (quantity tolerance 0); 2 units over-billed, 2 x 620.00 = 1,240.00 EUR. Unit price 620.00 equals PO price, within 1% tolerance.",
+                    "ordered_qty": 10,
+                    "invoiced_qty": 10,
+                    "received_qty": 8,
+                    "po_unit_price": 620,
+                    "invoice_unit_price": 620
+                  }
+                ],
+                "status": "mismatched",
+                "summary": "Mismatched: INV-2026-105 bills 10 desks (6,200.00 EUR) but only 8 were received against PO-2026-105 / GRN-2026-105. Price is correct. Nothing payable until a credit note for 1,240.00 EUR or a corrected invoice for 8 units (4,960.00 EUR) arrives, or the 2 outstanding desks are delivered.",
+                "po_number": "PO-2026-105",
+                "tolerance": {
+                  "quantity": 0,
+                  "price_pct": 1
+                },
+                "variances": [
+                  "Line 1 AO-DESK Sit-stand desk 160 cm: invoiced 10, ordered 10, received 8 (good condition), 2 outstanding. Over-billed by 2 units = 1,240.00 EUR. Unit price 620.00 matches PO.",
+                  "Invoice total 6,200.00 EUR does not equal the sum of matched lines (0.00 EUR matched; 8 x 620.00 = 4,960.00 EUR supported by receipt)."
+                ],
+                "grn_number": "GRN-2026-105",
+                "amount_payable": 0,
+                "invoice_number": "INV-2026-105"
+              },
+              "created_at": "2026-09-23T17:07:37.222996+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0908",
+          "step": "Schedule payment (bank integration)",
+          "role": "bank",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T17:07:37.268Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "invoice_match",
+            "task": "5293f5b9-faa8-44bc-b318-16041bb3b5c2",
+            "field": "status",
+            "equals": "matched",
+            "gateway": "matched",
+            "outcome": "ok"
+          },
+          "artefacts": []
+        },
+        {
+          "key": "TSK-0909",
+          "step": "Dispute the invoice",
+          "role": "ap-clerk",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T17:08:30.289Z",
+          "finished_at": "2026-09-23T17:08:46.590Z",
+          "cost_usd": 0.0814,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "invoice_match",
+            "task": "5293f5b9-faa8-44bc-b318-16041bb3b5c2",
+            "field": "status",
+            "equals": "mismatched",
+            "gateway": "matched",
+            "outcome": "bad"
+          },
+          "artefacts": [
+            {
+              "kind": "handoff",
+              "content": {
+                "caveats": [
+                  "Nothing is payable on INV-2026-105 until a credit note, corrected invoice or the 2 missing desks arrive; amount_payable is 0.",
+                  "Buyer to confirm with the supplier whether the 2 outstanding desks will be shipped or the PO line should be short-closed at 8, and update PO-2026-105 accordingly.",
+                  "Invoice due date is 2026-10-27; the dispute should be resolved before then to avoid a late-payment claim.",
+                  "Invoice issued_at is 2026-09-27, after today's date (2026-09-23) and after the shipment date 2026-09-26; buyer may want to check the invoice date with the supplier."
+                ],
+                "details": "To: sales@atlantic-office.example\nAtlantic Office Supplies Ltd\n\nDear Sir/Madam,\n\nRe: Invoice INV-2026-105 dated 2026-09-27, our purchase order PO-2026-105, your delivery note DN-2026-105 (our goods receipt GRN-2026-105)\n\nWe have matched your invoice against our purchase order and goods receipt and cannot release it for payment, because the quantity billed does not match the quantity received.\n\nLine 1, AO-DESK Sit-stand desk 160 cm:\n- Ordered (PO-2026-105): 10\n- Shipped per your delivery note DN-2026-105 (DHL Freight, tracking DHL1050042IE): 8\n- Received in good condition (GRN-2026-105): 8\n- Invoiced: 10 at 620.00 EUR = 6,200.00 EUR\n- Unit price 620.00 EUR matches the PO; the price is not in dispute.\n\nVariance: 2 units over-billed, 2 x 620.00 EUR = 1,240.00 EUR. Our quantity tolerance is 0. The invoice total of 6,200.00 EUR is only supported by 8 x 620.00 = 4,960.00 EUR of goods received.\n\nWhat we expect, either:\n1. A credit note for 1,240.00 EUR against INV-2026-105, or a corrected invoice for 8 units totalling 4,960.00 EUR (with INV-2026-105 cancelled); or\n2. Delivery of the 2 outstanding desks, which we will then receive and match against the invoice as billed.\n\nPlease also confirm whether the 2 outstanding desks are still to be shipped, and the expected delivery date. No payment will be made on INV-2026-105 as currently issued.\n\nKind regards,\nAccounts Payable",
+                "summary": "Invoice INV-2026-105 (PO-2026-105): billed for 10 sit-stand desks, only 8 delivered - credit note or corrected invoice required"
+              },
+              "created_at": "2026-09-23T17:08:46.478799+00:00"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": "p2p-116",
+      "requisition": "PR-2026-106",
+      "label": "vendor not approved",
+      "expected": "rejected",
+      "actual": "rejected",
+      "success": true,
+      "status": "done",
+      "batch": "rerun",
+      "started_at": "2026-09-23T17:05:57.382Z",
+      "finished_at": "2026-09-23T17:07:53.234042+00:00",
+      "elapsed_minutes": 1.9,
+      "cost_usd": 0.276,
+      "cost_credits": 0,
+      "human": {
+        "verdict": "reject",
+        "reason": "QuickParts Trading is not an approved vendor; onboard the vendor first or pick an approved one",
+        "waited_seconds": 46,
+        "think_seconds": 45,
+        "forgotten": false,
+        "nudged": false
+      },
+      "steps": [
+        {
+          "key": "TSK-0910",
+          "step": "Raise purchase order",
+          "role": "buyer",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T17:05:57.382Z",
+          "finished_at": "2026-09-23T17:06:09.746Z",
+          "cost_usd": 0.1351,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "purchase_order",
+              "content": {
+                "lines": [
+                  {
+                    "sku": "QP-SSD2",
+                    "item": "2 TB NVMe SSD",
+                    "line": 1,
+                    "unit": "each",
+                    "quantity": 12,
+                    "line_total": 1788,
+                    "unit_price": 149
+                  }
+                ],
+                "total": 1788,
+                "vendor": {
+                  "id": "V-2001",
+                  "name": "QuickParts Trading",
+                  "email": "hello@quickparts.example",
+                  "approved": false
+                },
+                "currency": "EUR",
+                "needed_by": "2026-10-05",
+                "po_number": "PO-2026-106",
+                "requester": "Liam Walsh",
+                "cost_center": "CC-410",
+                "requisition": "PR-2026-106",
+                "policy_check": {
+                  "notes": "VENDOR NOT APPROVED: QuickParts Trading (V-2001) is marked approved=no in the vendor master (payment terms: prepaid). Policy requires the approver to reject this order until the vendor is onboarded. Total 1,788.00 EUR is within the 2,000 no-approver band. Requisition price 149.00 matches the catalogue price 149.00, no difference. within_budget=true is based on the amount being under the policy threshold; no cost-centre budget data was available to check CC-410.",
+                  "within_budget": true,
+                  "approver_level": "none",
+                  "vendor_approved": false,
+                  "approval_required": true
+                },
+                "delivery_address": "Goods-in, Unit 4, Northwest Business Park, Dublin 15"
+              },
+              "created_at": "2026-09-23T17:06:09.706025+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0911",
+          "step": "Approve purchase order",
+          "role": "operator",
+          "state": "done",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T17:07:29.655Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": [
+            {
+              "kind": "review",
+              "content": {
+                "summary": "QuickParts Trading is not an approved vendor; onboard the vendor first or pick an approved one",
+                "verdict": "request_changes",
+                "findings": []
+              },
+              "created_at": "2026-09-23T17:07:29.655032+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0912",
+          "step": "Send PO to supplier (ERP integration)",
+          "role": "supplier-erp",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T17:07:29.655Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "review",
+            "task": "d6c94e31-9f34-4051-9933-28836f535c3f",
+            "field": "verdict",
+            "equals": "approve",
+            "gateway": "approved",
+            "outcome": "yes"
+          },
+          "artefacts": []
+        },
+        {
+          "key": "TSK-0913",
+          "step": "Rework note to requester",
+          "role": "buyer",
+          "state": "done",
+          "attempts": 1,
+          "artifact_rejected": 1,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": "2026-09-23T17:07:39.178Z",
+          "finished_at": "2026-09-23T17:07:53.234Z",
+          "cost_usd": 0.1409,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "review",
+            "task": "d6c94e31-9f34-4051-9933-28836f535c3f",
+            "field": "verdict",
+            "equals": "request_changes",
+            "gateway": "approved",
+            "outcome": "no"
+          },
+          "artefacts": [
+            {
+              "kind": "handoff",
+              "content": {
+                "caveats": [
+                  "No cost-centre budget data was available for CC-410, so within_budget was based only on the amount being under the policy threshold; the approver may want to confirm budget.",
+                  "Amount 1,788.00 EUR is in the 2,000 no-approver band, so vendor status is the only blocker."
+                ],
+                "details": "Before the requisition can be resubmitted, either (a) the vendor QuickParts Trading is onboarded and marked approved in the vendor master (note its payment terms are currently prepaid), or (b) the requester picks an approved vendor that supplies the item; the buyer will then re-raise the order using that vendor's contracted catalogue price. Requisition and catalogue prices were consistent (149.00 per unit) so no price change is needed if the same vendor is approved.",
+                "summary": "PO-2026-106 (PR-2026-106, Liam Walsh, CC-410, 12 x 2 TB NVMe SSD, 1,788.00 EUR) was rejected by the approver because QuickParts Trading (V-2001) is not an approved vendor."
+              },
+              "created_at": "2026-09-23T17:07:53.19457+00:00"
+            }
+          ]
+        },
+        {
+          "key": "TSK-0914",
+          "step": "Book goods receipt",
+          "role": "receiving",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T17:07:29.655Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": []
+        },
+        {
+          "key": "TSK-0915",
+          "step": "Three-way match",
+          "role": "ap-clerk",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T17:07:29.655Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": null,
+          "artefacts": []
+        },
+        {
+          "key": "TSK-0916",
+          "step": "Schedule payment (bank integration)",
+          "role": "bank",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T17:07:29.655Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "invoice_match",
+            "task": "91f5bae7-362a-42a2-a185-6a65d4c2c25a",
+            "field": "status",
+            "equals": "matched",
+            "gateway": "matched",
+            "outcome": "ok"
+          },
+          "artefacts": []
+        },
+        {
+          "key": "TSK-0917",
+          "step": "Dispute the invoice",
+          "role": "ap-clerk",
+          "state": "cancelled",
+          "attempts": 0,
+          "artifact_rejected": 0,
+          "gate_failed": 0,
+          "released": [],
+          "first_claim": null,
+          "finished_at": "2026-09-23T17:07:29.655Z",
+          "cost_usd": 0,
+          "cost_credits": 0,
+          "condition": {
+            "kind": "invoice_match",
+            "task": "91f5bae7-362a-42a2-a185-6a65d4c2c25a",
+            "field": "status",
+            "equals": "mismatched",
+            "gateway": "matched",
+            "outcome": "bad"
+          },
+          "artefacts": []
+        }
+      ]
+    }
+  ]
+}

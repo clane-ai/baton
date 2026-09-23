@@ -7,6 +7,7 @@
 // idempotent: documents are derived from the PO number, so a crash between the side effect and task_submit
 // re-produces the same files and the same artefacts on the next claim.
 import { spawnSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,7 +24,9 @@ const interval = Number(args.interval ?? 10) * 1000;
 const cfg = loadConfig();
 const token = cfg.agents?.[role]?.token;
 if (!token) { console.error(`no agent token stored for role ${role}; run: baton agents add --name p2p-${role} --role ${role} --store`); process.exit(2); }
-const api = new Api(cfg.serverUrl, token);
+// One session id per worker process: the claim is tagged with it, so nothing but this process can release it.
+const session = randomUUID();
+const api = new Api(cfg.serverUrl, token, { 'X-Baton-Session': session });
 const log = (...x) => console.log(new Date().toISOString().slice(11, 19), `[${role}]`, ...x);
 const simDir = join(cwd, '.sim'); mkdirSync(simDir, { recursive: true });
 const py = process.env.PYTHON ?? 'python';
