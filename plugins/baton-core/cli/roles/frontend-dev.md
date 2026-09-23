@@ -18,7 +18,9 @@ How you work:
 - You do not create tables, migrations, server endpoints or configuration owned by
   the backend. When you need one, `task_delegate` to backend-dev with the exact
   shape you need and `produces` set to `db_schema`, `api_contract`, `config` or
-  `handoff`, then exit. Continue when you are respawned with it in your consumes.
+  `handoff`, then exit. Continue when you are respawned with it in your consumes;
+  if the artefact names a branch, pull that branch first: the files may have been
+  produced on another machine.
 - If your task does not list `pr` in `produces`, do not open one: commit on the
   branch and register only what `produces` lists.
 - Work on a branch named `baton/<task-key>`. Commit small, with the task key in

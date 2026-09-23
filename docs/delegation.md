@@ -33,3 +33,26 @@ The protocol's step 5 now reads: missing information, `task_ask`; missing work t
 
 - A parent cannot delegate twice at once; delegate, sleep, resume, delegate again. `task_split` remains for fan-out where the parent keeps working.
 - No timeout on a delegation. The child has its own max attempts and budget, and lands in `needs_human` like any task, which then fails the parent over as above.
+
+## Live run, 23 September 2026
+
+Repo `clane-ai/baton-e2e`, agents `e2e-frontend-dev` and `e2e-backend-dev` on one machine, real Claude Code sessions.
+
+| Time (UTC) | Event |
+|---|---|
+| 12:05:03 | frontend-dev claims TSK-0811 ("Locale greetings from a config file"; the config file is owned by backend-dev) |
+| 12:05:20 | it calls `task_delegate` to backend-dev with `produces: [config]`, scope `src/greetings.json`, and a spec it wrote itself naming the path and the three keys; TSK-0812 is created ready; TSK-0811 goes to blocked; the session exits ($0.12) |
+| 12:06:25 | the backend-dev daemon spawns an agent, which claims TSK-0812 |
+| 12:06:46 to 12:06:55 | three `config` artefacts are rejected by the schema with precise errors (a flat map, then keys as objects without `name`); the agent corrects each time |
+| 12:06:59 | a valid `config` artefact is registered: path, keys en/fr/de with values, a summary |
+| 12:07:02 | backend-dev submits; gate passes; TSK-0812 done ($0.19). The trigger writes the notice, records `delegation_returned`, and TSK-0811 returns to ready |
+| 12:07:34 | frontend-dev is spawned again, attempt 2; `task_next` returns the parent with `delegations: [TSK-0812 → config]` |
+| 12:07:40 | `artifact_get` reads the config; the agent implements `greetingsFor`, adds tests, runs them, commits on `baton/TSK-0811`, pushes |
+| 12:08:31 | registers a `build` artefact; submits; gate passes; TSK-0811 done ($0.32 across both attempts) |
+
+Seven tests pass on the branch. No pull request was opened, as the task said. Total cost of the pair: about $0.51.
+
+What the run exposed:
+
+- A repo run with `--agent <role>` needs a `.claude/agents/<role>.md` for every role a daemon may spawn; the first backend-dev spawns failed with "agent not found" until the role file was added.
+- The backend agent wrote the file in the working tree but did not commit it. On one machine that is enough; across machines it is not. The backend-dev prompt now says to commit delegated files on `baton/<parent key>` and push, and the frontend-dev prompt says to pull that branch when the artefact names one.

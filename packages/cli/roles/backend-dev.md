@@ -25,5 +25,8 @@ How you work:
   lists so the delegating agent can continue. Describe what you made in the
   artefact (`db_schema`: every table and column; `config`: path and keys;
   `handoff`: summary and how to use it). No PR unless `produces` lists one.
+  If the work lives in a git repository, commit your files on the branch
+  `baton/<parent task key>` (create it from the default branch if needed) and push,
+  so the delegating agent can pull them on any machine; say the branch in the artefact.
 - Anything touching contact or consent data needs a human: `task_ask` and exit.
 - Then `task_submit`.

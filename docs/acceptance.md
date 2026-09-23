@@ -48,3 +48,7 @@ Results against prd.md section 18, recorded 22 and 23 September 2026. Evidence i
 ## End-to-end run
 
 On 23 September 2026 the whole pipeline ran with live Claude Code sessions (analyst, frontend-dev, qa, reviewer) against the private repo `clane-ai/baton-e2e`, including a `task_ask` from the developer session answered by a separately spawned analyst session, a real pull request with green GitHub Actions, and the webhook driving the completion gate. Timeline, the message exchange, costs and the defects it exposed are in `docs/e2e-run.md`. Acceptance tests 13 to 16 and 20 to 22 were thereby also exercised with unscripted agents rather than fixtures.
+
+## Delegation run
+
+On 23 September 2026 (afternoon) a frontend-dev session delegated the creation of a config file to backend-dev with `task_delegate`, exited, and was respawned with the result after the backend task passed its gate; it then finished its own task. Timeline and findings in `docs/delegation.md`. Server tests for the mechanism: `13_delegation.test.mjs` (7 pass).
