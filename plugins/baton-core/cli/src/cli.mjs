@@ -20,8 +20,8 @@ export function cliVersion() {
 
 const HELP = `baton <command> [options]
 
-  supervise --roles qa,frontend-dev [--interval 60] [--cwd .] [--once] [--install] [--model m] [--budget 2] [--max-turns 60]
-  work --role qa [--once] [--cwd .]         run one agent session in the foreground
+  supervise --roles qa,frontend-dev [--interval 60] [--cwd .] [--once] [--install] [--model m] [--budget 2] [--max-turns 60] [--runtime claude|clane]
+  work --role qa [--once] [--cwd .] [--runtime claude|clane]   run one agent session in the foreground
   status                                    agents, claims, lease countdowns, attention list
   tasks ls [--state s] [--role r] | show <key> | create --title .. --spec .. --acceptance .. --role .. | prioritise <key> <n> | cancel <key> [--reason ..]
   answer <message-id> "<text>"
@@ -212,6 +212,12 @@ export async function run(argv) {
     case 'gate': {
       // PreToolUse command hook. Fails closed: any failure to reach the server is a deny (prd.md 21.2, decision 10).
       const input = JSON.parse((await readStdin()) || '{}');
+      if (!input.session_id && process.env.BATON_SESSION) input.session_id = process.env.BATON_SESSION;
+      if (!input.cwd) input.cwd = process.cwd();
+      if (input.tool_input && typeof input.tool_input === 'object' && !input.tool_input.file_path) {
+        const p = input.tool_input.path ?? input.tool_input.filePath ?? input.tool_input.target ?? null;
+        if (typeof p === 'string') input.tool_input.file_path = p.match(/^([a-zA-Z]:)?[\/]/) ? p : join(input.cwd, p);
+      }
       const token = process.env.BATON_TOKEN ?? anyAgentToken(cfg).token;
       const deny = (reason) => { console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: reason } })); return 0; };
       if (!token) return deny('No Baton token on this machine. The lease gate cannot verify a lease, so the write is denied.');
@@ -239,7 +245,8 @@ export async function run(argv) {
       const token = agentTokenFor(cfg, role);
       if (!token) throw new Error(`no token for role ${role}`);
       const r = await spawnAgent({ role, cwd, token, serverUrl: cfg.serverUrl, model: flags.model, maxTurns: flags['max-turns'], budgetUsd: flags.budget,
-        permissionMode: flags['permission-mode'], mcpConfig: flags['mcp-config'] !== false, useAgentFlag: !!flags.agent, agentName: cfg.agents?.[role]?.name, onLine: (l) => console.log(l) });
+        permissionMode: flags['permission-mode'], mcpConfig: flags['mcp-config'] !== false, useAgentFlag: !!flags.agent, agentName: cfg.agents?.[role]?.name, onLine: (l) => console.log(l),
+        runtime: flags.runtime ? String(flags.runtime) : cfg.defaults.runtime });
       console.log(`exit ${r.code} (${r.reason}) session=${r.sessionId ?? '?'} cost=$${(r.costUsd ?? 0).toFixed(4)} log=${r.log}`);
       return r.code === 0 ? 0 : 1;
     }
@@ -258,7 +265,7 @@ export async function run(argv) {
       if (flags.sync !== false && cfg.operatorToken) { try { await sync(cfg, { cwd, quiet: true }); } catch (e) { console.log(`sync skipped: ${e.message}`); } }
       const r = await supervise(cfg, { roles, interval, cwd, once: !!flags.once, model: flags.model, maxTurns: flags['max-turns'], budgetUsd: flags.budget,
         permissionMode: flags['permission-mode'], mcpConfig: flags['mcp-config'] !== false, useAgentFlag: !!flags.agent, verbose: !!flags.verbose,
-        quiet: !!flags.quiet, maxTicks: flags['max-ticks'] ? Number(flags['max-ticks']) : undefined });
+        quiet: !!flags.quiet, maxTicks: flags['max-ticks'] ? Number(flags['max-ticks']) : undefined, runtime: flags.runtime ? String(flags.runtime) : cfg.defaults.runtime });
       if (flags.once) return r.result ? (r.result.code === 0 ? 0 : 1) : 0;
       return 0;
     }

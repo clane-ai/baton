@@ -31,6 +31,8 @@ export function claudeBinary() {
  * opts: { role, cwd, token, serverUrl, model, maxTurns, budgetUsd, permissionMode, mcpConfig (bool), agentName, onLine, quiet }
  */
 export function spawnAgent(opts) {
+  const runtime = opts.runtime ?? process.env.BATON_RUNTIME ?? 'claude';
+  if (runtime === 'clane') return import('./clane-runtime.mjs').then((m) => m.spawnClaneAgent(opts));
   const def = roleDefinition(opts.role, opts.cwd);
   const agentName = opts.agentName ?? opts.role;
   const model = opts.model ?? def.frontmatter.model ?? 'sonnet';
@@ -139,7 +141,7 @@ export async function supervise(cfg, opts) {
       log(`${role}: work available (${wa.body.ready} ready, ${wa.body.questions ?? 0} questions), spawning agent`);
       const p = spawnAgent({ role, cwd: opts.cwd, token, serverUrl: cfg.serverUrl, model: opts.model, maxTurns: opts.maxTurns,
         budgetUsd: opts.budgetUsd, permissionMode: opts.permissionMode, mcpConfig: opts.mcpConfig, useAgentFlag: opts.useAgentFlag,
-        agentName: cfg.agents?.[role]?.name, onLine: log, quiet: opts.quiet })
+        agentName: cfg.agents?.[role]?.name, onLine: log, quiet: opts.quiet, runtime: opts.runtime })
         .then((r) => { running.set(role, (running.get(role) ?? 1) - 1); log(`${role}: agent exited ${r.reason} (session ${r.sessionId ?? '?'}, $${(r.costUsd ?? 0).toFixed(4)}, log ${r.log})`); return r; });
       if (opts.once) return p;
     }
