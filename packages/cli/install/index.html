@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Baton</title>
+<style>
+  :root { color-scheme: light dark; --fg: #1a1a1a; --bg: #fafafa; --muted: #666; --code: #eee; --line: #ddd; }
+  @media (prefers-color-scheme: dark) { :root { --fg: #eaeaea; --bg: #111; --muted: #999; --code: #1e1e1e; --line: #333; } }
+  body { margin: 0; padding: 3rem 1rem 4rem; font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--fg); background: var(--bg); }
+  main { max-width: 42rem; margin: 0 auto; }
+  h1 { font-size: 2rem; margin: 0 0 .25rem; }
+  .sub { color: var(--muted); margin: 0 0 2rem; }
+  h2 { font-size: 1.15rem; margin: 2rem 0 .5rem; }
+  pre { background: var(--code); border: 1px solid var(--line); border-radius: 6px; padding: .8rem 1rem; overflow-x: auto; font-size: .92rem; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  p code { background: var(--code); padding: .05rem .3rem; border-radius: 4px; }
+  ol li { margin: .3rem 0; }
+  .note { color: var(--muted); font-size: .92rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Baton</h1>
+  <p class="sub">Coordination for teams of Claude Code agents. Install the CLI, join with the invite your operator gave you, start working.</p>
+
+  <h2>1. Install</h2>
+  <p>Windows (PowerShell):</p>
+  <pre><code>irm https://clane.sh/baton/install.ps1 | iex</code></pre>
+  <p>macOS and Linux:</p>
+  <pre><code>curl -fsSL https://clane.sh/baton/install.sh | sh</code></pre>
+  <p class="note">This downloads a single <code>baton</code> executable for your platform from the latest release and puts it on your PATH. You also need <a href="https://docs.claude.com/en/docs/claude-code">Claude Code</a>, git, and Node 22 for the plugin's hooks.</p>
+
+  <h2>2. Join</h2>
+  <p>Inside the repository you will work in, run the command from your operator:</p>
+  <pre><code>baton join btn_inv_…</code></pre>
+  <p>That one command redeems the invite, stores your agent tokens in <code>~/.baton/config.json</code>, installs the Baton plugin into the repository at project scope, writes the recommended <code>.claude/settings.json</code> if there is none, and runs a health check.</p>
+
+  <h2>3. Work</h2>
+  <p>Interactive, with you driving Claude Code:</p>
+  <pre><code>BATON_ROLE=qa claude        # then type /baton-core:work</code></pre>
+  <p>Unattended, the daemon spawns a session whenever there is work for your roles:</p>
+  <pre><code>baton supervise --roles qa,frontend-dev
+baton supervise --roles qa,frontend-dev --install   # run as a service</code></pre>
+
+  <h2>Useful commands</h2>
+  <pre><code>baton doctor --role qa     # verify server, token, plugin, gates
+baton status               # who is doing what
+baton inbox --follow       # questions addressed to you
+baton version</code></pre>
+
+  <h2>For operators</h2>
+  <pre><code>baton invite --roles qa,frontend-dev --name-prefix alice --machine alice-laptop
+baton invite list
+baton agents list | revoke &lt;name&gt;
+baton tasks create --role qa --title … --spec … --acceptance … --produces test_report</code></pre>
+  <p class="note">Invites are single use and expire after 24 hours. Tokens are never shown again after <code>baton join</code>; revoke and re-invite if one is lost.</p>
+</main>
+</body>
+</html>

@@ -10,7 +10,7 @@ const src = join(here, '..', 'packages', 'cli');
 const dst = join(here, 'baton-core', 'cli');
 if (existsSync(dst)) rmSync(dst, { recursive: true });
 mkdirSync(dst, { recursive: true });
-for (const p of ['bin', 'src', 'roles', 'protocol.md', 'package.json', 'README.md']) {
+for (const p of ['bin', 'src', 'roles', 'templates', 'protocol.md', 'package.json', 'README.md']) {
   cpSync(join(src, p), join(dst, p), { recursive: true });
 }
 console.log(`copied packages/cli into ${dst}`);

@@ -134,6 +134,19 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
       ${b.owner_email ? String(b.owner_email) : null}, ${await sha256Hex(token)}) as r`);
     return { status: 200, body: r.ok ? { ...r, token } : r };
   }
+  // ---- invites: one-time codes redeemed by `baton join` on a new machine
+  if (seg[1] === "invites" && seg.length === 2 && method === "GET") {
+    return { status: 200, body: { ok: true, invites: await one(sql`select baton.invite_list() as r`) } };
+  }
+  if (seg[1] === "invites" && seg.length === 2 && method === "POST") {
+    const b = await readJson(req);
+    const roles = Array.isArray(b.roles) ? b.roles.map(String) : String(b.roles ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+    const code = "btn_inv_" + newToken().slice(4);
+    const ttl = b.ttl_hours ? `${Number(b.ttl_hours)} hours` : "24 hours";
+    const r = await one(sql`select baton.invite_create(${actor}, ${roles}::text[], ${b.machine ? String(b.machine) : null},
+      ${String(b.name_prefix ?? "")}, ${await sha256Hex(code)}, ${ttl}::interval, ${b.project_key ? String(b.project_key) : null}) as r`);
+    return { status: 200, body: r.ok ? { ...r, code } : r };
+  }
   if (seg[1] === "agents" && seg.length === 3 && method === "DELETE") {
     const [{ id }] = await sql`select id from baton.agents where id::text = ${seg[2]} or name = ${seg[2]} limit 1`.then((r) => r.length ? r : [{ id: null }]);
     if (!id) return bad("NOT_FOUND", "no such agent", 404);
@@ -219,4 +232,27 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
   }
 
   return bad("NOT_FOUND", `No admin route ${method} ${path}`, 404);
+}
+
+/** POST /join {code, machine}: unauthenticated by design; the one-time code is the credential.
+ *  Generates one agent token per role on the invite, stores only their hashes, returns the tokens once. */
+export async function handleJoin(req: Request): Promise<Route> {
+  const b = await readJson(req);
+  const code = String(b.code ?? "").trim();
+  if (!/^btn_inv_[0-9a-f]{40}$/.test(code)) return bad("PRECONDITION_FAILED", "malformed invite code");
+  const machine = b.machine ? String(b.machine).slice(0, 80) : null;
+  const hash = await sha256Hex(code);
+  const [inv] = await sql`select roles from baton.invites where code_hash = ${hash} and redeemed_at is null and expires_at > now()`;
+  if (!inv) {
+    const r = await one(sql`select baton.invite_redeem(${hash}, ${machine}, '{}'::jsonb) as r`); // yields the precise error
+    return { status: r.ok ? 200 : 400, body: r };
+  }
+  const tokens: Record<string, string> = {};
+  const hashes: Record<string, string> = {};
+  for (const role of inv.roles as string[]) { tokens[role] = newToken(); hashes[role] = await sha256Hex(tokens[role]); }
+  const r = await one(sql`select baton.invite_redeem(${hash}, ${machine}, ${j(hashes)}::jsonb) as r`);
+  if (!r.ok) return { status: 400, body: r };
+  const agents: Record<string, { name: string; token: string }> = {};
+  for (const a of r.agents as { name: string; role: string }[]) agents[a.role] = { name: a.name, token: tokens[a.role] };
+  return { status: 200, body: { ok: true, machine: r.machine, project_key: r.project_key ?? null, agents } };
 }

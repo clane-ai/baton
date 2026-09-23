@@ -38,3 +38,7 @@ Migrations are applied through the Supabase MCP `apply_migration` tool in order;
 ## Release train
 
 1. Change a role or a gate. 2. `claude plugin validate` and `claude plugin eval` (CI). 3. Bump `version` in the plugin's `plugin.json`. 4. `claude plugin tag ./plugins/<name> --push` writes `<name>--v<version>`; tag the marketplace `vX.Y.Z` for projects that pin by ref. 5. Move a project's `marketplace_ref` on the server; `baton sync` on each machine (the daemon runs it before the first spawn) reinstalls at that ref.
+
+## Installing on a developer machine
+
+`baton invite --roles qa --name-prefix alice --machine alice-laptop` (operator) produces a single-use code. On the developer machine: the install one-liner from `packages/cli/install/` (served at clane.sh/baton once published), then `baton join <code>` inside the product repo. Standalone executables are built by `.github/workflows/release.yml` on a `cli-vX.Y.Z` tag with `node packages/cli/scripts/build-binaries.mjs` (bun, one binary per platform, assets embedded).

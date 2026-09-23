@@ -1,14 +1,28 @@
 {
   "name": "@clane-ai/baton-cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Baton supervisor daemon and operator CLI for distributed Claude Code agent teams.",
   "license": "UNLICENSED",
   "type": "module",
-  "bin": { "baton": "bin/baton.mjs" },
-  "files": ["bin", "src", "roles", "protocol.md", "README.md"],
-  "engines": { "node": ">=22" },
-  "scripts": {
-    "test": "node --env-file=../../.env --test --test-concurrency=1"
+  "bin": {
+    "baton": "bin/baton.mjs"
   },
-  "publishConfig": { "access": "restricted" }
+  "files": [
+    "bin",
+    "src",
+    "roles",
+    "templates",
+    "protocol.md",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --env-file=../../.env --test --test-concurrency=1",
+    "build": "node scripts/build-binaries.mjs"
+  },
+  "publishConfig": {
+    "access": "restricted"
+  }
 }

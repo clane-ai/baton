@@ -1,11 +1,24 @@
 // Role definitions: a product repo's .claude/agents/<role>.md wins, else the copy shipped with the CLI.
+// Shipped files come from disk in the source tree and from ./assets.mjs in the compiled executables.
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ASSETS } from './assets.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const ROLES_DIR = join(HERE, '..', 'roles');
-export const PROTOCOL = readFileSync(join(HERE, '..', 'protocol.md'), 'utf8');
+
+/** Read a file shipped with the CLI by its path relative to the package root. */
+export function readAsset(rel) {
+  if (ASSETS && ASSETS[rel] != null) return ASSETS[rel];
+  return readFileSync(join(HERE, '..', rel), 'utf8');
+}
+export function hasAsset(rel) {
+  if (ASSETS) return ASSETS[rel] != null;
+  return existsSync(join(HERE, '..', rel));
+}
+
+export const PROTOCOL = readAsset('protocol.md');
 
 export function parseAgentFile(text) {
   const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
@@ -19,16 +32,21 @@ export function parseAgentFile(text) {
 }
 
 export function listBundledRoles() {
+  if (ASSETS) return Object.keys(ASSETS).filter((k) => k.startsWith('roles/') && k.endsWith('.md')).map((k) => k.slice(6, -3)).sort();
   return readdirSync(ROLES_DIR).filter((f) => f.endsWith('.md')).map((f) => f.replace(/\.md$/, ''));
 }
 
 export function roleDefinition(role, cwd = process.cwd()) {
   const project = join(cwd, '.claude', 'agents', `${role}.md`);
+  const bundledRel = `roles/${role}.md`;
   const bundled = join(ROLES_DIR, `${role}.md`);
-  const path = existsSync(project) ? project : existsSync(bundled) ? bundled : null;
-  if (!path) throw new Error(`no definition for role "${role}" (looked in ${project} and ${bundled})`);
-  const { frontmatter, body } = parseAgentFile(readFileSync(path, 'utf8'));
-  return { role, path, source: path === project ? 'project' : 'bundled', frontmatter, body };
+  if (existsSync(project)) {
+    const { frontmatter, body } = parseAgentFile(readFileSync(project, 'utf8'));
+    return { role, path: project, source: 'project', frontmatter, body };
+  }
+  if (!hasAsset(bundledRel)) throw new Error(`no definition for role "${role}" (looked in ${project} and ${bundled})`);
+  const { frontmatter, body } = parseAgentFile(readAsset(bundledRel));
+  return { role, path: ASSETS ? `bundled:${bundledRel}` : bundled, source: 'bundled', frontmatter, body };
 }
 
 /** Tools the role may use without prompting, from its frontmatter. Always includes the Baton MCP server. */

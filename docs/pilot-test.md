@@ -2,69 +2,59 @@
 
 A hands-on test of Baton for one pilot user, on their own machine, with their own Claude Code. It takes about an hour. Every step says what to run and what you should see. Anything that does not match is a finding: note the step number, what you saw, and send the log file it names.
 
-You need: Node 22, Claude Code (`claude --version`), git with SSH access to the `clane-ai` GitHub org, the `gh` CLI logged in, and three agent tokens from the operator (see part 0).
+You need: Claude Code (`claude --version`), git, the `gh` CLI logged in, Node 22 (the plugin's hooks run through it), and one invite code from the operator (see part 0).
 
 ## 0. What the operator does first
 
-The operator (whoever runs Baton for the pilot) does this from any machine that has the operator token:
+From any machine with the operator token, mint a single-use invite naming the roles the pilot will run and their machine:
 
 ```
-baton agents add --name pilot-<yourname>-qa --role qa --machine <your-machine-name>
-baton agents add --name pilot-<yourname>-frontend-dev --role frontend-dev --machine <your-machine-name>
-baton agents add --name pilot-<yourname>-analyst --role analyst --machine <your-machine-name>
+baton invite --roles qa,frontend-dev,analyst --name-prefix pilot-<name> --machine <their-machine>
 ```
 
-Each command prints a token once. The operator hands you the three tokens over a channel you both trust, and tells you the server URL (currently `https://yemmiowsudakdviqqlnt.supabase.co/functions/v1/baton`). The operator also opens the dashboard so they can watch your run.
+It prints one code, `btn_inv_…`, valid for 24 hours. Send that code to the pilot over a channel you trust; the agent tokens are generated when the pilot redeems it and never pass through you. The operator also opens the dashboard so they can watch the run.
 
 ## 1. Install the CLI
 
-The CLI is not on npm yet, so install it from the checkout:
+Windows (PowerShell):
 
 ```
-git clone git@github.com:clane-ai/baton.git
-cd baton
-npm i -g ./packages/cli
-baton --help
+irm https://clane.sh/baton/install.ps1 | iex
 ```
 
-Expected: the help text lists supervise, work, status, tasks, answer, agents, inbox, logs, doctor, sync.
-
-## 2. Store your identity
-
-Create `~/.baton/config.json` (on Windows: `C:\Users\<you>\.baton\config.json`):
-
-```json
-{
-  "serverUrl": "https://yemmiowsudakdviqqlnt.supabase.co/functions/v1/baton",
-  "machine": "<your-machine-name>",
-  "agents": {
-    "qa":           { "name": "pilot-<yourname>-qa",           "token": "btn_..." },
-    "frontend-dev": { "name": "pilot-<yourname>-frontend-dev", "token": "btn_..." },
-    "analyst":      { "name": "pilot-<yourname>-analyst",      "token": "btn_..." }
-  }
-}
-```
-
-This one file is read by the daemon, the plugin's hooks and the plugin's MCP server. Never commit it.
-
-## 3. Prepare a product repo
-
-Use a small repo of your own with a working test command, or fork `clane-ai/baton-e2e` (a two-function Node project with `npm test` and a CI workflow). In that repo:
+macOS and Linux:
 
 ```
-claude plugin marketplace add clane-ai/baton --scope project
-claude plugin install baton-core@clane-ai --scope project
+curl -fsSL https://clane.sh/baton/install.sh | sh
 ```
 
-Accept the trust prompt. Then copy `docs/templates/product-repo-settings.json` from the baton checkout to `.claude/settings.json` in the product repo (merge if you already have one). It pre-allows the Baton MCP server and denies the dangerous commands.
+Expected: "Installed baton 0.2.0 (standalone)" and the folder is on your PATH (open a new terminal on Windows). `baton --help` lists join, supervise, work, status, tasks, doctor and the rest.
 
-Check:
+Until the clane.sh page is live, download the executable for your platform from the latest `cli-v*` release on github.com/clane-ai/baton and put it on your PATH; the scripts do exactly that.
+
+## 2. Prepare a product repo and join
+
+Use a small repo of your own with a working test command, or fork `clane-ai/baton-e2e` (a two-function Node project with `npm test` and a CI workflow). Inside that repo run the command the operator gave you:
+
+```
+baton join btn_inv_…
+```
+
+Expected output, in order:
+
+- "joined as pilot-<name>-qa (qa), pilot-<name>-frontend-dev (frontend-dev), pilot-<name>-analyst (analyst) on machine <their-machine>; tokens saved to ~/.baton/config.json"
+- "registered marketplace clane-ai (clane-ai/baton) at project scope" and "installed baton-core@clane-ai at project scope" (accept the trust prompt if Claude Code shows one)
+- "wrote .claude/settings.json (marketplace, plugin, MCP allow rule, deny rules); commit it"
+- the doctor table, every line `ok`: claude on PATH, server reachable, agent token valid for pilot-<name>-qa, MCP tools resolve (16), gates registered via baton-core plugin
+- a "Next:" block with the interactive and unattended commands
+
+A FAIL line means stop and report it with the whole output. The marketplace add fails if your machine cannot read the private `clane-ai/baton` repo over SSH; check with `git ls-remote git@github.com:clane-ai/baton.git`.
+
+## 3. Re-check any time
 
 ```
 baton doctor --role qa
 ```
-
-Expected: every line green: server reachable, token valid for `pilot-<yourname>-qa`, gates registered, MCP tools resolve. A red line here means stop and report it.
 
 ## 4. Interactive session: play a role by hand
 

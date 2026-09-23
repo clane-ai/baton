@@ -3,6 +3,9 @@ import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync, createWriteStream, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { ASSETS } from './assets.mjs';
 import { Api } from './api.mjs';
 import { CONFIG_DIR, agentTokenFor } from './config.mjs';
 import { roleDefinition, allowedTools, systemPromptFor, runPromptFor } from './roles.mjs';
@@ -156,21 +159,28 @@ export async function supervise(cfg, opts) {
 }
 
 /** Register the daemon with the OS scheduler. Returns the file or command used. */
+/** How to invoke this CLI from a scheduler: the compiled executable itself, or node with the checkout's bin. */
+export function selfCommand() {
+  if (ASSETS) return `"${process.execPath}"`;
+  return `node "${join(dirname(fileURLToPath(import.meta.url)), '..', 'bin', 'baton.mjs')}"`;
+}
+
 export function installService({ roles, cwd, interval }) {
   const roleArg = roles.join(',');
+  const self = selfCommand();
   if (process.platform === 'win32') {
-    const cmd = `cmd /c "cd /d ${cwd} && npx -y @clane-ai/baton-cli supervise --roles ${roleArg} --interval ${interval} >> ${join(CONFIG_DIR, 'supervise.log')} 2>&1"`;
+    const cmd = `cmd /c "cd /d ${cwd} && ${self} supervise --roles ${roleArg} --interval ${interval} >> ${join(CONFIG_DIR, 'supervise.log')} 2>&1"`;
     const args = ['/Create', '/F', '/SC', 'ONLOGON', '/TN', 'BatonSupervise', '/TR', cmd];
     return { kind: 'schtasks', command: `schtasks ${args.map((a) => (a.includes(' ') ? `"${a}"` : a)).join(' ')}`, run: () => spawn('schtasks', args, { stdio: 'inherit', shell: false }) };
   }
   if (process.platform === 'darwin') {
     const plist = join(process.env.HOME, 'Library', 'LaunchAgents', 'ai.clane.baton.supervise.plist');
-    const body = `<?xml version="1.0" encoding="UTF-8"?>\n<plist version="1.0"><dict>\n<key>Label</key><string>ai.clane.baton.supervise</string>\n<key>ProgramArguments</key><array><string>/bin/sh</string><string>-c</string><string>cd ${cwd} && npx -y @clane-ai/baton-cli supervise --roles ${roleArg} --interval ${interval}</string></array>\n<key>RunAtLoad</key><true/><key>KeepAlive</key><true/>\n<key>StandardOutPath</key><string>${join(CONFIG_DIR, 'supervise.log')}</string><key>StandardErrorPath</key><string>${join(CONFIG_DIR, 'supervise.log')}</string>\n</dict></plist>\n`;
+    const body = `<?xml version="1.0" encoding="UTF-8"?>\n<plist version="1.0"><dict>\n<key>Label</key><string>ai.clane.baton.supervise</string>\n<key>ProgramArguments</key><array><string>/bin/sh</string><string>-c</string><string>cd ${cwd} && ${self} supervise --roles ${roleArg} --interval ${interval}</string></array>\n<key>RunAtLoad</key><true/><key>KeepAlive</key><true/>\n<key>StandardOutPath</key><string>${join(CONFIG_DIR, 'supervise.log')}</string><key>StandardErrorPath</key><string>${join(CONFIG_DIR, 'supervise.log')}</string>\n</dict></plist>\n`;
     return { kind: 'launchd', file: plist, body, command: `launchctl load -w ${plist}`, run: () => { writeFileSync(plist, body); return spawn('launchctl', ['load', '-w', plist], { stdio: 'inherit' }); } };
   }
   const dir = join(process.env.HOME, '.config', 'systemd', 'user');
   const unit = join(dir, 'baton-supervise.service');
-  const body = `[Unit]\nDescription=Baton supervisor daemon\nAfter=network-online.target\n\n[Service]\nWorkingDirectory=${cwd}\nExecStart=/usr/bin/env npx -y @clane-ai/baton-cli supervise --roles ${roleArg} --interval ${interval}\nRestart=always\nRestartSec=30\n\n[Install]\nWantedBy=default.target\n`;
+  const body = `[Unit]\nDescription=Baton supervisor daemon\nAfter=network-online.target\n\n[Service]\nWorkingDirectory=${cwd}\nExecStart=/usr/bin/env ${self} supervise --roles ${roleArg} --interval ${interval}\nRestart=always\nRestartSec=30\n\n[Install]\nWantedBy=default.target\n`;
   return { kind: 'systemd', file: unit, body, command: `systemctl --user enable --now baton-supervise`, run: () => { mkdirSync(dir, { recursive: true }); writeFileSync(unit, body); return spawn('systemctl', ['--user', 'enable', '--now', 'baton-supervise'], { stdio: 'inherit' }); } };
 }
 

@@ -5,50 +5,42 @@ Start to first claimed task, following prd.md section 23. Everything below was e
 ## Operator, from anywhere
 
 ```
-npm i -g @clane-ai/baton-cli          # or run it from a checkout: node packages/cli/bin/baton.mjs
-baton config set operatorToken <token>  # or export BATON_OPERATOR_TOKEN
-baton agents add --name qa-01 --role qa --machine sabita-laptop
+irm https://clane.sh/baton/install.ps1 | iex     # or: curl -fsSL https://clane.sh/baton/install.sh | sh
+baton config set operatorToken <token>          # or export BATON_OPERATOR_TOKEN
+baton invite --roles qa --name-prefix sabita --machine sabita-laptop
 ```
 
-The token is printed once. Give it to the person who owns the machine over a channel you trust.
+The invite code is printed once, is single use, and expires after 24 hours. Give it to the person who owns the machine over a channel you trust. The agent tokens are created when they redeem it, so no token ever passes through you. `baton invite list` shows what is outstanding and what was redeemed from where.
 
 ## On the agent machine
 
-1. `npm i -g @clane-ai/baton-cli`, then store the token: `baton config set operatorToken ...` is not needed on an agent machine; instead write the agent token with
+1. Install the standalone CLI with the one-liner above. Node 22 is still needed because the plugin's hooks run through it.
+
+2. In the product repo:
 
    ```
-   baton agents add --name qa-01 --role qa --store     # if you are also an operator
+   baton join <invite-code>
    ```
 
-   or, when you were handed a token, put it in `~/.baton/config.json`:
+   This writes `~/.baton/config.json` with one agent per role on the invite, registers the `clane-ai` marketplace and installs `baton-core` at project scope, writes `.claude/settings.json` from the template when the repo has none, and runs `baton doctor`. Commit the settings file. The marketplace is private: access is through SSH keys. Accept the trust prompt; it covers the plugin's whole codebase, so review it once as you would any dependency. `baton setup` repeats the repo part in another checkout; `baton sync` does the same from the project's profile on the server when one exists.
+
+   The supervisor daemon and the plugin's hooks and MCP server all read that one config file (or `BATON_TOKEN` in the environment). Nothing is ever committed. Handed a raw token instead of an invite? Put it in the file by hand:
 
    ```json
    { "serverUrl": "https://yemmiowsudakdviqqlnt.supabase.co/functions/v1/baton",
      "agents": { "qa": { "name": "qa-01", "token": "btn_..." } } }
    ```
 
-   The supervisor daemon and the plugin's hooks and MCP server all read this one file (or `BATON_TOKEN` in the environment). Nothing is ever committed.
-
-2. In the product repo:
-
-   ```
-   claude plugin marketplace add clane-ai/baton --scope project
-   claude plugin install baton-core@clane-ai --scope project
-   claude plugin install baton-role-qa@clane-ai --scope project
-   ```
-
-   The marketplace is private: access is through SSH keys, which is what the clone above used. Accept the trust prompt; it covers the plugin's whole codebase, so review it once as you would any dependency. Or skip the three commands and run `baton sync`, which does exactly this from the project's profile on the server.
-
 3. `baton doctor --role qa` checks the server is reachable, the token is valid, the role matches the plugin, the gates are registered and the MCP tools resolve.
 
-4. `baton supervise --roles qa --install` writes a scheduled task (Windows), a launchd agent (macOS) or a systemd user unit (Linux) and starts it. Without `--install` it runs in the foreground.
+4. `baton supervise --roles qa --install` writes a scheduled task (Windows), a launchd agent (macOS) or a systemd user unit (Linux) that runs the installed executable, and starts it. Without `--install` it runs in the foreground.
 
 5. `baton seed --demo` from the operator side, then watch the dashboard (`packages/dash`, `pnpm --filter @clane-ai/baton-dash dev`).
 
 ## What you should see
 
 - `baton status` lists the agent as idle with a recent `seen` time once the daemon has polled.
-- When a task is ready for the role, the daemon logs `qa: work available (1 ready), spawning agent`, streams the session to `~/.baton/logs/`, and the task moves ready, in_progress, review, done on the dashboard.
+- When a task is ready for the role, the daemon logs `qa: work available (1 ready, 0 questions), spawning agent`, streams the session to `~/.baton/logs/`, and the task moves ready, in_progress, review, done on the dashboard.
 - A killed agent process shows as idle within seconds and its task returns to ready.
 
 ## Things that bit us

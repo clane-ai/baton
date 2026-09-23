@@ -5,6 +5,15 @@ export const q = (text, params = []) => pool.query(text, params);
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export async function reset() {
+  // The suite runs against a live project and truncates the whole schema. Refuse when real agents
+  // (anything not created by this suite) exist, so a pilot's agents and tasks cannot be wiped by accident.
+  if (process.env.BATON_TEST_FORCE_WIPE !== '1') {
+    const { rows } = await q(`select name, machine from baton.agents where machine <> 'test-machine' and revoked_at is null limit 5`);
+    if (rows.length) {
+      throw new Error(`refusing to truncate baton.*: live agents exist (${rows.map((r) => r.name).join(', ')}). ` +
+        `Set BATON_TEST_FORCE_WIPE=1 to wipe them anyway, then re-run "baton seed" and re-add agents.`);
+    }
+  }
   await q(`truncate baton.events, baton.claims, baton.artifacts, baton.messages, baton.runs,
            baton.decisions, baton.tasks, baton.agents, baton.roles cascade`);
 }

@@ -8,6 +8,15 @@ import { Api, must } from './api.mjs';
 import { roleDefinition, listBundledRoles, systemPromptFor, runPromptFor, PROTOCOL } from './roles.mjs';
 import { supervise, spawnAgent, installService } from './supervise.mjs';
 import { sync } from './sync.mjs';
+import { redeem, setupRepo, nextSteps } from './join.mjs';
+import { VERSION, ASSETS } from './assets.mjs';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+export function cliVersion() {
+  if (VERSION) return VERSION;
+  try { return JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), 'utf8')).version; } catch { return '0.0.0'; }
+}
 
 const HELP = `baton <command> [options]
 
@@ -17,6 +26,9 @@ const HELP = `baton <command> [options]
   tasks ls [--state s] [--role r] | show <key> | create --title .. --spec .. --acceptance .. --role .. | prioritise <key> <n> | cancel <key> [--reason ..]
   answer <message-id> "<text>"
   agents add --name qa-01 --role qa [--machine m] [--store] | list | revoke <name>
+  invite --roles qa,frontend-dev --name-prefix pilot-1 [--machine m] [--ttl-hours 24] | invite list
+  join <invite-code> [--machine m] [--cwd .] [--no-plugin]   one command for a new developer machine
+  setup [--cwd .]                            install the plugin and settings into this product repo
   inbox [--follow] [--role r]               messages for this machine's agent (the monitor stream)
   logs [--agent a] [--task k] [--type t] [--follow]
   prompt --role qa [--system]               the run prompt (or the appended system prompt)
@@ -27,6 +39,7 @@ const HELP = `baton <command> [options]
   gate pretool | hook <event>                Claude Code command hooks (stdin JSON in, JSON out)
   sync [--dry-run] [--write-settings] [--cwd .]   reconcile this checkout's plugins with its project profile
   config set <key> <value> | show
+  version
 
 Environment: BATON_URL, BATON_OPERATOR_TOKEN, BATON_TOKEN, BATON_ROLE. Config file: ${CONFIG_PATH}`;
 
@@ -58,6 +71,7 @@ export async function run(argv) {
 
   switch (cmd) {
     case undefined: case 'help': case '--help': console.log(HELP); return 0;
+    case 'version': case '--version': case '-v': console.log(`baton ${cliVersion()}${ASSETS ? ' (standalone)' : ''}`); return 0;
 
     case 'config': {
       if (rest[0] === 'show') { console.log(JSON.stringify({ ...cfg, operatorToken: cfg.operatorToken ? '(set)' : null, agents: Object.fromEntries(Object.entries(cfg.agents).map(([r, a]) => [r, { name: a.name, token: '(set)' }])) }, null, 2)); return 0; }
@@ -249,35 +263,43 @@ export async function run(argv) {
       return 0;
     }
 
-    case 'doctor': {
-      const checks = [];
-      const ok = (name, detail) => checks.push({ name, ok: true, detail });
-      const bad = (name, detail) => checks.push({ name, ok: false, detail });
-      try { const v = execSync('claude --version', { encoding: 'utf8' }).trim(); ok('claude on PATH', v); } catch { bad('claude on PATH', 'not found'); }
-      ok('node', process.version);
-      const health = await new Api(cfg.serverUrl, null).get('/health').catch((e) => ({ status: 0, body: { error: { message: e.message } } }));
-      health.status === 200 ? ok('server reachable', cfg.serverUrl) : bad('server reachable', `${cfg.serverUrl}: ${health.body?.error?.message ?? health.status}`);
-      const role = flags.role ? String(flags.role) : anyAgentToken(cfg).role;
-      const token = role ? agentTokenFor(cfg, role) : anyAgentToken(cfg).token;
-      if (token) {
-        const me = await new Api(cfg.serverUrl, token).tool('whoami');
-        if (me.ok) { ok('agent token valid', `${me.agent.name} (${me.agent.role})`); if (role && me.agent.role !== role) bad('role matches token', `token is for ${me.agent.role}, expected ${role}`); else ok('role matches token', me.agent.role); }
-        else bad('agent token valid', me.error?.message ?? 'rejected');
-        const list = await new Api(cfg.serverUrl, token).request('POST', '/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/list' });
-        const n = list.body?.result?.tools?.length ?? 0; n >= 16 ? ok('MCP tools resolve', `${n} tools`) : bad('MCP tools resolve', `${n} tools`);
-      } else bad('agent token', `none for ${role ?? 'any role'} (BATON_TOKEN or ${CONFIG_PATH})`);
-      if (cfg.operatorToken) { const s = await opApi(cfg).get('/admin/status'); s.status === 200 ? ok('operator token valid', 'admin API reachable') : bad('operator token valid', `HTTP ${s.status}`); }
-      else checks.push({ name: 'operator token', ok: true, detail: 'not set (optional on agent machines)' });
-      if (role) { try { const d = roleDefinition(role, cwd); ok('role definition', `${d.source}: ${d.path}`); } catch (e) { bad('role definition', e.message); } }
-      const settings = join(cwd, '.claude', 'settings.json');
-      let gates = 'none';
-      if (existsSync(settings)) { try { const s = JSON.parse(readFileSync(settings, 'utf8')); const h = s.hooks ?? {}; gates = ['PreToolUse', 'Stop', 'SessionEnd', 'SessionStart'].filter((k) => h[k]).join(',') || 'none'; } catch { gates = 'unparseable settings.json'; } }
-      const pluginGates = existsSync(join(cwd, '.claude', 'settings.json')) && /baton-core/.test(readFileSync(settings, 'utf8'));
-      (gates !== 'none' || pluginGates) ? ok('gates registered', pluginGates ? 'via baton-core plugin' : gates) : bad('gates registered', `no hooks in ${settings}`);
-      if (cfg.operatorToken) { try { const drift = await sync(cfg, { cwd, dryRun: true, quiet: true }); drift.actions.length ? bad('project profile in sync', `${drift.actions.length} change(s): ${drift.actions.map((a) => a.summary).join('; ')}`) : ok('project profile in sync', drift.project ? drift.project.key : 'no profile for this checkout'); } catch (e) { checks.push({ name: 'project profile', ok: true, detail: `skipped: ${e.message}` }); } }
-      for (const c of checks) console.log(`${c.ok ? 'ok  ' : 'FAIL'}  ${c.name.padEnd(26)} ${c.detail ?? ''}`);
-      return checks.every((c) => c.ok) ? 0 : 1;
+    case 'doctor': return runDoctor(cfg, { role: flags.role ? String(flags.role) : undefined, cwd });
+
+    case 'invite': {
+      const api = opApi(cfg);
+      if (rest[0] === 'list') {
+        const r = must(await api.get('/admin/invites'), 'invites');
+        table(r.invites.map((i) => ({ id: i.id.slice(0, 8), roles: i.roles.join(','), prefix: i.name_prefix, machine: i.machine ?? '', expires: i.expires_at.slice(0, 16), redeemed: i.redeemed_at ? `${i.redeemed_at.slice(0, 16)} from ${i.redeemed_from ?? '?'}` : '' })), ['id', 'roles', 'prefix', 'machine', 'expires', 'redeemed']);
+        return 0;
+      }
+      if (!flags.roles || !flags['name-prefix']) throw new Error('usage: baton invite --roles qa,frontend-dev --name-prefix pilot-1 [--machine m] [--ttl-hours 24]');
+      const r = must(await api.post('/admin/invites', { roles: String(flags.roles), name_prefix: String(flags['name-prefix']), machine: flags.machine, ttl_hours: flags['ttl-hours'], project_key: flags.project }), 'invite');
+      console.log(`invite for ${r.invite.roles.join(', ')} as ${r.invite.name_prefix}-<role>, expires ${r.invite.expires_at}. Code, shown once:
+
+  ${r.code}
+
+On the developer machine, inside the product repo:
+  baton join ${r.code}`);
+      return 0;
     }
+
+    case 'join': {
+      const code = rest[0];
+      if (!code) throw new Error('usage: baton join <invite-code> [--machine name] [--cwd .] [--no-plugin]');
+      const r = await redeem(cfg, code, { machine: flags.machine ? String(flags.machine) : undefined, serverUrl: flags.server ? String(flags.server) : undefined });
+      const roles = Object.keys(r.agents);
+      console.log(`joined as ${roles.map((x) => `${r.agents[x].name} (${x})`).join(', ')} on machine ${r.machine}; tokens saved to ${CONFIG_PATH}`);
+      if (flags.plugin !== false) for (const line of setupRepo(cwd)) console.log(line);
+      const code2 = await runDoctor(loadConfig(), { role: roles[0], cwd });
+      console.log(nextSteps(roles, cwd));
+      return code2;
+    }
+
+    case 'setup': {
+      for (const line of setupRepo(cwd)) console.log(line);
+      return 0;
+    }
+
 
     case 'seed': {
       const api = opApi(cfg);
@@ -314,4 +336,35 @@ export async function run(argv) {
     default:
       throw new Error(`unknown command "${cmd}". Run "baton help".`);
   }
+}
+
+/** The checks behind `baton doctor`; also run at the end of `baton join`. Returns the exit code. */
+async function runDoctor(cfg, { role: roleArg, cwd }) {
+  const checks = [];
+  const ok = (name, detail) => checks.push({ name, ok: true, detail });
+  const bad = (name, detail) => checks.push({ name, ok: false, detail });
+  try { const v = execSync('claude --version', { encoding: 'utf8' }).trim(); ok('claude on PATH', v); } catch { bad('claude on PATH', 'not found'); }
+  ok('node', process.version);
+  const health = await new Api(cfg.serverUrl, null).get('/health').catch((e) => ({ status: 0, body: { error: { message: e.message } } }));
+  health.status === 200 ? ok('server reachable', cfg.serverUrl) : bad('server reachable', `${cfg.serverUrl}: ${health.body?.error?.message ?? health.status}`);
+  const role = roleArg ?? anyAgentToken(cfg).role;
+  const token = role ? agentTokenFor(cfg, role) : anyAgentToken(cfg).token;
+  if (token) {
+    const me = await new Api(cfg.serverUrl, token).tool('whoami');
+    if (me.ok) { ok('agent token valid', `${me.agent.name} (${me.agent.role})`); if (role && me.agent.role !== role) bad('role matches token', `token is for ${me.agent.role}, expected ${role}`); else ok('role matches token', me.agent.role); }
+    else bad('agent token valid', me.error?.message ?? 'rejected');
+    const list = await new Api(cfg.serverUrl, token).request('POST', '/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/list' });
+    const n = list.body?.result?.tools?.length ?? 0; n >= 16 ? ok('MCP tools resolve', `${n} tools`) : bad('MCP tools resolve', `${n} tools`);
+  } else bad('agent token', `none for ${role ?? 'any role'} (BATON_TOKEN or ${CONFIG_PATH})`);
+  if (cfg.operatorToken) { const s = await opApi(cfg).get('/admin/status'); s.status === 200 ? ok('operator token valid', 'admin API reachable') : bad('operator token valid', `HTTP ${s.status}`); }
+  else checks.push({ name: 'operator token', ok: true, detail: 'not set (optional on agent machines)' });
+  if (role) { try { const d = roleDefinition(role, cwd); ok('role definition', `${d.source}: ${d.path}`); } catch (e) { bad('role definition', e.message); } }
+  const settings = join(cwd, '.claude', 'settings.json');
+  let gates = 'none';
+  if (existsSync(settings)) { try { const s = JSON.parse(readFileSync(settings, 'utf8')); const h = s.hooks ?? {}; gates = ['PreToolUse', 'Stop', 'SessionEnd', 'SessionStart'].filter((k) => h[k]).join(',') || 'none'; } catch { gates = 'unparseable settings.json'; } }
+  const pluginGates = existsSync(join(cwd, '.claude', 'settings.json')) && /baton-core/.test(readFileSync(settings, 'utf8'));
+  (gates !== 'none' || pluginGates) ? ok('gates registered', pluginGates ? 'via baton-core plugin' : gates) : bad('gates registered', `no hooks in ${settings}`);
+  if (cfg.operatorToken) { try { const drift = await sync(cfg, { cwd, dryRun: true, quiet: true }); drift.actions.length ? bad('project profile in sync', `${drift.actions.length} change(s): ${drift.actions.map((a) => a.summary).join('; ')}`) : ok('project profile in sync', drift.project ? drift.project.key : 'no profile for this checkout'); } catch (e) { checks.push({ name: 'project profile', ok: true, detail: `skipped: ${e.message}` }); } }
+  for (const c of checks) console.log(`${c.ok ? 'ok  ' : 'FAIL'}  ${c.name.padEnd(26)} ${c.detail ?? ''}`);
+  return checks.every((c) => c.ok) ? 0 : 1;
 }

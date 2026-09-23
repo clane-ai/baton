@@ -1,0 +1,42 @@
+name: release-cli
+
+# Tag `cli-vX.Y.Z` (matching packages/cli/package.json) to build the standalone executables
+# for every platform and attach them to a GitHub release. The install scripts served from
+# clane.sh/baton download from that release.
+on:
+  push:
+    tags: ['cli-v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version: '1.4.2' }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Tag matches package version
+        run: |
+          v=$(node -p "require('./packages/cli/package.json').version")
+          [ "cli-v$v" = "${GITHUB_REF_NAME}" ] || { echo "tag ${GITHUB_REF_NAME} does not match package version $v"; exit 1; }
+      - name: Build executables
+        run: cd packages/cli && node scripts/build-binaries.mjs --out dist
+      - name: Smoke test the Linux build
+        run: |
+          packages/cli/dist/baton-linux-x64 version
+          packages/cli/dist/baton-linux-x64 roles
+      - name: Checksums
+        run: cd packages/cli/dist && sha256sum baton-* > SHA256SUMS
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: baton CLI ${{ github.ref_name }}
+          files: |
+            packages/cli/dist/baton-*
+            packages/cli/dist/SHA256SUMS
+          body: |
+            Standalone `baton` executables. Install with the one-liners on https://clane.sh/baton/ or download the file for your platform.

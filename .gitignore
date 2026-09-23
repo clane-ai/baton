@@ -10,3 +10,4 @@ supabase/.temp/
 .next/
 coverage/
 plugins/*/evals/results/
+packages/cli/dist/

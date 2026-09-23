@@ -1,0 +1,23 @@
+{
+  "$comment": "Commit this as .claude/settings.json in a product repository (prd.md 13.3, 22.2, 25.2). Everyone who opens the repo gets the marketplace, the core plugin with its gates, and the deny rules. Pin ref to a release tag; baton sync --write-settings keeps this block equal to the project profile.",
+  "extraKnownMarketplaces": {
+    "clane-ai": {
+      "source": { "source": "github", "repo": "clane-ai/baton", "ref": "main" },
+      "autoUpdate": true
+    }
+  },
+  "enabledPlugins": {
+    "baton-core@clane-ai": true
+  },
+  "enabledMcpjsonServers": ["baton"],
+  "permissions": {
+    "allow": ["mcp__plugin_baton-core_baton"],
+    "deny": [
+      "Bash(git push origin main)",
+      "Bash(git push --force*)",
+      "Bash(rm -rf *)",
+      "SendMessage",
+      "ListAgents"
+    ]
+  }
+}

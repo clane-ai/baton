@@ -3,6 +3,7 @@
 //   /hooks/:event    hook face (Claude Code hooks)
 //   /gate/:name      enforcement gates
 //   /gh              GitHub webhooks
+//   /join            one-time invite redemption (baton join)
 //   /work-available  supervisor daemon
 //   /runs/usage      supervisor daemon cost reports
 //   /admin/*         operator and dashboard API
@@ -10,7 +11,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { sql } from "./db.ts";
 import { authenticate } from "./auth.ts";
 import { handleRpc } from "./mcp.ts";
-import { handleAdmin } from "./admin.ts";
+import { handleAdmin, handleJoin } from "./admin.ts";
 import { handleHook, handleGate } from "./hooks.ts";
 import { handleWebhook } from "./gh.ts";
 
@@ -50,6 +51,12 @@ Deno.serve(async (req: Request) => {
       }
       if (responses.length === 0) return new Response(null, { status: 202 });
       return json(Array.isArray(body) ? responses : responses[0]);
+    }
+
+    if (path === "/join") {
+      if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
+      const r = await handleJoin(req);
+      return json(r.body, r.status);
     }
 
     if (path === "/gh") {
