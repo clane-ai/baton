@@ -4,29 +4,62 @@
 //   /gate/:name      enforcement gates
 //   /gh              GitHub webhooks
 //   /work-available  supervisor daemon
+//   /runs/usage      supervisor daemon cost reports
 //   /admin/*         operator and dashboard API
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { sql } from "./db.ts";
+import { authenticate } from "./auth.ts";
+import { handleRpc } from "./mcp.ts";
+import { handleAdmin } from "./admin.ts";
 
-const json = (body: unknown, status = 200, headers: Record<string, string> = {}) =>
+export const json = (body: unknown, status = 200, headers: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), {
     status,
     headers: { "content-type": "application/json", ...headers },
   });
 
+const unauthorized = (msg = "Unauthorized: invalid, missing or revoked Baton token") =>
+  json({ ok: false, error: { code: "UNAUTHORIZED", message: msg, retryable: false } }, 401);
+
 Deno.serve(async (req: Request) => {
   const url = new URL(req.url);
-  // Strip the function prefix: /functions/v1/baton/<route> or /baton/<route>
   const path = url.pathname.replace(/^\/(functions\/v1\/)?baton/, "") || "/";
 
   try {
     if (path === "/health") {
-      const [row] = await sql`select current_user as u, now() as ts, count(*)::int as tasks from baton.tasks`;
-      return json({ ok: true, user: row.u, ts: row.ts, tasks: row.tasks });
+      const [row] = await sql`select now() as ts`;
+      return json({ ok: true, service: "baton", version: "0.2.0", ts: row.ts });
     }
-    return json({ ok: false, error: { code: "NOT_FOUND", message: `No route ${path}`, retryable: false } }, 404);
+
+    if (path === "/mcp") {
+      if (req.method === "GET") return new Response("SSE stream not offered; use POST", { status: 405 });
+      if (req.method === "DELETE") return new Response(null, { status: 200 });
+      if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
+      const ctx = await authenticate(req, path);
+      if (!ctx || ctx.kind !== "agent") {
+        return json({ jsonrpc: "2.0", id: null, error: { code: -32001, message: "Unauthorized: invalid, missing or revoked Baton agent token" } }, 401);
+      }
+      const body = await req.json();
+      const msgs = Array.isArray(body) ? body : [body];
+      const responses = [];
+      for (const m of msgs) {
+        const r = await handleRpc(ctx.agent, m);
+        if (r) responses.push(r);
+      }
+      if (responses.length === 0) return new Response(null, { status: 202 });
+      return json(Array.isArray(body) ? responses : responses[0]);
+    }
+
+    if (path.startsWith("/admin") || path === "/work-available" || path === "/runs/usage" || path === "/agent/inbox") {
+      const ctx = await authenticate(req, path);
+      if (!ctx) return unauthorized();
+      const r = await handleAdmin(ctx, req, path, url);
+      if (r) return json(r.body, r.status);
+    }
+
+    return json({ ok: false, error: { code: "NOT_FOUND", message: `No route ${req.method} ${path}`, retryable: false } }, 404);
   } catch (e) {
     console.error(e);
-    return json({ ok: false, error: { code: "INTERNAL", message: String(e?.message ?? e), retryable: true } }, 500);
+    return json({ ok: false, error: { code: "INTERNAL", message: String((e as Error)?.message ?? e), retryable: true } }, 500);
   }
 });

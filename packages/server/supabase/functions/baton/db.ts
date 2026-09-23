@@ -4,13 +4,29 @@
 // the baton_agent role inside a transaction (see asAgent).
 import postgres from "npm:postgres@3.4.5";
 
-const url = Deno.env.get("SUPABASE_DB_URL");
-if (!url) throw new Error("SUPABASE_DB_URL is not set");
+const direct = Deno.env.get("SUPABASE_DB_URL");
+if (!direct) throw new Error("SUPABASE_DB_URL is not set");
 
-export const sql = postgres(url, {
-  prepare: false,
-  max: 4,
-  idle_timeout: 20,
+// Edge function instances come and go, so they must not hold direct Postgres
+// connections: the shared project would run out of slots. Go through the
+// Supavisor pooler in transaction mode instead. The pooler host is derived from
+// the direct URL (db.<ref>.supabase.co -> <region pooler>, user postgres.<ref>).
+function poolerUrl(directUrl: string): string {
+  const u = new URL(directUrl);
+  const ref = u.hostname.match(/^db\.([a-z0-9]+)\.supabase\.co$/)?.[1];
+  if (!ref) return directUrl;
+  const region = Deno.env.get("SUPABASE_REGION") ?? "eu-west-1";
+  u.hostname = `aws-0-${region}.pooler.supabase.com`;
+  u.port = "6543";
+  u.username = `${u.username}.${ref}`;
+  return u.toString();
+}
+
+export const sql = postgres(poolerUrl(direct), {
+  prepare: false,          // required in transaction mode
+  max: 2,
+  idle_timeout: 5,
+  max_lifetime: 60 * 5,
   connect_timeout: 10,
 });
 
