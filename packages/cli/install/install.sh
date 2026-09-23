@@ -3,7 +3,7 @@
 # Downloads the standalone `baton` executable from the GitHub release of clane-ai/baton into
 # ~/.local/bin (or $BATON_INSTALL_DIR) and tells you if that directory is not on your PATH.
 #   BATON_VERSION   pin a version (default: latest release)
-#   BATON_GH_TOKEN  GitHub token, needed while the clane-ai/baton repository is private
+#   BATON_GH_TOKEN  optional GitHub token (raises the API rate limit; not needed otherwise)
 set -eu
 
 repo="clane-ai/baton"

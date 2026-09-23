@@ -30,7 +30,12 @@ curl -fsSL https://clane.sh/baton/install.sh | sh
 
 Expected: "Installed baton 0.2.0 (standalone)" and the folder is on your PATH (open a new terminal on Windows). `baton --help` lists join, supervise, work, status, tasks, doctor and the rest.
 
-Until the clane.sh page is live, download the executable for your platform from the latest `cli-v*` release on github.com/clane-ai/baton and put it on your PATH; the scripts do exactly that.
+Until the clane.sh page is live, the same scripts are served from the repository:
+
+```
+irm https://raw.githubusercontent.com/clane-ai/baton/main/packages/cli/install/install.ps1 | iex
+curl -fsSL https://raw.githubusercontent.com/clane-ai/baton/main/packages/cli/install/install.sh | sh
+```
 
 ## 2. Prepare a product repo and join
 
@@ -48,7 +53,7 @@ Expected output, in order:
 - the doctor table, every line `ok`: claude on PATH, server reachable, agent token valid for pilot-<name>-qa, MCP tools resolve (16), gates registered via baton-core plugin
 - a "Next:" block with the interactive and unattended commands
 
-A FAIL line means stop and report it with the whole output. The marketplace add fails if your machine cannot read the private `clane-ai/baton` repo over SSH; check with `git ls-remote git@github.com:clane-ai/baton.git`.
+A FAIL line means stop and report it with the whole output. The repository is public, so the marketplace add needs no credentials.
 
 ## 3. Re-check any time
 

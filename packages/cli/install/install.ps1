@@ -2,7 +2,7 @@
 # Downloads the standalone `baton` executable from the GitHub release of clane-ai/baton,
 # puts it in %LOCALAPPDATA%\Programs\baton and adds that folder to the user PATH.
 #   $env:BATON_VERSION   pin a version (default: latest release)
-#   $env:BATON_GH_TOKEN  GitHub token, needed while the clane-ai/baton repository is private
+#   $env:BATON_GH_TOKEN  optional GitHub token (raises the API rate limit; not needed otherwise)
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 

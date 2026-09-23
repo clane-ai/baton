@@ -22,7 +22,7 @@ The invite code is printed once, is single use, and expires after 24 hours. Give
    baton join <invite-code>
    ```
 
-   This writes `~/.baton/config.json` with one agent per role on the invite, registers the `clane-ai` marketplace and installs `baton-core` at project scope, writes `.claude/settings.json` from the template when the repo has none, and runs `baton doctor`. Commit the settings file. The marketplace is private: access is through SSH keys. Accept the trust prompt; it covers the plugin's whole codebase, so review it once as you would any dependency. `baton setup` repeats the repo part in another checkout; `baton sync` does the same from the project's profile on the server when one exists.
+   This writes `~/.baton/config.json` with one agent per role on the invite, registers the `clane-ai` marketplace and installs `baton-core` at project scope, writes `.claude/settings.json` from the template when the repo has none, and runs `baton doctor`. Commit the settings file. The repository is public. Accept the trust prompt; it covers the plugin's whole codebase, so review it once as you would any dependency. `baton setup` repeats the repo part in another checkout; `baton sync` does the same from the project's profile on the server when one exists.
 
    The supervisor daemon and the plugin's hooks and MCP server all read that one config file (or `BATON_TOKEN` in the environment). Nothing is ever committed. Handed a raw token instead of an invite? Put it in the file by hand:
 
