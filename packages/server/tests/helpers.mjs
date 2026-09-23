@@ -31,8 +31,8 @@ export async function agent(name, roleName) {
 export async function task(o) {
   const { rows } = await q(
     `insert into baton.tasks
-       (title, spec, acceptance, role, state, priority, depends_on, consumes, produces, max_attempts, budget_usd)
-     values ($1, $2, $3, $4, $5, $6, $7::uuid[], $8::jsonb, $9::jsonb, $10, $11)
+       (title, spec, acceptance, role, state, priority, depends_on, consumes, produces, max_attempts, budget_usd, scope)
+     values ($1, $2, $3, $4, $5, $6, $7::uuid[], $8::jsonb, $9::jsonb, $10, $11, $12::text[])
      returning *`,
     [
       o.title ?? 'test task',
@@ -46,6 +46,7 @@ export async function task(o) {
       JSON.stringify(o.produces ?? []),
       o.max_attempts ?? 3,
       o.budget_usd ?? null,
+      o.scope ?? [],
     ],
   );
   return rows[0];

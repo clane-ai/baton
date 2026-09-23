@@ -11,6 +11,7 @@ import { sql } from "./db.ts";
 import { authenticate } from "./auth.ts";
 import { handleRpc } from "./mcp.ts";
 import { handleAdmin } from "./admin.ts";
+import { handleHook, handleGate } from "./hooks.ts";
 
 export const json = (body: unknown, status = 200, headers: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), {
@@ -48,6 +49,17 @@ Deno.serve(async (req: Request) => {
       }
       if (responses.length === 0) return new Response(null, { status: 202 });
       return json(Array.isArray(body) ? responses : responses[0]);
+    }
+
+    if (path.startsWith("/hooks/") || path.startsWith("/gate/")) {
+      if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
+      const ctx = await authenticate(req, path);
+      if (!ctx || ctx.kind !== "agent") return unauthorized("Hooks need an agent token");
+      let raw: Record<string, unknown> = {};
+      try { raw = await req.json(); } catch { raw = {}; }
+      const name = path.split("/")[2] ?? "";
+      const r = path.startsWith("/hooks/") ? await handleHook(ctx.agent, name, raw) : await handleGate(ctx.agent, name, raw);
+      return json(r.body, r.status);
     }
 
     if (path.startsWith("/admin") || path === "/work-available" || path === "/runs/usage" || path === "/agent/inbox") {
