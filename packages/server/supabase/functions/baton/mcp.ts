@@ -2,6 +2,7 @@
 import { sql, asAgent } from "./db.ts";
 import type { Agent } from "./auth.ts";
 import { uploadArtifact, signArtifact, sha256Hex } from "./storage.ts";
+import { drainOutbox } from "./gh.ts";
 
 type Json = Record<string, unknown>;
 type ToolDef = { name: string; description: string; inputSchema: Json; mutating: boolean };
@@ -169,7 +170,10 @@ export async function runTool(agent: Agent, name: string, args: Json): Promise<J
         const r = await putArtifact(agent, { ...a, task_id: args.task_id });
         if (r.ok === false) return r;
       }
-      return one(sql`select baton.task_submit(${agent.id}::uuid, ${String(args.task_id)}::uuid, '[]'::jsonb) as r`);
+      const r = await one(sql`select baton.task_submit(${agent.id}::uuid, ${String(args.task_id)}::uuid, '[]'::jsonb) as r`);
+      // State transition: send any GitHub calls it queued (open PR, completion comment). Not the hook face.
+      try { await drainOutbox(); } catch (e) { console.error("outbox drain failed", e); }
+      return r;
     }
     case "artifact_put":
       return putArtifact(agent, args);

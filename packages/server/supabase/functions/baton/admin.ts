@@ -2,6 +2,7 @@
 // except the few the supervisor daemon calls with an agent token (marked below).
 import { sql } from "./db.ts";
 import { newToken, sha256Hex, type Ctx } from "./auth.ts";
+import { drainOutbox } from "./gh.ts";
 
 type Json = Record<string, unknown>;
 // postgres.js serialises objects for jsonb parameters itself; never pre-stringify.
@@ -157,6 +158,64 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
       values (${id}::uuid, ${String(b.kind)}::baton.artifact_kind, ${String(b.uri ?? "")}, ${b.sha256 ? String(b.sha256) : null},
               ${String(b.schema_version ?? "v1")}, ${j(b.meta ?? {})}::jsonb, ${b.content ? j(b.content) : null}::jsonb) returning id`;
     return { status: 200, body: { ok: true, artifact_id: row.id } };
+  }
+
+  // ---- projects (phase 9)
+  if (seg[1] === "projects") {
+    if (seg[2] === "profile" && method === "GET") {
+      const [row] = await sql`select baton.project_profile(${url.searchParams.get("repo") ?? ""}) as r`;
+      return row.r ? { status: 200, body: row.r } : bad("NOT_FOUND", "no project profile for that repo", 404);
+    }
+    if (seg[2] === "drift" && method === "POST") {
+      const b = await readJson(req);
+      return { status: 200, body: await one(sql`select baton.project_drift(${actor}, ${String(b.project_id)}::uuid, ${String(b.machine ?? "unknown")}, ${j(b.actions ?? [])}::jsonb) as r`) };
+    }
+    if (seg.length === 2 && method === "GET") {
+      const rows = await sql`select p.id, p.key, p.name, p.repo, p.marketplace_ref,
+        (select coalesce(jsonb_agg(jsonb_build_object('plugin', pp.plugin, 'version', pp.version, 'scope', pp.scope, 'enabled', pp.enabled) order by pp.plugin), '[]'::jsonb) from baton.project_plugins pp where pp.project_id = p.id) as plugins,
+        (select coalesce(jsonb_agg(m.server order by m.server), '[]'::jsonb) from baton.project_mcp m where m.project_id = p.id) as mcp
+        from baton.projects p order by p.key`;
+      return { status: 200, body: { ok: true, projects: rows } };
+    }
+    if (seg.length === 2 && method === "POST") {
+      const b = await readJson(req);
+      return { status: 200, body: await one(sql`select baton.project_upsert(${actor}, ${String(b.key ?? "")}, ${String(b.name ?? b.key ?? "")}, ${String(b.repo ?? "")}, ${String(b.marketplace_ref ?? "main")}) as r`) };
+    }
+    if (seg.length === 4 && seg[3] === "plugins" && method === "POST") {
+      const b = await readJson(req);
+      return { status: 200, body: await one(sql`select baton.project_plugin_set(${actor}, ${seg[2]}, ${String(b.plugin ?? "")}, ${b.version ? String(b.version) : null}, ${String(b.scope ?? "project")}, ${b.enabled !== false}) as r`) };
+    }
+    if (seg.length === 4 && seg[3] === "mcp" && method === "POST") {
+      const b = await readJson(req);
+      return { status: 200, body: await one(sql`select baton.project_mcp_set(${actor}, ${seg[2]}, ${String(b.server ?? "")}, ${b.config === null || b.config === undefined ? null : j(b.config)}::jsonb) as r`) };
+    }
+  }
+
+  // ---- conformance (phase 8)
+  if (seg[1] === "conformance" && method === "GET") {
+    const days = Math.min(30, Number(url.searchParams.get("days") ?? 1));
+    const [live] = await sql`select baton.conformance_report(now() - make_interval(days => ${days}), now()) as r`;
+    const stored = await sql`select day, report, created_at from baton.conformance_reports order by day desc limit ${days}`;
+    return { status: 200, body: { ok: true, live: live.r, daily: stored } };
+  }
+  if (seg[1] === "conformance" && seg[2] === "run" && method === "POST") {
+    return { status: 200, body: { ok: true, report: await one(sql`select baton.conformance_daily() as r`) } };
+  }
+
+  // ---- github (phase 7)
+  if (seg[1] === "github" && seg[2] === "outbox" && method === "GET") {
+    const rows = await sql`select id, kind, repo, payload, created_at, sent_at, attempts, error, (select key from baton.tasks where id = o.task_id) as task_key from baton.gh_outbox o order by id desc limit 100`;
+    return { status: 200, body: { ok: true, outbox: rows } };
+  }
+  if (seg[1] === "github" && seg[2] === "flush" && method === "POST") {
+    return { status: 200, body: await drainOutbox() };
+  }
+  if (seg[1] === "github" && seg[2] === "check" && method === "POST") {
+    // Operator-driven CI verdict (for CI systems that call back with a token instead of a webhook).
+    const b = await readJson(req);
+    const r = await one(sql`select baton.gh_check_event(${String(b.repo ?? "")}, ${String(b.head_sha ?? "")}, ${String(b.status ?? "pending")}, ${j(b.details ?? {})}::jsonb) as r`);
+    await drainOutbox();
+    return { status: 200, body: r };
   }
 
   return bad("NOT_FOUND", `No admin route ${method} ${path}`, 404);

@@ -12,6 +12,7 @@ import { authenticate } from "./auth.ts";
 import { handleRpc } from "./mcp.ts";
 import { handleAdmin } from "./admin.ts";
 import { handleHook, handleGate } from "./hooks.ts";
+import { handleWebhook } from "./gh.ts";
 
 export const json = (body: unknown, status = 200, headers: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), {
@@ -49,6 +50,12 @@ Deno.serve(async (req: Request) => {
       }
       if (responses.length === 0) return new Response(null, { status: 202 });
       return json(Array.isArray(body) ? responses : responses[0]);
+    }
+
+    if (path === "/gh") {
+      if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
+      const r = await handleWebhook(req);
+      return json(r.body, r.status);
     }
 
     if (path.startsWith("/hooks/") || path.startsWith("/gate/")) {
