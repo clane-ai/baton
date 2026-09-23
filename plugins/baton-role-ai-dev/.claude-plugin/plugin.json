@@ -1,0 +1,20 @@
+{
+  "name": "baton-role-ai-dev",
+  "displayName": "Baton role: ai-dev",
+  "version": "0.1.0",
+  "description": "Builds AI services against an api_contract and task_spec, delivering a PR and a service_contract. Enabling this plugin runs the session as the Baton ai-dev agent.",
+  "author": {
+    "name": "Clane AI"
+  },
+  "keywords": [
+    "baton",
+    "role",
+    "ai-dev"
+  ],
+  "dependencies": [
+    {
+      "name": "baton-core",
+      "version": "^0.1.0"
+    }
+  ]
+}

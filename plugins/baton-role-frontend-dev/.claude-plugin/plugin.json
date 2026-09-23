@@ -1,0 +1,20 @@
+{
+  "name": "baton-role-frontend-dev",
+  "displayName": "Baton role: frontend-dev",
+  "version": "0.1.0",
+  "description": "Builds UI from a design_spec and api_contract, delivering a PR and a build artefact. Enabling this plugin runs the session as the Baton frontend-dev agent.",
+  "author": {
+    "name": "Clane AI"
+  },
+  "keywords": [
+    "baton",
+    "role",
+    "frontend-dev"
+  ],
+  "dependencies": [
+    {
+      "name": "baton-core",
+      "version": "^0.1.0"
+    }
+  ]
+}

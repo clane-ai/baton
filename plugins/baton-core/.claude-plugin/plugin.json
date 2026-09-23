@@ -1,0 +1,24 @@
+{
+  "name": "baton-core",
+  "displayName": "Baton Core",
+  "version": "0.1.0",
+  "description": "Coordination tools, protocol and enforcement gates for Baton agents.",
+  "author": { "name": "Clane AI" },
+  "keywords": ["baton", "agents", "coordination"],
+  "userConfig": {
+    "serverUrl": {
+      "type": "string",
+      "title": "Baton server URL",
+      "description": "Base URL of the Baton service, for example https://<ref>.supabase.co/functions/v1/baton",
+      "required": true,
+      "default": "https://yemmiowsudakdviqqlnt.supabase.co/functions/v1/baton"
+    },
+    "agentToken": {
+      "type": "string",
+      "title": "Agent token",
+      "description": "This machine's Baton agent token (btn_...). Created with: baton agents add --name <name> --role <role>",
+      "required": true,
+      "sensitive": true
+    }
+  }
+}

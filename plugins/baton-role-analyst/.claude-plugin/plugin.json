@@ -1,0 +1,20 @@
+{
+  "name": "baton-role-analyst",
+  "displayName": "Baton role: analyst",
+  "version": "0.1.0",
+  "description": "Turns a user story into a complete task_spec that other roles can build from. Enabling this plugin runs the session as the Baton analyst agent.",
+  "author": {
+    "name": "Clane AI"
+  },
+  "keywords": [
+    "baton",
+    "role",
+    "analyst"
+  ],
+  "dependencies": [
+    {
+      "name": "baton-core",
+      "version": "^0.1.0"
+    }
+  ]
+}

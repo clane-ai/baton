@@ -1,0 +1,16 @@
+{
+  "name": "clane-ai",
+  "owner": { "name": "Clane AI" },
+  "description": "Clane AI internal Claude Code plugins: Baton coordination core and one plugin per Baton role.",
+  "metadata": { "pluginRoot": "plugins/" },
+  "plugins": [
+    { "name": "baton-core",              "source": "./plugins/baton-core",              "description": "Baton coordination tools, protocol, enforcement gates and inbox monitor." },
+    { "name": "baton-role-analyst",      "source": "./plugins/baton-role-analyst",      "description": "Run this machine's Claude Code as the Baton analyst." },
+    { "name": "baton-role-ui-designer",  "source": "./plugins/baton-role-ui-designer",  "description": "Run this machine's Claude Code as the Baton UI designer." },
+    { "name": "baton-role-frontend-dev", "source": "./plugins/baton-role-frontend-dev", "description": "Run this machine's Claude Code as the Baton frontend developer." },
+    { "name": "baton-role-backend-dev",  "source": "./plugins/baton-role-backend-dev",  "description": "Run this machine's Claude Code as the Baton backend developer." },
+    { "name": "baton-role-ai-dev",       "source": "./plugins/baton-role-ai-dev",       "description": "Run this machine's Claude Code as the Baton AI developer." },
+    { "name": "baton-role-qa",           "source": "./plugins/baton-role-qa",           "description": "Run this machine's Claude Code as the Baton QA agent." },
+    { "name": "baton-role-reviewer",     "source": "./plugins/baton-role-reviewer",     "description": "Run this machine's Claude Code as the Baton reviewer." }
+  ]
+}

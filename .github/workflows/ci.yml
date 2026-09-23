@@ -1,0 +1,55 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Syntax-check CLI and schema generator
+        run: |
+          node --check packages/cli/bin/baton.mjs
+          for f in packages/cli/src/*.mjs; do node --check "$f"; done
+          node packages/schemas/gen-migration.mjs /tmp/schemas.sql
+          git diff --exit-code --no-index /tmp/schemas.sql packages/server/supabase/migrations/20260923000800_baton_artifact_schemas_v1.sql
+      - name: Role plugins are generated from the CLI roles
+        run: |
+          node plugins/gen-role-plugins.mjs
+          git diff --exit-code -- plugins
+      - name: Build the dashboard
+        run: pnpm --filter @clane-ai/baton-dash build
+      - name: Validate every plugin with Claude Code
+        run: |
+          npm i -g @anthropic-ai/claude-code
+          for p in plugins/baton-*; do claude plugin validate "$p" --strict; done
+          claude plugin validate . --strict
+
+  server-tests:
+    # Needs a database. Runs only when the repository secrets are present.
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    env:
+      BATON_DB_URL: ${{ secrets.BATON_DB_URL }}
+      BATON_URL: ${{ secrets.BATON_URL }}
+      BATON_OPERATOR_TOKEN: ${{ secrets.BATON_OPERATOR_TOKEN }}
+      BATON_TEST_AGENT_TOKEN: ${{ secrets.BATON_TEST_AGENT_TOKEN }}
+      BATON_GH_WEBHOOK_SECRET: ${{ secrets.BATON_GH_WEBHOOK_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Server acceptance tests
+        if: ${{ env.BATON_DB_URL != '' }}
+        run: cd packages/server && node --test --test-concurrency=1

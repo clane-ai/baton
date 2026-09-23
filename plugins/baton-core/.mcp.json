@@ -1,0 +1,7 @@
+{
+  "baton": {
+    "type": "http",
+    "url": "${user_config.serverUrl}/mcp",
+    "headers": { "Authorization": "Bearer ${user_config.agentToken}" }
+  }
+}

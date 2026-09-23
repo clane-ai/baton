@@ -1,0 +1,20 @@
+{
+  "name": "baton-role-qa",
+  "displayName": "Baton role: qa",
+  "version": "0.1.0",
+  "description": "Runs the test suite against a build artefact and produces a test_report. Enabling this plugin runs the session as the Baton qa agent.",
+  "author": {
+    "name": "Clane AI"
+  },
+  "keywords": [
+    "baton",
+    "role",
+    "qa"
+  ],
+  "dependencies": [
+    {
+      "name": "baton-core",
+      "version": "^0.1.0"
+    }
+  ]
+}

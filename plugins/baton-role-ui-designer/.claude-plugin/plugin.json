@@ -1,0 +1,20 @@
+{
+  "name": "baton-role-ui-designer",
+  "displayName": "Baton role: ui-designer",
+  "version": "0.1.0",
+  "description": "Turns a task_spec into a design_spec: screens, components, states and copy. Enabling this plugin runs the session as the Baton ui-designer agent.",
+  "author": {
+    "name": "Clane AI"
+  },
+  "keywords": [
+    "baton",
+    "role",
+    "ui-designer"
+  ],
+  "dependencies": [
+    {
+      "name": "baton-core",
+      "version": "^0.1.0"
+    }
+  ]
+}

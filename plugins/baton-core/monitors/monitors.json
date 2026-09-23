@@ -1,0 +1,8 @@
+[
+  {
+    "name": "baton-inbox",
+    "command": "npx -y @clane-ai/baton-cli inbox --follow",
+    "description": "Baton inbox: questions, answers, notices and priority changes addressed to this agent",
+    "when": "always"
+  }
+]

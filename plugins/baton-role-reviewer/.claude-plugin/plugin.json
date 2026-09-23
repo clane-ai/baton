@@ -1,0 +1,20 @@
+{
+  "name": "baton-role-reviewer",
+  "displayName": "Baton role: reviewer",
+  "version": "0.1.0",
+  "description": "Reviews a pull request for correctness and scope, producing a review artefact. Enabling this plugin runs the session as the Baton reviewer agent.",
+  "author": {
+    "name": "Clane AI"
+  },
+  "keywords": [
+    "baton",
+    "role",
+    "reviewer"
+  ],
+  "dependencies": [
+    {
+      "name": "baton-core",
+      "version": "^0.1.0"
+    }
+  ]
+}
