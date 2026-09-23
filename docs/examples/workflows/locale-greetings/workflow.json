@@ -1,0 +1,158 @@
+{
+  "$comment": "A Clane workflow manifest (WorkflowManifest: definition.nodes/edges, role nodes with config) that Baton compiles into a task graph. Every role node becomes a Baton task; output_key names the artefact kind the step must register; edges become dependencies and pinned inputs. Run: baton workflow compile <this file> --run <key> --input 'text'.",
+  "name": "Locale greetings",
+  "version": "0.1.0",
+  "description": "Add locale-aware greetings to the demo app: an analyst specifies it, backend-dev owns the config file, frontend-dev implements against it, qa verifies. Every step runs unattended on whatever machine holds that role.",
+  "host_role": "analyst",
+  "inputs": [
+    {
+      "name": "feature",
+      "kind": "text",
+      "label": "Feature request",
+      "required": true
+    }
+  ],
+  "outputs": [
+    {
+      "name": "test_report",
+      "description": "The QA report for the finished feature"
+    }
+  ],
+  "definition": {
+    "nodes": [
+      {
+        "id": "start",
+        "type": "trigger",
+        "data": {
+          "label": "Feature request arrives",
+          "config": {}
+        }
+      },
+      {
+        "id": "spec",
+        "type": "role",
+        "data": {
+          "label": "Write the task spec",
+          "instructions": "Read the feature request and the repository. Write a complete task_spec: summary, screens or surfaces, acceptance criteria, and the exact path and keys of any configuration file the feature needs. Do not write code. Do not create any tasks: the workflow already defines the next steps.",
+          "config": {
+            "role_ref": "analyst",
+            "output_key": "task_spec",
+            "max_tool_rounds": 20,
+            "baton": {
+              "produces": [
+                "task_spec"
+              ],
+              "budget_usd": 1
+            }
+          }
+        }
+      },
+      {
+        "id": "config",
+        "type": "role",
+        "data": {
+          "label": "Create the locale config",
+          "instructions": "From the task_spec, create the JSON config file it names (path and keys exactly as specified) with sensible values, commit it on branch baton/<your task key> and push. Register a config artefact describing the path, keys and values.",
+          "config": {
+            "role_ref": "backend-dev",
+            "output_key": "config",
+            "max_tool_rounds": 20,
+            "baton": {
+              "produces": [
+                "config"
+              ],
+              "scope": [
+                "src/**"
+              ],
+              "budget_usd": 1
+            }
+          }
+        }
+      },
+      {
+        "id": "implement",
+        "type": "role",
+        "data": {
+          "label": "Implement the feature",
+          "instructions": "Read the task_spec and the config artefact. Pull the branch the config names if it names one. Implement the feature against that config file, add unit tests, run the test command, commit on branch baton/<your task key> and push. Register a build artefact (sha, branch, test_command). Do not open a pull request.",
+          "config": {
+            "role_ref": "frontend-dev",
+            "output_key": "build",
+            "max_tool_rounds": 40,
+            "baton": {
+              "produces": [
+                "build"
+              ],
+              "scope": [
+                "src/**",
+                "test/**"
+              ],
+              "budget_usd": 2
+            }
+          }
+        }
+      },
+      {
+        "id": "verify",
+        "type": "role",
+        "data": {
+          "label": "Verify",
+          "instructions": "Read the build artefact, check out its branch, run its test command, and register a test_report with the suite name, passed and failed counts and the commit sha. Do not modify source files.",
+          "config": {
+            "role_ref": "qa",
+            "output_key": "test_report",
+            "max_tool_rounds": 20,
+            "baton": {
+              "produces": [
+                "test_report"
+              ],
+              "budget_usd": 1
+            }
+          }
+        }
+      },
+      {
+        "id": "deliver",
+        "type": "output",
+        "data": {
+          "label": "Deliver the test report",
+          "config": {
+            "from": "verify.test_report"
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "start",
+        "target": "spec"
+      },
+      {
+        "id": "e2",
+        "source": "spec",
+        "target": "config"
+      },
+      {
+        "id": "e3",
+        "source": "config",
+        "target": "implement"
+      },
+      {
+        "id": "e4",
+        "source": "spec",
+        "target": "implement"
+      },
+      {
+        "id": "e5",
+        "source": "implement",
+        "target": "verify"
+      },
+      {
+        "id": "e6",
+        "source": "verify",
+        "target": "deliver"
+      }
+    ]
+  }
+}

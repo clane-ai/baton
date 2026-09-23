@@ -9,6 +9,7 @@ import { roleDefinition, listBundledRoles, systemPromptFor, runPromptFor, PROTOC
 import { supervise, spawnAgent, installService } from './supervise.mjs';
 import { sync } from './sync.mjs';
 import { redeem, setupRepo, nextSteps } from './join.mjs';
+import { loadManifest, compile } from './workflow.mjs';
 import { VERSION, ASSETS } from './assets.mjs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -25,6 +26,7 @@ const HELP = `baton <command> [options]
   status                                    agents, claims, lease countdowns, attention list
   tasks ls [--state s] [--role r] [--run k] | show <key> | create --title .. --spec .. --acceptance .. --role .. [--run k] | prioritise <key> <n> | cancel <key> [--reason ..]
   webhooks list | add --url .. [--events a,b*] | remove <id> | flush     event subscriptions for orchestrators
+  workflow compile <workflow.json> --run <key> [--input ..] [--dry-run] | status --run <key>   Clane manifest -> Baton task graph
   answer <message-id> "<text>"
   agents add --name qa-01 --role qa [--machine m] [--store] | list | revoke <name>
   invite --roles qa,frontend-dev --name-prefix pilot-1 [--machine m] [--ttl-hours 24] | invite list
@@ -117,6 +119,31 @@ export async function run(argv) {
       if (sub === 'cancel') { console.log(JSON.stringify(must(await api.post(`/admin/tasks/${rest[1]}/cancel`, { reason: flags.reason }), 'cancel'))); return 0; }
       if (sub === 'force-release') { console.log(JSON.stringify(must(await api.post(`/admin/tasks/${rest[1]}/force-release`), 'force-release'))); return 0; }
       throw new Error('usage: baton tasks ls|show|create|prioritise|cancel|force-release');
+    }
+
+    case 'workflow': {
+      const sub = rest[0] ?? 'compile';
+      if (sub === 'compile') {
+        const path = rest[1]; if (!path) throw new Error('usage: baton workflow compile <workflow.json> --run <key> [--input "text"] [--dry-run]');
+        const manifest = loadManifest(path);
+        const run = flags.run ? String(flags.run) : `${String(manifest.name).toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now().toString(36)}`;
+        const r = await compile(cfg, manifest, { input: flags.input ? String(flags.input) : '', run, dryRun: !!flags['dry-run'] });
+        console.log(`workflow "${manifest.name}" ${manifest.version ?? ''} -> run ${run}${flags['dry-run'] ? ' (dry run)' : ''}`);
+        table(r.tasks.map((t) => ({ node: t.node, role: t.role, task: t.key ?? '-', state: t.state ?? '-', produces: t.produces.join(','), after: t.depends_on.join(',') })), ['node', 'role', 'task', 'state', 'produces', 'after']);
+        for (const k of r.skipped) console.log(`skipped ${k.id} (${k.type}): ${k.reason}`);
+        if (!flags['dry-run']) console.log(`watch: baton workflow status --run ${run}`);
+        return 0;
+      }
+      if (sub === 'status') {
+        const run = String(flags.run ?? rest[1] ?? ''); if (!run) throw new Error('usage: baton workflow status --run <key>');
+        const r = must(await opApi(cfg).get(`/admin/tasks?workflow_run=${encodeURIComponent(run)}`), 'tasks');
+        const ts = [...r.tasks].sort((a, b) => b.priority - a.priority);
+        table(ts.map((t) => ({ key: t.key, state: t.state, role: t.role, att: `${t.attempts}/${t.max_attempts}`, cost: Number(t.cost_usd).toFixed(2), assignee: t.assignee_name ?? '', title: t.title.slice(0, 60) })), ['key', 'state', 'role', 'att', 'cost', 'assignee', 'title']);
+        const done = ts.filter((t) => t.state === 'done').length;
+        console.log(`${done}/${ts.length} done${ts.some((t) => t.state === 'needs_human') ? '; needs a human' : ''}`);
+        return 0;
+      }
+      throw new Error('usage: baton workflow compile|status');
     }
 
     case 'webhooks': {
