@@ -177,8 +177,19 @@ export async function run(argv) {
     }
 
     case 'headers': {
-      const role = flags.role ? String(flags.role) : undefined;
-      const token = role ? agentTokenFor(cfg, role) : anyAgentToken(cfg).token;
+      // headersHelper for the plugin's MCP server. Claude Code runs it with BATON_ROLE in the
+      // environment but strips BATON_TOKEN (it drops secret-looking variables) and does not
+      // expand ${VAR} in this field, so the token is looked up by role in ~/.baton/config.json.
+      const role = flags.role ? String(flags.role) : (process.env.BATON_ROLE || undefined);
+      const passed = typeof flags.token === 'string' && flags.token.startsWith('btn_') ? flags.token : null;
+      const token = passed ?? (role ? agentTokenFor(cfg, role) : anyAgentToken(cfg).token);
+      // Diagnostics for operators: touch ~/.baton/debug-headers to log how the helper is invoked.
+      try {
+        const { appendFileSync, existsSync: ex } = await import('node:fs');
+        const { join: jn } = await import('node:path');
+        const { CONFIG_DIR: dir } = await import('./config.mjs');
+        if (ex(jn(dir, 'debug-headers'))) appendFileSync(jn(dir, 'headers-debug.log'), `${new Date().toISOString()} cwd=${process.cwd()} envToken=${!!process.env.BATON_TOKEN} role=${process.env.BATON_ROLE ?? ''} passed=${!!passed} source=${passed ? 'arg' : process.env.BATON_TOKEN ? 'env' : 'config'}\n`);
+      } catch { /* diagnostics only */ }
       if (!token) throw new Error('no agent token available');
       console.log(JSON.stringify({ Authorization: `Bearer ${token}` }));
       return 0;
