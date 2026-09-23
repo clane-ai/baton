@@ -18,10 +18,13 @@ for (const file of readdirSync(rolesDir).filter((f) => f.endsWith('.md'))) {
   mkdirSync(join(dir, '.claude-plugin'), { recursive: true });
   mkdirSync(join(dir, 'agents'), { recursive: true });
   const desc = (src.match(/^description:\s*(.*)$/m) ?? [, `Baton ${role} role`])[1];
-  writeFileSync(join(dir, '.claude-plugin', 'plugin.json'), JSON.stringify({
+  const manifestPath = join(dir, '.claude-plugin', 'plugin.json');
+  let version = '0.1.0';
+  try { version = JSON.parse(readFileSync(manifestPath, 'utf8')).version ?? version; } catch { /* first generation */ }
+  writeFileSync(manifestPath, JSON.stringify({
     name: `baton-role-${role}`,
     displayName: `Baton role: ${role}`,
-    version: '0.1.0',
+    version,
     description: `${desc} Enabling this plugin runs the session as the Baton ${role} agent.`,
     author: { name: 'Clane AI' },
     keywords: ['baton', 'role', role],
