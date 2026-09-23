@@ -19,8 +19,10 @@ test('artifact_put requires a lease and a known kind', async () => {
   await claim(a);
   const badKind = await j(`select baton.artifact_put($1, $2, 'sandwich', 'x') as r`, [a, t.id]);
   assert.equal(badKind.error.code, 'INVALID_ARTIFACT');
-  const ok = await j(`select baton.artifact_put($1, $2, 'test_report', 'storage://artifacts/x.json', 'abc', 'v1', '{}', '{"passed":1}') as r`, [a, t.id]);
-  assert.equal(ok.ok, true);
+  const bad = await j(`select baton.artifact_put($1, $2, 'test_report', 'storage://artifacts/x.json', 'abc', 'v1', '{}', '{"passed":1}') as r`, [a, t.id]);
+  assert.equal(bad.error.code, 'INVALID_ARTIFACT', 'the seeded v1 schema requires failed and summary');
+  const ok = await j(`select baton.artifact_put($1, $2, 'test_report', 'storage://artifacts/x.json', 'abc', 'v1', '{}', '{"passed":1,"failed":0,"summary":"ok"}') as r`, [a, t.id]);
+  assert.equal(ok.ok, true, JSON.stringify(ok));
 });
 
 test('AT16: submit without the declared artefact fails the gate and returns the task to ready', async () => {
@@ -46,7 +48,7 @@ test('submit with the declared artefacts passes the gate and marks the task done
   const t = await task({ role: 'qa', produces: [{ kind: 'test_report' }] });
   await claim(a);
   const r = await j(`select baton.task_submit($1, $2, $3) as r`, [a, t.id, JSON.stringify([
-    { kind: 'test_report', uri: 'storage://artifacts/r.json', content: { passed: 3, failed: 0 } },
+    { kind: 'test_report', uri: 'storage://artifacts/r.json', content: { passed: 3, failed: 0, summary: 'all green' } },
   ])]);
   assert.deepEqual(r, { ok: true, state: 'done' });
   const row = await taskRow(t.id);
@@ -66,9 +68,9 @@ test('AT15: a done design_spec unblocks the frontend task that consumes it, with
 
   await claim(ui);
   const r = await j(`select baton.task_submit($1, $2, $3) as r`, [ui, design.id, JSON.stringify([
-    { kind: 'design_spec', uri: 'storage://artifacts/d.json', content: { screens: [] } },
+    { kind: 'design_spec', uri: 'storage://artifacts/d.json', content: { screens: [{ name: 'Login', components: [{ name: 'LoginForm' }] }] } },
   ])]);
-  assert.equal(r.state, 'done');
+  assert.equal(r.state, 'done', JSON.stringify(r));
   assert.equal((await taskRow(fe.id)).state, 'ready');
 });
 
@@ -105,6 +107,23 @@ test('a pr artefact keeps the task in review until CI reports success', async ()
   await q(`update baton.artifacts set meta = meta || '{"ci_status":"success"}' where task_id = $1`, [t.id]);
   const g = await j(`select baton.run_gate($1) as r`, [t.id]);
   assert.equal(g.state, 'done');
+});
+
+test('AT23: task_submit by an agent that is not the assignee is rejected with NOT_ASSIGNED and logged', async () => {
+  const a = await agent('qa-1', 'qa');
+  const b = await agent('qa-2', 'qa');
+  const t = await task({ role: 'qa', produces: [{ kind: 'test_report' }] });
+  await claim(a);
+  const r = await j(`select baton.task_submit($1, $2, $3) as r`, [b, t.id, JSON.stringify([{ kind: 'test_report', uri: 'x', content: { passed: 1, failed: 0, summary: 's' } }])]);
+  assert.equal(r.ok, false);
+  assert.equal(r.error.code, 'NOT_ASSIGNED');
+  assert.equal((await taskRow(t.id)).state, 'in_progress');
+  assert.equal((await taskRow(t.id)).assignee, a);
+  const ev = await q(`select payload from baton.events where task_id = $1 and type = 'tool_rejected' and agent_id = $2`, [t.id, b]);
+  assert.equal(ev.rows.length, 1);
+  assert.equal(ev.rows[0].payload.code, 'NOT_ASSIGNED');
+  const art = await q(`select count(*)::int as n from baton.artifacts where task_id = $1`, [t.id]);
+  assert.equal(art.rows[0].n, 0, 'no artefact registered by the impostor');
 });
 
 test('gate failure after max_attempts lands in needs_human', async () => {

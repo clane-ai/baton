@@ -163,6 +163,26 @@ test('AT14: usage posted from turn ends accumulates onto the task; over budget m
   assert.equal(hb.error.code, 'LEASE_LOST');
 });
 
+test('AT24: a file edited by a session with no claim appears in the conformance report', async () => {
+  const sess = `${SESSION}-shadow`;
+  // No task held (previous tests released everything); an Edit reported by PostToolUse is shadow work.
+  const r = await fetch(`${URL_}/hooks/tool`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${AG}` },
+    body: JSON.stringify({ session_id: sess, hook_event_name: 'PostToolUse', tool_name: 'Edit', tool_input: { file_path: 'C:\\work\\repo\\src\\rogue.ts', old_string: 'a', new_string: 'b' }, cwd: 'C:\\work\\repo' }) });
+  assert.equal((await r.json()).task_id, null);
+  const rep = await fetch(`${URL_}/admin/conformance?days=1`, { headers: { authorization: `Bearer ${OP}` } }).then((x) => x.json());
+  const hit = rep.live.shadow_edits.find((e) => e.session_id === sess);
+  assert.ok(hit, JSON.stringify(rep.live.shadow_edits).slice(0, 300));
+  assert.equal(hit.path, 'C:\\work\\repo\\src\\rogue.ts');
+  assert.equal(hit.tool, 'Edit');
+  assert.ok(rep.live.no_lease_denials.length >= 1, 'the earlier denied Write is in the report too');
+  assert.ok(rep.live.scope_violations.length >= 1);
+  // The daily job stores yesterday's report; run it and check a row exists and an event was written.
+  const run = await fetch(`${URL_}/admin/conformance/run`, { method: 'POST', headers: { authorization: `Bearer ${OP}` } }).then((x) => x.json());
+  assert.equal(run.ok, true);
+  const stored = await q(`select count(*)::int as n from baton.conformance_reports`);
+  assert.ok(stored.rows[0].n >= 1);
+});
+
 test('session-end releases a held lease (exit gate)', async () => {
   const t = await task({ role: 'qa', priority: 1000 });
   const next = await tool('task_next');

@@ -117,18 +117,18 @@ test('AT8 over HTTP: heartbeat after the reaper returns LEASE_LOST', async () =>
 test('artifact_put uploads content to storage and artifact_get returns it with a signed URL', async () => {
   const next = await tool('task_next');
   assert.ok(next.task, JSON.stringify(next));
-  const put = await tool('artifact_put', { task_id: next.task.id, kind: 'test_report', content: { passed: 2, failed: 0 } });
+  const put = await tool('artifact_put', { task_id: next.task.id, kind: 'test_report', content: { passed: 2, failed: 0, summary: 'two passed' } });
   assert.equal(put.ok, true, JSON.stringify(put));
   assert.match(put.uri, /^storage:\/\/artifacts\/TSK-\d+\/test_report-\d+\.json$/);
   // make qa entitled to read test_report by creating a task that consumes it
   await task({ role: 'qa', state: 'draft', consumes: [{ kind: 'test_report', from_task: null }] });
   const got = await tool('artifact_get', { kind: 'test_report' });
   assert.equal(got.artifacts.length, 1);
-  assert.deepEqual(got.artifacts[0].content, { passed: 2, failed: 0 });
+  assert.deepEqual(got.artifacts[0].content, { passed: 2, failed: 0, summary: 'two passed' });
   assert.match(got.artifacts[0].signed_url, /^https:\/\/.+\/storage\/v1\/object\/sign\/artifacts\//);
   const blob = await fetch(got.artifacts[0].signed_url);
   assert.equal(blob.status, 200);
-  assert.deepEqual(await blob.json(), { passed: 2, failed: 0 });
+  assert.deepEqual(await blob.json(), { passed: 2, failed: 0, summary: 'two passed' });
   const sub = await tool('task_submit', { task_id: next.task.id });
   assert.equal(sub.state, 'done');
 });
