@@ -44,3 +44,7 @@ Results against prd.md section 18, recorded 22 and 23 September 2026. Evidence i
 - Plugin token delivery: Claude Code neither supports HTTP hooks for SessionStart nor substitutes plugin `userConfig` into HTTP hook headers, so `baton-core` carries the CLI and uses command hooks for every event and `headersHelper` for the MCP server. One source of truth for the token: `BATON_TOKEN` or `~/.baton/config.json`.
 - CI failures move the task to `failed` and create a fix task (prd.md 8.3 says gate failures return to ready; that still holds for artefact and schema failures at submit time).
 - Interim run cost is an estimate from stream-json token counts; the final figure comes from Claude Code's result message and replaces it.
+
+## End-to-end run
+
+On 23 September 2026 the whole pipeline ran with live Claude Code sessions (analyst, frontend-dev, qa, reviewer) against the private repo `clane-ai/baton-e2e`, including a `task_ask` from the developer session answered by a separately spawned analyst session, a real pull request with green GitHub Actions, and the webhook driving the completion gate. Timeline, the message exchange, costs and the defects it exposed are in `docs/e2e-run.md`. Acceptance tests 13 to 16 and 20 to 22 were thereby also exercised with unscripted agents rather than fixtures.
