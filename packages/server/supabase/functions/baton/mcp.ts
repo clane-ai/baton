@@ -117,7 +117,7 @@ async function putArtifact(agent: Agent, a: Json): Promise<Json> {
                    ${String(a.schema_version ?? "v1")}, ${j(meta)}::jsonb, ${json ? j(json) : null}::jsonb) as r`);
 }
 
-export async function runTool(agent: Agent, name: string, args: Json): Promise<Json> {
+export async function runTool(agent: Agent, name: string, args: Json, session: string | null = null): Promise<Json> {
   switch (name) {
     case "whoami":
       return await asAgent(agent.id, async (tx) => {
@@ -138,7 +138,7 @@ export async function runTool(agent: Agent, name: string, args: Json): Promise<J
 
     case "task_next": {
       const lease = Math.min(14400, Math.max(60, Number(args.lease_seconds ?? 1800)));
-      const [row] = await sql`select baton.task_json(baton.claim_next(${agent.id}::uuid, ${lease}::int)) as j`;
+      const [row] = await sql`select baton.task_json(baton.claim_next(${agent.id}::uuid, ${lease}::int, ${session})) as j`;
       if (!row?.j?.id) return { ok: true, none: true, message: "No work for your role right now. Stop and exit." };
       const t = row.j as Json;
       const delegations = await sql`select key, title, produces, cost_usd from baton.tasks where parent_task = ${String(t.id)}::uuid and state = 'done' order by updated_at`;
@@ -213,7 +213,7 @@ export async function runTool(agent: Agent, name: string, args: Json): Promise<J
   }
 }
 
-export async function callTool(agent: Agent, name: string, args: Json): Promise<Json> {
+export async function callTool(agent: Agent, name: string, args: Json, session: string | null = null): Promise<Json> {
   const def = TOOLS.find((t) => t.name === name);
   if (!def) return { ok: false, error: { code: "UNKNOWN_TOOL", message: `Unknown tool ${name}`, retryable: false } };
   const key = typeof args.idempotency_key === "string" && args.idempotency_key ? args.idempotency_key : null;
@@ -221,7 +221,7 @@ export async function callTool(agent: Agent, name: string, args: Json): Promise<
     const [hit] = await sql`select response from baton.idempotency where agent_id = ${agent.id}::uuid and key = ${key}`;
     if (hit) return { ...hit.response, idempotent_replay: true };
   }
-  const result = await runTool(agent, name, args);
+  const result = await runTool(agent, name, args, session);
   if (def.mutating && name !== "task_heartbeat" && name !== "task_progress") { try { await drainWebhooks(); } catch (e) { console.error("webhooks", e); } }
   if (def.mutating && key) {
     await sql`insert into baton.idempotency (agent_id, key, tool, response) values (${agent.id}::uuid, ${key}, ${name}, ${j(result)}::jsonb)
@@ -234,7 +234,7 @@ const SERVER_INSTRUCTIONS = `Baton coordination protocol. 1) whoami. If you hold
 
 type Rpc = { jsonrpc?: string; id?: unknown; method?: string; params?: Json };
 
-export async function handleRpc(agent: Agent, m: Rpc): Promise<Json | null> {
+export async function handleRpc(agent: Agent, m: Rpc, session: string | null = null): Promise<Json | null> {
   const id = m.id ?? null;
   const ok = (result: Json) => ({ jsonrpc: "2.0", id, result });
   const err = (code: number, message: string) => ({ jsonrpc: "2.0", id, error: { code, message } });
@@ -260,7 +260,7 @@ export async function handleRpc(agent: Agent, m: Rpc): Promise<Json | null> {
       const name = String(m.params?.name ?? "");
       const args = (m.params?.arguments as Json) ?? {};
       try {
-        const result = await callTool(agent, name, args);
+        const result = await callTool(agent, name, args, session);
         return ok({ content: [{ type: "text", text: JSON.stringify(result, null, 2) }], structuredContent: result, isError: result.ok === false });
       } catch (e) {
         console.error(`tool ${name} failed`, e);

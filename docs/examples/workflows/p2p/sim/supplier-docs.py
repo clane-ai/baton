@@ -111,7 +111,7 @@ def ship(run, po, sc):
     eml(os.path.join(invoices, f"{inv_no}.eml"), vemail.replace("orders@", "billing@").replace("sales@", "billing@"), "ap@zeus.example", f"Invoice {inv_no} for PO {po['po_number']}",
         f"Please find attached invoice {inv_no} for your order {po['po_number']}, total {money(total)} {cur}, due {due.isoformat()}.\n\n{vname} accounts\n", inv_pdf)
     invoice = {"invoice_number": inv_no, "po_number": po["po_number"], "vendor": vname, "issued_at": issued.isoformat(), "due_at": due.isoformat(), "currency": cur,
-               "lines": inv_lines, "subtotal": subtotal, "tax": tax, "total": total, "bank": {"iban": iban, "bic": bic},
+               "vendor_email": vemail, "lines": inv_lines, "subtotal": subtotal, "tax": tax, "total": total, "bank": {"iban": iban, "bic": bic},
                "document_path": f"inbox/invoices/{inv_no}.pdf", "email_path": f"inbox/invoices/{inv_no}.eml"}
     return {"delivery_note": delivery_note, "invoice": invoice}
 
@@ -121,7 +121,7 @@ def pay(run, inv, match):
     outbox = os.path.join(run, "outbox"); os.makedirs(outbox, exist_ok=True)
     amount = float(match.get("amount_payable") or inv["total"])
     path = os.path.join(outbox, f"remittance-{inv['invoice_number']}.eml")
-    eml(path, "ap@zeus.example", f"billing@{inv['vendor'].split()[0].lower()}.example", f"Remittance advice {ref}: invoice {inv['invoice_number']}",
+    eml(path, "ap@zeus.example", inv.get("vendor_email") or f"billing@{inv['vendor'].split()[0].lower()}.example", f"Remittance advice {ref}: invoice {inv['invoice_number']}",
         f"We have scheduled payment of {money(amount)} {inv['currency']} for invoice {inv['invoice_number']} (PO {inv['po_number']}) on {inv['due_at']} to IBAN {inv.get('bank',{}).get('iban','')}. Reference {ref}.\n\nAccounts payable, Zeus Ireland Ltd\n")
     return {"payment": {"payment_ref": ref, "invoice_number": inv["invoice_number"], "po_number": inv["po_number"], "vendor": inv["vendor"], "amount": amount, "currency": inv["currency"],
                         "beneficiary": {"name": inv["vendor"], "iban": inv.get("bank", {}).get("iban", "")}, "status": "scheduled", "scheduled_for": inv["due_at"], "remittance_path": f"outbox/remittance-{inv['invoice_number']}.eml"}}

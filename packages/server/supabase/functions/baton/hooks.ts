@@ -109,7 +109,7 @@ export async function handleHook(agent: Agent, event: string, raw: Json): Promis
       return { status: 200, body: {} };
     }
     case "session_end": {
-      const r = await one(sql`select baton.session_end(${agent.id}::uuid, ${session}, ${raw.reason ? String(raw.reason) : "session_end"}, ${payload}::jsonb) as r`);
+      const r = await one(sql`select baton.session_end(${agent.id}::uuid, ${session}, ${raw.reason ? String(raw.reason) : "session_end"}, ${payload}::jsonb, ${raw.baton_session ? String(raw.baton_session) : null}) as r`);
       return { status: 200, body: r };
     }
     default: {

@@ -24,8 +24,11 @@ Do this:
 2. `complete` is true only when every line was received in full and in good condition.
 3. List every discrepancy in plain words in `discrepancies` (short delivery, damage, an item
    on the note that is not on the order, a count that differs from the note).
-4. Number the receipt `GRN-2026-<digits of the PO number>` and set `received_by` to
-   "receiving (baton)".
+4. Number the receipt `GRN-2026-<the last three digits of the PO number>` (PO-2026-104 becomes
+   GRN-2026-104), set `received_at` to the count sheet's date and time as an ISO date-time
+   (2026-09-27T09:40:00) and `received_by` to "receiving (baton)". Use only the schema's keys:
+   grn_number, po_number, delivery_note_number, received_at, received_by, lines [{line, sku, item,
+   quantity_ordered, quantity_received, condition, note}], complete, discrepancies.
 5. Register exactly one `goods_receipt` artefact through `task_submit`. If the gate rejects
    it, fix the named field and submit again.
 

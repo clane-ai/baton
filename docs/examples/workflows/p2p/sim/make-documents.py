@@ -189,7 +189,7 @@ def main():
         requisition_txt(base + ".txt", sc, total)
         vend = next(v for v in VENDORS if v[0] == sc["vendor"])
         eml(base + ".eml", f"{sc['requester']} <{sc['requester'].lower().replace(' ', '.')}@zeus.example>", "purchasing@zeus.example",
-            f"Requisition {sc['pr']}: {sc['label'].split(',')[0]} for {sc['dept']}",
+            f"Requisition {sc['pr']} for {sc['dept']}",
             f"Hi purchasing,\n\nPlease raise a PO for the attached requisition {sc['pr']} with {vend[1]}. {sc['justification']}\nNeeded by {sc['needed_by']}.\n\nThanks,\n{sc['requester']}\n{sc['dept']} ({sc['cost_center']})\n", base + ".pdf")
         index.append(dict(pr=sc["pr"], vendor=sc["vendor"], currency=sc["currency"], lines=sc["lines"], estimated_total=total, erp=sc["erp"], expect=sc["expect"], label=sc["label"], cost_center=sc["cost_center"], requester=sc["requester"]))
     with open(os.path.join(root, ".sim", "scenarios.json"), "w") as f: json.dump(index, f, indent=2)

@@ -45,8 +45,9 @@ Deno.serve(async (req: Request) => {
       const body = await req.json();
       const msgs = Array.isArray(body) ? body : [body];
       const responses = [];
+      const batonSession = req.headers.get("x-baton-session");
       for (const m of msgs) {
-        const r = await handleRpc(ctx.agent, m);
+        const r = await handleRpc(ctx.agent, m, batonSession);
         if (r) responses.push(r);
       }
       if (responses.length === 0) return new Response(null, { status: 202 });

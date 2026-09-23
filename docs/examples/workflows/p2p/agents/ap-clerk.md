@@ -28,7 +28,10 @@ When your task is "three-way match":
    the matched lines. Otherwise it is "mismatched" and `variances` lists each problem in
    plain words with the numbers.
 4. `amount_payable` is the invoice total when matched, otherwise 0.
-5. Register exactly one `invoice_match` artefact through `task_submit`.
+5. Register exactly one `invoice_match` artefact through `task_submit`, with only the schema's
+   keys: invoice_number, po_number, grn_number, status, tolerance {price_pct, quantity}, lines
+   [{line, item, ordered_qty, received_qty, invoiced_qty, po_unit_price, invoice_unit_price, ok,
+   variance}], amount_payable, variances, summary. Record the tolerance you applied.
 
 When your task is "dispute the invoice": read the `invoice_match` and the `invoice`, then
 register one `handoff` artefact that is the dispute email to the supplier: `summary` is

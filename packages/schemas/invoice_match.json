@@ -4,18 +4,105 @@
   "title": "invoice_match",
   "description": "The three-way match of purchase order, goods receipt and invoice. status decides whether the invoice may be paid.",
   "type": "object",
-  "required": ["invoice_number", "po_number", "grn_number", "status", "lines", "summary"],
+  "required": [
+    "invoice_number",
+    "po_number",
+    "grn_number",
+    "status",
+    "tolerance",
+    "lines",
+    "amount_payable",
+    "summary"
+  ],
   "properties": {
-    "invoice_number": { "type": "string" }, "po_number": { "type": "string" }, "grn_number": { "type": "string" },
-    "status": { "type": "string", "enum": ["matched", "mismatched"] },
-    "tolerance": { "type": "object", "properties": { "price_pct": { "type": "number" }, "quantity": { "type": "number" } } },
-    "lines": { "type": "array", "minItems": 1, "items": { "type": "object", "required": ["line", "ordered_qty", "received_qty", "invoiced_qty", "po_unit_price", "invoice_unit_price", "ok"], "properties": {
-      "line": { "type": "integer" }, "item": { "type": "string" },
-      "ordered_qty": { "type": "number" }, "received_qty": { "type": "number" }, "invoiced_qty": { "type": "number" },
-      "po_unit_price": { "type": "number" }, "invoice_unit_price": { "type": "number" }, "ok": { "type": "boolean" }, "variance": { "type": "string" } } } },
-    "amount_payable": { "type": "number", "minimum": 0 },
-    "variances": { "type": "array", "items": { "type": "string" } },
-    "summary": { "type": "string", "minLength": 1 }
+    "invoice_number": {
+      "type": "string"
+    },
+    "po_number": {
+      "type": "string"
+    },
+    "grn_number": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "matched",
+        "mismatched"
+      ]
+    },
+    "tolerance": {
+      "type": "object",
+      "properties": {
+        "price_pct": {
+          "type": "number"
+        },
+        "quantity": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false
+    },
+    "lines": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "line",
+          "ordered_qty",
+          "received_qty",
+          "invoiced_qty",
+          "po_unit_price",
+          "invoice_unit_price",
+          "ok"
+        ],
+        "properties": {
+          "line": {
+            "type": "integer"
+          },
+          "item": {
+            "type": "string"
+          },
+          "ordered_qty": {
+            "type": "number"
+          },
+          "received_qty": {
+            "type": "number"
+          },
+          "invoiced_qty": {
+            "type": "number"
+          },
+          "po_unit_price": {
+            "type": "number"
+          },
+          "invoice_unit_price": {
+            "type": "number"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "variance": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "amount_payable": {
+      "type": "number",
+      "minimum": 0
+    },
+    "variances": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    }
   },
-  "additionalProperties": true
+  "additionalProperties": false
 }

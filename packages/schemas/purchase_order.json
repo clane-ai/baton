@@ -4,24 +4,145 @@
   "title": "purchase_order",
   "description": "A purchase order raised from a requisition: what is bought, from whom, for how much, and whether policy requires a human approval.",
   "type": "object",
-  "required": ["po_number", "requisition", "vendor", "currency", "lines", "total", "cost_center", "policy_check"],
+  "required": [
+    "po_number",
+    "requisition",
+    "requester",
+    "vendor",
+    "currency",
+    "lines",
+    "total",
+    "cost_center",
+    "delivery_address",
+    "policy_check"
+  ],
   "properties": {
-    "po_number": { "type": "string", "pattern": "^PO-[0-9]{4}-[0-9]{3,}$" },
-    "requisition": { "type": "string", "description": "The requisition number this PO fulfils, e.g. PR-2026-104." },
-    "requester": { "type": "string" },
-    "vendor": { "type": "object", "required": ["id", "name"], "properties": {
-      "id": { "type": "string" }, "name": { "type": "string" }, "approved": { "type": "boolean" }, "email": { "type": "string" } } },
-    "currency": { "type": "string", "enum": ["EUR", "USD", "GBP"] },
-    "lines": { "type": "array", "minItems": 1, "items": { "type": "object", "required": ["line", "item", "quantity", "unit_price"], "properties": {
-      "line": { "type": "integer", "minimum": 1 }, "sku": { "type": "string" }, "item": { "type": "string", "minLength": 1 },
-      "quantity": { "type": "number", "exclusiveMinimum": 0 }, "unit": { "type": "string" }, "unit_price": { "type": "number", "minimum": 0 }, "line_total": { "type": "number" } } } },
-    "total": { "type": "number", "minimum": 0 },
-    "cost_center": { "type": "string" },
-    "delivery_address": { "type": "string" },
-    "needed_by": { "type": "string" },
-    "policy_check": { "type": "object", "required": ["approval_required", "notes"], "properties": {
-      "approval_required": { "type": "boolean" }, "approver_level": { "type": "string", "enum": ["none", "manager", "director", "cfo"] },
-      "vendor_approved": { "type": "boolean" }, "within_budget": { "type": "boolean" }, "notes": { "type": "string" } } }
+    "po_number": {
+      "type": "string",
+      "pattern": "^PO-[0-9]{4}-[0-9]{3,}$"
+    },
+    "requisition": {
+      "type": "string",
+      "description": "The requisition number this PO fulfils, e.g. PR-2026-104."
+    },
+    "requester": {
+      "type": "string"
+    },
+    "vendor": {
+      "type": "object",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "approved": {
+          "type": "boolean"
+        },
+        "email": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "currency": {
+      "type": "string",
+      "enum": [
+        "EUR",
+        "USD",
+        "GBP"
+      ]
+    },
+    "lines": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "line",
+          "item",
+          "quantity",
+          "unit_price"
+        ],
+        "properties": {
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "sku": {
+            "type": "string"
+          },
+          "item": {
+            "type": "string",
+            "minLength": 1
+          },
+          "quantity": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "unit": {
+            "type": "string"
+          },
+          "unit_price": {
+            "type": "number",
+            "minimum": 0
+          },
+          "line_total": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "total": {
+      "type": "number",
+      "minimum": 0
+    },
+    "cost_center": {
+      "type": "string"
+    },
+    "delivery_address": {
+      "type": "string"
+    },
+    "needed_by": {
+      "type": "string"
+    },
+    "policy_check": {
+      "type": "object",
+      "required": [
+        "approval_required",
+        "notes"
+      ],
+      "properties": {
+        "approval_required": {
+          "type": "boolean"
+        },
+        "approver_level": {
+          "type": "string",
+          "enum": [
+            "none",
+            "manager",
+            "director",
+            "cfo"
+          ]
+        },
+        "vendor_approved": {
+          "type": "boolean"
+        },
+        "within_budget": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
   },
-  "additionalProperties": true
+  "additionalProperties": false
 }

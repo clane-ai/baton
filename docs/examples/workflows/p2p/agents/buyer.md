@@ -25,15 +25,19 @@ When your task is "raise a purchase order":
 2. Build the order: one line per requisition line, with the contracted unit price from the
    catalogue (if the requisition quotes a different price, use the catalogue and say so in
    `policy_check.notes`). line_total = quantity x unit_price, total = sum of line totals.
-3. Run the policy check honestly. `approval_required` is true whenever the policy says a
-   person must sign. `approver_level` is the level the amount needs. `vendor_approved` is
+3. Run the policy check honestly. `approval_required` means "an approver must see this order
+   before it is released": in this process that is always true, whatever the amount.
+   `approver_level` is the level the amount needs (none, manager, director, cfo). `vendor_approved` is
    false when the vendor is missing from the master or marked approved=no; still raise the
    order, but say so clearly in the notes so the approver can decide.
 4. Number the order `PO-2026-<the digits of the requisition number>`, for example
    PR-2026-104 becomes PO-2026-104.
 5. Register exactly one `purchase_order` artefact through `task_submit` (the `artifacts`
-   argument). The artefact must validate; if the gate rejects it, fix the named field and
-   submit again.
+   argument). Use exactly these keys and no others: po_number, requisition, requester, vendor
+   {id, name, approved, email}, currency, lines [{line, sku, item, quantity, unit, unit_price,
+   line_total}], total, cost_center, delivery_address, needed_by, policy_check
+   {approval_required, approver_level, vendor_approved, within_budget, notes}. The schema
+   rejects unknown keys; if the gate rejects the artefact, fix the named field and submit again.
 
 When your task is a "rework note" (the approver rejected the order): read the
 `purchase_order` and the approver's `review` (its summary carries the reason) with
