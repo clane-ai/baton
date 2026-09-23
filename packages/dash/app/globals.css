@@ -234,3 +234,22 @@ tr.expanded td { background: #fafaf7; }
 .bar-v { font-family: var(--mono); font-size: 10px; color: var(--ink-2); margin-bottom: 3px; white-space: nowrap; }
 .bar-l { font-family: var(--mono); font-size: 10px; color: var(--ink-3); margin-top: 4px; white-space: nowrap; }
 .over { color: var(--bad); font-weight: 600; }
+
+/* Flow view */
+.stages { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.stage-wrap { display: flex; align-items: center; gap: 6px; }
+.stage-arrow { color: var(--ink-3); }
+.stage { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 10px; min-width: 120px; }
+.stage.active { border-color: #69db7c; box-shadow: 0 0 0 2px #ebfbee; }
+.stage-name { font-weight: 600; font-size: 12px; margin-bottom: 4px; }
+.stage-counts { display: flex; gap: 4px; }
+.flow-scroll { overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.flow { display: block; font-family: inherit; }
+.flow-key { font-family: var(--mono); font-size: 11px; font-weight: 600; fill: var(--ink); }
+.flow-state { font-size: 10px; fill: var(--ink-3); text-transform: uppercase; letter-spacing: 0.04em; }
+.flow-title { font-size: 12px; fill: var(--ink); }
+.flow-meta { font-size: 10px; fill: var(--ink-3); }
+.flow-meta.over { fill: var(--bad); }
+.flow-label { font-family: var(--mono); font-size: 10px; fill: var(--ink-3); paint-order: stroke; stroke: var(--panel); stroke-width: 3px; }
+.flow-node:hover rect { filter: brightness(0.97); }
+.lbl input[type="checkbox"] { vertical-align: middle; margin-right: 4px; }

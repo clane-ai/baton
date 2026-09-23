@@ -84,8 +84,8 @@ export type Task = {
   state: TaskState;
   priority: number;
   depends_on: string[];
-  consumes: string[];
-  produces: string[];
+  consumes: { kind: string; from_task: string | null }[];
+  produces: { kind: string }[];
   scope: string[];
   assignee: string | null;
   assignee_name?: string | null;

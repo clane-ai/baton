@@ -144,9 +144,9 @@ export default function TaskDetail({ id, onClose, onChanged }: { id: string; onC
                   <dt>scope</dt>
                   <dd className="mono">{t.scope?.length ? t.scope.join(", ") : "-"}</dd>
                   <dt>consumes</dt>
-                  <dd className="mono">{t.consumes?.length ? t.consumes.join(", ") : "-"}</dd>
+                  <dd className="mono">{t.consumes?.length ? t.consumes.map((c) => (typeof c === "string" ? c : c.kind + (c.from_task ? " (named)" : ""))).join(", ") : "-"}</dd>
                   <dt>produces</dt>
-                  <dd className="mono">{t.produces?.length ? t.produces.join(", ") : "-"}</dd>
+                  <dd className="mono">{t.produces?.length ? t.produces.map((p) => (typeof p === "string" ? p : p.kind)).join(", ") : "-"}</dd>
                   {t.parent_task ? (
                     <>
                       <dt>parent</dt>
