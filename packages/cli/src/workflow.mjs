@@ -10,6 +10,10 @@
 //                                  produces: config.baton.produces ?? [config.output_key],
 //                                  scope/budget from config.baton, workflow_run: the run key }
 //   edge role -> role    -> depends_on + consumes pinned to the upstream task (its produced kinds)
+//   control node         -> an exclusive gateway: each outgoing edge names an outcome (sourceHandle); the
+//                           tasks behind it get a condition on the deciding step's artefact (config.decision:
+//                           {from, kind, field, values}; defaults: nearest upstream step, its first kind, "verdict",
+//                           the outcome id). The branch not taken is cancelled when the decision lands.
 //   priority             -> earlier steps first (topological order)
 import { readFileSync } from 'node:fs';
 import { Api, must } from './api.mjs';
@@ -46,11 +50,22 @@ export function plan(manifest, { input = '', run }) {
   const edges = (manifest.definition.edges ?? []).filter((e) => e.kind !== 'terminate');
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const order = topo(nodes, edges);
-  const steps = []; const skipped = [];
+  const steps = []; const skipped = []; const gateways = [];
+  const typeOf = (n) => n?.type ?? n?.node_type ?? '';
+  const isStep = (n) => typeOf(n) === 'role' || typeOf(n) === 'approval';
+  const producesOf = (n) => { const c = n.data?.config ?? {}; return typeOf(n) === 'approval' ? ['review'] : (c.baton?.produces ?? (c.output_key ? [c.output_key] : [])).map(String); };
+  // The step a control node decides on: its nearest upstream step.
+  const decidingStep = (controlId) => { for (const e of edges) if (e.target === controlId) { const src = byId.get(e.source); if (isStep(src)) return src.id; if (src) { const d = decidingStep(src.id); if (d) return d; } } return null; };
   for (const id of order) {
     const n = byId.get(id);
-    const type = n.type ?? n.node_type ?? '';
+    const type = typeOf(n);
     if (type === 'trigger' || type === 'output' || type === 'note') continue;
+    if (type === 'control') {
+      const from = n.data?.config?.decision?.from ?? decidingStep(id);
+      if (!from) throw new Error(`control node ${id} has no upstream step to decide on`);
+      gateways.push({ id, label: n.data?.label ?? id, from, outcomes: (n.data?.outcomes ?? []).map((o) => o.id) });
+      continue;
+    }
     if (type !== 'role' && type !== 'approval') { skipped.push({ id, type, reason: `${type} nodes stay in the orchestrator` }); continue; }
     const c = n.data?.config ?? {};
     // An approval node is a task for the operator role: it waits in needs_human until baton tasks approve|reject.
@@ -59,23 +74,39 @@ export function plan(manifest, { input = '', run }) {
     const produces = type === 'approval' ? ['review'] : (c.baton?.produces ?? (c.output_key ? [c.output_key] : [])).map(String);
     const unknown = produces.filter((k) => !KNOWN_KINDS.includes(k));
     if (unknown.length) throw new Error(`node ${id}: output kind(s) ${unknown.join(', ')} are not Baton artefact kinds (${KNOWN_KINDS.join(', ')})`);
-    // Upstream role nodes, transitively through structural nodes.
-    const upstream = new Set();
-    const walk = (target) => { for (const e of edges) if (e.target === target) { const s = byId.get(e.source); const st = s?.type ?? s?.node_type; if (st === 'role' || st === 'approval') upstream.add(e.source); else if (s) walk(e.source); } };
+    // Upstream steps, transitively through structural nodes. Passing through a control node records
+    // the outcome this branch answers to, which becomes the task's condition.
+    const upstream = new Set(); let condition = null;
+    const walk = (target) => {
+      for (const e of edges) if (e.target === target) {
+        const src = byId.get(e.source); if (!src) continue;
+        if (isStep(src)) { upstream.add(e.source); continue; }
+        if (typeOf(src) === 'control') {
+          const cfg = src.data?.config?.decision ?? {};
+          const from = cfg.from ?? decidingStep(src.id);
+          const outcome = e.sourceHandle ?? (src.data?.outcomes?.[0]?.id ?? 'yes');
+          const fromNode = byId.get(from);
+          condition = { fromStep: from, kind: cfg.kind ?? producesOf(fromNode)[0] ?? 'review', field: cfg.field ?? 'verdict', equals: String(cfg.values?.[outcome] ?? outcome), outcome, gateway: src.id };
+          if (from) upstream.add(from);
+          continue;
+        }
+        walk(e.source);
+      }
+    };
     walk(id);
     const label = n.data?.label ?? id;
     const spec = [`# Task`, taskOf(n), '', `# Workflow input`, input || '(none)', '',
       `# Workflow`, `${manifest.name} ${manifest.version ?? ''} run ${run}, step "${label}" (${id}). Register exactly these artefact kinds: ${produces.join(', ') || 'none'}.`].join('\n');
     const acceptance = c.baton?.acceptance ?? `Given the inputs of step ${id}, when the ${role} finishes, then ${produces.length ? `a valid ${produces.join(' and ')} artefact exists` : 'the step is submitted'} and it satisfies: ${label}.`;
     steps.push({ id, label, role, produces, spec, acceptance, upstream: [...upstream], scope: (c.baton?.scope ?? []).map(String), budget: c.baton?.budget_usd, maxAttempts: c.baton?.max_attempts,
-      affinity: c.baton?.affinity, deadline: c.baton?.deadline });
+      affinity: c.baton?.affinity, deadline: c.baton?.deadline, condition });
   }
-  return { steps, skipped };
+  return { steps, skipped, gateways };
 }
 
 /** Create the tasks on the server in order. Returns { run, tasks: [{node, key, id}], skipped }. */
 export async function compile(cfg, manifest, { input, run, dryRun = false, affinity, publish = true }) {
-  const { steps, skipped } = plan(manifest, { input, run });
+  const { steps, skipped, gateways } = plan(manifest, { input, run });
   const api = new Api(cfg.serverUrl, cfg.operatorToken);
   const wfKey = String(manifest.key ?? manifest.name ?? 'workflow').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   if (!dryRun) {
@@ -92,11 +123,12 @@ export async function compile(cfg, manifest, { input, run, dryRun = false, affin
       consumes: deps.flatMap((d) => d.produces.map((kind) => ({ kind, from_task: d.id }))),
       depends_on: deps.map((d) => d.id), scope: s.scope, budget_usd: s.budget, max_attempts: s.maxAttempts, workflow_run: run,
       affinity: s.affinity ?? affinity, deadline: s.deadline,
+      condition: s.condition && created.get(s.condition.fromStep) ? { task: created.get(s.condition.fromStep).id, kind: s.condition.kind, field: s.condition.field, equals: s.condition.equals, outcome: s.condition.outcome, gateway: s.condition.gateway } : undefined,
     };
-    if (dryRun) { out.push({ node: s.id, role: s.role, produces: s.produces, depends_on: s.upstream, scope: s.scope }); created.set(s.id, { id: `<${s.id}>`, key: `<${s.id}>`, produces: s.produces }); continue; }
+    if (dryRun) { out.push({ node: s.id, role: s.role, produces: s.produces, depends_on: s.upstream, scope: s.scope, when: s.condition ? `${s.condition.gateway}=${s.condition.outcome}` : '' }); created.set(s.id, { id: `<${s.id}>`, key: `<${s.id}>`, produces: s.produces }); continue; }
     const r = must(await api.post('/admin/tasks', body), `task for node ${s.id}`);
     created.set(s.id, { id: r.task.id, key: r.task.key, produces: s.produces });
-    out.push({ node: s.id, role: s.role, key: r.task.key, id: r.task.id, state: r.task.state, produces: s.produces, depends_on: s.upstream });
+    out.push({ node: s.id, role: s.role, key: r.task.key, id: r.task.id, state: r.task.state, produces: s.produces, depends_on: s.upstream, when: s.condition ? `${s.condition.gateway}=${s.condition.outcome}` : '' });
   }
-  return { run, tasks: out, skipped };
+  return { run, tasks: out, skipped, gateways };
 }

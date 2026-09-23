@@ -132,7 +132,8 @@ export async function run(argv) {
         const run = flags.run ? String(flags.run) : `${String(manifest.name).toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now().toString(36)}`;
         const r = await compile(cfg, manifest, { input: flags.input ? String(flags.input) : '', run, dryRun: !!flags['dry-run'], affinity: flags.affinity ? String(flags.affinity) : undefined });
         console.log(`workflow "${manifest.name}" ${manifest.version ?? ''} -> run ${run}${flags['dry-run'] ? ' (dry run)' : ''}`);
-        table(r.tasks.map((t) => ({ node: t.node, role: t.role, task: t.key ?? '-', state: t.state ?? '-', produces: t.produces.join(','), after: t.depends_on.join(',') })), ['node', 'role', 'task', 'state', 'produces', 'after']);
+        table(r.tasks.map((t) => ({ node: t.node, role: t.role, task: t.key ?? '-', state: t.state ?? '-', produces: t.produces.join(','), after: t.depends_on.join(','), when: t.when ?? '' })), ['node', 'role', 'task', 'state', 'produces', 'after', 'when']);
+        for (const g of r.gateways ?? []) console.log(`gateway ${g.id} ("${g.label}") decides on ${g.from}: ${g.outcomes.join(' | ')}`);
         for (const k of r.skipped) console.log(`skipped ${k.id} (${k.type}): ${k.reason}`);
         if (!flags['dry-run']) console.log(`watch: baton workflow status --run ${run}`);
         return 0;

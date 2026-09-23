@@ -265,3 +265,4 @@ tr.selected td { background: #f3f0ff; }
 .bpmn-small { font-size: 10px; fill: var(--ink-3); }
 @keyframes bpmn-pulse { 0% { opacity: 1; } 50% { opacity: 0.55; } 100% { opacity: 1; } }
 .bpmn-active rect { animation: bpmn-pulse 1.6s ease-in-out infinite; }
+.bpmn-gw { font-size: 18px; font-weight: 700; fill: #e67700; }

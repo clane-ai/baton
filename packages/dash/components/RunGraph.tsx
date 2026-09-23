@@ -69,7 +69,7 @@ export default function RunGraph({ run }: { run: WorkflowRun }) {
     const mx = x1 + (x2 - x1) / 2;
     return `M${x1},${y1} L${mx},${y1} L${mx},${y2} L${x2},${y2}`;
   };
-  const doneEnd = steps.length > 0 && steps.every((s) => s.state === "done");
+  const doneEnd = steps.length > 0 && steps.every((s) => s.state === "done" || (s.state === "cancelled" && !!s.condition));
   const status = run.status;
 
   return (
@@ -89,12 +89,38 @@ export default function RunGraph({ run }: { run: WorkflowRun }) {
           </g>
         ))}
 
+        {/* gateways: one diamond per deciding step that has conditional dependants */}
+        {[...new Set(model.placed.filter((p) => p.s.condition).map((p) => p.s.condition!.task))].map((decId) => {
+          const dec = byId.get(decId); if (!dec) return null;
+          const branches = model.placed.filter((p) => p.s.condition?.task === decId);
+          const gx = dec.x + NODE_W + 34, gy = dec.y + NODE_H / 2, D = 18;
+          const decided = dec.s.state === "done";
+          return (
+            <g key={`gw-${decId}`}>
+              <path d={`M${dec.x + NODE_W},${gy} L${gx - D},${gy}`} fill="none" stroke={decided ? "#495057" : "#adb5bd"} strokeWidth={1.6} />
+              <polygon points={`${gx},${gy - D} ${gx + D},${gy} ${gx},${gy + D} ${gx - D},${gy}`} fill="#fff9db" stroke="#e67700" strokeWidth={1.6} />
+              <text x={gx} y={gy + 4} textAnchor="middle" className="bpmn-gw">×</text>
+              {branches.map((b) => {
+                const taken = decided && b.s.state !== "cancelled";
+                const path = `M${gx + D},${gy} L${gx + D + 20},${gy} L${gx + D + 20},${b.y + NODE_H / 2} L${b.x},${b.y + NODE_H / 2}`;
+                return (
+                  <g key={b.s.id}>
+                    <path d={path} fill="none" stroke={taken ? "#495057" : "#adb5bd"} strokeWidth={taken ? 1.8 : 1.4} strokeDasharray={taken ? undefined : "6 4"} markerEnd={taken ? "url(#bpmn-arrow)" : "url(#bpmn-arrow-light)"} />
+                    <text x={gx + D + 26} y={b.y + NODE_H / 2 - 6} className="bpmn-small">{b.s.condition?.outcome ?? b.s.condition?.equals}</text>
+                  </g>
+                );
+              })}
+            </g>
+          );
+        })}
+
         {/* sequence flows */}
         {model.placed.filter((p) => p.col === 0).map((p) => (
           <path key={`s-${p.s.id}`} d={flow(model.start.x + EVENT_R, model.start.y, p.x, p.y + NODE_H / 2)} fill="none" stroke="#495057" strokeWidth={1.6} markerEnd="url(#bpmn-arrow)" />
         ))}
         {model.placed.flatMap((p) => (p.s.depends_on ?? []).map((d) => {
           const a = byId.get(d); if (!a) return null;
+          if (p.s.condition?.task === d) return null; // drawn through the gateway
           const taken = a.s.state === "done";
           return <path key={`${d}>${p.s.id}`} d={flow(a.x + NODE_W, a.y + NODE_H / 2, p.x, p.y + NODE_H / 2)} fill="none" stroke={taken ? "#495057" : "#adb5bd"} strokeWidth={taken ? 1.8 : 1.4} strokeDasharray={taken ? undefined : "6 4"} markerEnd={taken ? "url(#bpmn-arrow)" : "url(#bpmn-arrow-light)"} />;
         }))}
@@ -112,7 +138,7 @@ export default function RunGraph({ run }: { run: WorkflowRun }) {
           const active = s.state === "in_progress" || s.state === "review";
           return (
             <g key={s.id} transform={`translate(${p.x},${p.y})`} className={active ? "bpmn-active" : ""}>
-              <rect width={NODE_W} height={NODE_H} rx={human ? 6 : 10} fill={FILL[s.state]} stroke={STROKE[s.state]} strokeWidth={active ? 2.4 : 1.6} />
+              <rect width={NODE_W} height={NODE_H} rx={human ? 6 : 10} fill={FILL[s.state]} stroke={STROKE[s.state]} strokeWidth={active ? 2.4 : 1.6} opacity={s.state === "cancelled" ? 0.55 : 1} />
               {human ? <Icon kind="user" x={8} y={7} /> : <Icon kind="gear" x={8} y={7} />}
               {s.state === "done" ? <Icon kind="check" x={NODE_W - 20} y={8} /> : null}
               {s.state === "needs_human" ? <Icon kind="pause" x={NODE_W - 20} y={8} /> : null}

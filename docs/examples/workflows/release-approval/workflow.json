@@ -1,10 +1,10 @@
 {
-  "$comment": "A workflow with a human approval in the middle. qa verifies, an operator approves, and only then does the reviewer sign off. Compile: baton workflow compile <this> --run <key> --input 'branch and sha to verify'. Approve with: baton tasks approve <key of the approval task>.",
+  "$comment": "A workflow with a human decision and an exclusive gateway. qa verifies; an operator decides; the gateway routes yes to a reviewer sign-off and no to a rework step. Compile: baton workflow compile <this> --run <key> --input 'branch to verify'. Decide with: baton tasks approve|reject <key of the approval task> --reason ...",
   "name": "Release approval",
-  "version": "0.1.0",
-  "description": "Verify a branch, get a human go-ahead, then a final review. Proves approval nodes, deadlines and affinity in Baton.",
+  "version": "0.2.0",
+  "description": "Verify a branch, get a human go/no-go, then either a final review (yes) or a rework note (no). Proves approval nodes, exclusive gateways, deadlines and affinity in Baton.",
   "inputs": [ { "name": "branch", "kind": "text", "label": "Branch to verify", "required": true } ],
-  "outputs": [ { "name": "review", "description": "The final review" } ],
+  "outputs": [ { "name": "review", "description": "The final review, or the rework note" } ],
   "definition": {
     "nodes": [
       { "id": "start", "type": "trigger", "data": { "label": "Release candidate", "config": {} } },
@@ -13,20 +13,28 @@
           "instructions": "Check out the branch named in the workflow input, run the project's test command, and register a test_report with suite, passed and failed counts and the commit sha. Do not modify source files.",
           "config": { "role_ref": "qa", "output_key": "test_report", "baton": { "produces": ["test_report"], "budget_usd": 1 } } } },
       { "id": "go", "type": "approval",
-        "data": { "label": "Operator go/no-go",
-          "instructions": "A person decides whether the candidate may be released, based on the test report.",
-          "config": {} } },
+        "data": { "label": "Operator go/no-go", "instructions": "A person decides whether the candidate may be released, based on the test report.", "config": {} } },
+      { "id": "approved", "type": "control",
+        "data": { "label": "Approved?", "outcomes": [ { "id": "yes", "label": "approved" }, { "id": "no", "label": "changes requested" } ],
+          "config": { "decision": { "from": "go", "kind": "review", "field": "verdict", "values": { "yes": "approve", "no": "request_changes" } } } } },
       { "id": "sign", "type": "role",
         "data": { "label": "Final review",
           "instructions": "Read the test_report and the approval review. Write a short release review: verdict approve, summary of what was verified and who approved, no findings unless something is wrong.",
           "config": { "role_ref": "reviewer", "output_key": "review", "baton": { "produces": ["review"], "budget_usd": 1 } } } },
-      { "id": "deliver", "type": "output", "data": { "label": "Release review", "config": {} } }
+      { "id": "rework", "type": "role",
+        "data": { "label": "Rework note",
+          "instructions": "The operator rejected the candidate. Read the test_report and the operator's review (its summary holds the reason). Do not change code. Register a handoff artefact: a summary of what must change before the next candidate, concrete next steps as a list, and any caveats.",
+          "config": { "role_ref": "frontend-dev", "output_key": "handoff", "baton": { "produces": ["handoff"], "budget_usd": 1 } } } },
+      { "id": "deliver", "type": "output", "data": { "label": "Release review or rework note", "config": {} } }
     ],
     "edges": [
       { "id": "e1", "source": "start", "target": "verify" },
       { "id": "e2", "source": "verify", "target": "go" },
-      { "id": "e3", "source": "go", "target": "sign" },
-      { "id": "e4", "source": "sign", "target": "deliver" }
+      { "id": "e3", "source": "go", "target": "approved" },
+      { "id": "e4", "source": "approved", "sourceHandle": "yes", "target": "sign" },
+      { "id": "e5", "source": "approved", "sourceHandle": "no", "target": "rework" },
+      { "id": "e6", "source": "sign", "target": "deliver" },
+      { "id": "e7", "source": "rework", "target": "deliver" }
     ]
   }
 }
