@@ -28,3 +28,13 @@ Not done yet: several delegations from one parent at once (fan-out with a wait),
 | 15:54:48 | run | workflow_run_finished, status done, finished_at stamped |
 
 Also verified in the same session: a task pinned to another machine is invisible to this machine's agent (ready 0 for it, 1 globally); a task with a deadline went to needs_human at exactly the deadline with a deadline_passed event; a second daemon for the same checkout refused to start naming the live pid.
+
+## Exclusive gateways (decisions)
+
+A task may carry a condition on the outcome of an earlier task: `{task, kind, field, equals, outcome}`. It becomes ready only when that task is done and the named artefact field has the expected value; when the deciding task finishes with another outcome, the task is cancelled with a `branch_not_taken` event, and anything downstream of a cancelled task is cancelled with `cancelled_upstream`. A run whose only cancelled tasks are branches not taken counts as done. In a manifest this is a `control` node with `outcomes` and edges whose `sourceHandle` names the outcome; `config.decision` says which step, artefact kind and field decide, and how outcomes map to values. Rejecting an approval records a review with verdict `request_changes` and completes the approval task, so the gateway can route it; without a gateway, rejection cancels the dependants.
+
+### Proof run: release-2 (16:03 to 16:08 UTC)
+
+`release-approval` 0.2.0: verify (qa) → operator go/no-go → gateway "Approved?" → yes: final review (reviewer) | no: rework note (frontend-dev). The operator rejected with a localisation reason. Events: `rejected` on TSK-0827, `branch_not_taken` on TSK-0828 (outcome required yes), TSK-0829 promoted, claimed, a `handoff` artefact registered naming the branch, the review and concrete caveats, gate passed, `workflow_run_finished` with status done (3 of 4 tasks done, 1 branch not taken). 50 credits.
+
+Both runs, with the diamond and the branch taken, are drawn in the dashboard's Runs tab and on the published run-graph page.
