@@ -130,10 +130,10 @@ export async function supervise(cfg, opts) {
       if (wa.status !== 200) { log(`work-available ${role}: HTTP ${wa.status} ${JSON.stringify(wa.body).slice(0, 200)}`); continue; }
       const max = Number(wa.body.max_concurrent ?? 1);
       const cur = running.get(role) ?? 0;
-      if (opts.verbose) log(`${role}: ready=${wa.body.ready} running=${cur}/${max}`);
+      if (opts.verbose) log(`${role}: ready=${wa.body.ready} questions=${wa.body.questions ?? 0} running=${cur}/${max}`);
       if (!wa.body.available || cur >= max) continue;
       running.set(role, cur + 1); spawned++;
-      log(`${role}: work available (${wa.body.ready} ready), spawning agent`);
+      log(`${role}: work available (${wa.body.ready} ready, ${wa.body.questions ?? 0} questions), spawning agent`);
       const p = spawnAgent({ role, cwd: opts.cwd, token, serverUrl: cfg.serverUrl, model: opts.model, maxTurns: opts.maxTurns,
         budgetUsd: opts.budgetUsd, permissionMode: opts.permissionMode, mcpConfig: opts.mcpConfig, useAgentFlag: opts.useAgentFlag,
         agentName: cfg.agents?.[role]?.name, onLine: log, quiet: opts.quiet })

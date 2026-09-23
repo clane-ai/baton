@@ -2,7 +2,7 @@
 
 A hands-on test of Baton for one pilot user, on their own machine, with their own Claude Code. It takes about an hour. Every step says what to run and what you should see. Anything that does not match is a finding: note the step number, what you saw, and send the log file it names.
 
-You need: Node 22, Claude Code (`claude --version`), git with SSH access to the `clane-ai` GitHub org, the `gh` CLI logged in, and two tokens from the operator (see part 0).
+You need: Node 22, Claude Code (`claude --version`), git with SSH access to the `clane-ai` GitHub org, the `gh` CLI logged in, and three agent tokens from the operator (see part 0).
 
 ## 0. What the operator does first
 
@@ -105,7 +105,7 @@ Create a second qa task exactly as in step 4, then in the product repo run the d
 baton supervise --roles qa --interval 15
 ```
 
-Expected within about a minute: the daemon logs `qa: work available (1 ready), spawning agent`, streams the session, and the task goes ready, in_progress, review, done on the dashboard and in `baton tasks ls`. The session log lands in `~/.baton/logs/`. Costs appear per task.
+Expected within about a minute: the daemon logs `qa: work available (1 ready, 0 questions), spawning agent`, streams the session, and the task goes ready, in_progress, review, done on the dashboard and in `baton tasks ls`. The session log lands in `~/.baton/logs/`. Costs appear per task.
 
 Then test recovery: create a third qa task, wait for `spawning agent`, and kill the spawned `claude` process from Task Manager or `kill`. Expected: within about two minutes the task is back to ready with attempts 1 of 3, the daemon spawns again, and the task completes. Note the wall-clock time it took to recover.
 
@@ -131,7 +131,7 @@ baton supervise --roles analyst,frontend-dev --interval 15
 Expected sequence, visible in the daemon output and in `baton logs --follow` from another terminal:
 
 1. A frontend-dev session claims the task, reads the repo, calls `task_ask` and exits. The task shows as blocked in `baton status`.
-2. The daemon logs `analyst: work available (1 question)` and spawns an analyst session. That session's context contains the question; it answers with the `answer` tool.
+2. The daemon logs `analyst: work available (0 ready, 1 questions), spawning agent` and spawns an analyst session. That session's context contains the question; it answers with the `answer` tool.
 3. The task returns to ready. The daemon spawns frontend-dev again; that session's context now contains the answer. It writes the code, pushes the branch, opens the PR, registers the `pr` and `build` artefacts.
 4. If your repo has CI on pull requests and the operator has added your repo's webhook, the task stays in review until CI is green, then goes to done. Without CI the gate leaves it in review; that is expected, and the operator can see the pending status.
 
