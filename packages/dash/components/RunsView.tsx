@@ -7,6 +7,7 @@ import type { WorkflowRunResponse, WorkflowRunsResponse } from "@/lib/types";
 import { usd } from "@/lib/format";
 import { ErrorBox, StateBadge } from "./ui";
 import TaskDetail from "./TaskDetail";
+import RunGraph from "./RunGraph";
 
 const STATUS_CLASS: Record<string, string> = { done: "st-done", running: "st-in_progress", blocked: "st-blocked", needs_human: "st-needs_human", failed: "st-needs_human", cancelled: "st-cancelled", pending: "st-ready", empty: "st-draft" };
 
@@ -64,6 +65,7 @@ export default function RunsView() {
             <span className={`badge ${STATUS_CLASS[run.data.run.status] ?? "st-draft"}`}>{run.data.run.status.replace("_", " ")}</span>
           </div>
           {run.data.run.input ? <div className="panel-b muted">input: {run.data.run.input}</div> : null}
+          <div className="panel-b"><RunGraph run={run.data.run} /></div>
           <table className="grid">
             <thead><tr><th>step</th><th>role</th><th>state</th><th>attempts</th><th>assignee</th><th className="right">cost</th><th className="right">credits</th><th>produces</th></tr></thead>
             <tbody>

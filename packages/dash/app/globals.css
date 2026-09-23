@@ -258,3 +258,10 @@ tr.expanded td { background: #fafaf7; }
 .progress { display: inline-block; width: 120px; height: 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; vertical-align: middle; overflow: hidden; }
 .progress-bar { height: 100%; background: #63e6be; }
 tr.selected td { background: #f3f0ff; }
+
+/* BPMN-style run graph */
+.bpmn-pool { font-weight: 600; font-size: 13px; fill: var(--ink); }
+.bpmn-lane { font-size: 12px; font-weight: 600; fill: var(--ink-2); }
+.bpmn-small { font-size: 10px; fill: var(--ink-3); }
+@keyframes bpmn-pulse { 0% { opacity: 1; } 50% { opacity: 0.55; } 100% { opacity: 1; } }
+.bpmn-active rect { animation: bpmn-pulse 1.6s ease-in-out infinite; }
