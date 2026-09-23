@@ -28,9 +28,9 @@ Proposed shape: `baton supervise --runtime clane|claude` per role. Clane primary
 
 ## 3. Under a workflow orchestrator
 
-A Clane workflow is a versioned manifest (`workflow.json`, WorkflowManifest): name, version, host_role, inputs, outputs, and a definition of nodes and edges. Node types: `role` (bounded agent step with prompt, output_key, max_tool_rounds), `code`, `action` (call an installed connector), `control` (branch), `approval` (human), `output`, `trigger`, `note`. IO between steps is typed: each node writes a named channel with an output_schema; downstream nodes read channels through source refs. It runs in `clane serve` on one machine (local runner, streams step events) or in the platform backend (workflow rows with status, runs with a RunStatus lifecycle, rendered live in the desktop). Neither runs steps on more than one machine.
+A Clane workflow is a versioned manifest (`workflow.json`, WorkflowManifest): name, version, host_role, inputs, outputs, and a definition of nodes and edges. Node types: `role` (bounded agent step with prompt, output_key, max_tool_rounds), `code`, `action` (call an installed connector), `control` (branch), `approval` (human), `output`, `trigger`, `note`. IO between steps is typed: each node writes a named channel with an output_schema; downstream nodes read channels through source refs. It runs in `clane serve` on one machine (local runner, streams step events) or in the platform backend (workflow rows with status, runs with a RunStatus lifecycle, rendered live in the desktop). Neither runs steps on more than one machine. The local runner keeps a per-run journal and meters step cost through the gateway, but those are single-machine.
 
-Neither runner has leases, retries, a completion gate, per-step cost or an audit log. Baton has all of those: it is the more capable engine, and what it lacks is only a definition format and a run object. So the honest placement is a split rather than "Baton under the orchestrator": Clane owns the definition (manifest, editor, UI) and the run status people look at; Baton is the engine that executes the graph whenever any step must run on another machine, under another account, or unattended. For a purely local, interactive workflow the Clane runner stays. The mapping is nearly one to one:
+Neither runner has leases, retries or a completion gate that survive a machine dying, nor a cross-machine audit log. Baton has all of those: it is the more capable engine, and what it lacks is only a definition format and a run object. So the honest placement is a split rather than "Baton under the orchestrator": Clane owns the definition (manifest, editor, UI) and the run status people look at; Baton is the engine that executes the graph whenever any step must run on another machine, under another account, or unattended. For a purely local, interactive workflow the Clane runner stays. The mapping is nearly one to one:
 
 | Clane workflow | Baton |
 |---|---|
@@ -47,6 +47,8 @@ Neither runner has leases, retries, a completion gate, per-step cost or an audit
 What Baton adds to make this clean, both small: a `workflow_run` key on tasks (column, filter, Flow tab grouping) and an outbound event subscription (webhook or long-poll) so the orchestrator does not have to poll `/admin/events`. A compiler from WorkflowManifest to a Baton task graph is straightforward once the io-contract spec is read and the CLI owner confirms the manifest is the target; it lives on the Clane side by ownership, with Baton supplying the task-graph API it already has.
 
 Baton should report into Clane's existing run and instance model rather than grow its own; the exact backend schema is the platform team's to confirm.
+
+Decide early whether a workflow run is all-local, all-Baton, or genuinely mixed. A mixed run needs Clane's run object to merge status from both executors into one view; that is the harder case and cheaper to settle now than to retrofit.
 
 ## 4. Decisions
 
