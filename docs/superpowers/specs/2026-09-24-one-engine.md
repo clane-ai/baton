@@ -159,14 +159,21 @@ nesting.
 person. It is too expensive for trivial control flow: a lease, a gate and an attempt count per branch
 node is real cost, and a five-node workflow must not become slow in order to prove the model.
 
-The queue boundary therefore sits where durability is actually needed:
+The queue boundary therefore sits where durability is actually needed. **Corrected 24 September 2026
+after reading Clane's orchestrator:** the split is right and the predicate I first gave was wrong. It is
+not node-type-shaped.
 
-- **Durable tasks**: role nodes, action nodes, human nodes, any node calling an external system, and
-  any node with a budget, an idempotency key or a retry policy. These pay the full price and earn it.
-- **Inline steps**: router, validator, loop and branch evaluation, and trivial code nodes, are executed
-  by the dispatcher or folded into the claiming worker's existing lease as part of the neighbouring
-  task. They are recorded as events and trace rows, so they remain visible and auditable, but they do
-  not cost a claim round trip each.
+- **Durable tasks**: any node that calls a model or an external system, or that can wait. That includes
+  the obvious ones, but also the router, validator and loop nodes, which call a model to classify and
+  are therefore neither cheap nor deterministic, and the output node, which projects, delivers files,
+  calls a model to summarise and opens its own child run. Treating any of those as free control flow
+  means a model call with no budget, no retry and no record as work.
+- **Inline steps**: following an edge, and nothing else. Control flow that is a pointer moving between
+  nodes has nothing worth persisting and should not pay for a claim.
+
+**Configuration decides, not type.** The predicate is a property of what a node does on a given
+definition, so it is set per node rather than inferred from its kind. The original wording, which
+listed node types on each side, would have queued the wrong ones and inlined model calls.
 
 The compiler decides the class from the node type and its declared properties, and the linter states
 the class for every node so that authors can see what they are buying. The overhead target is
