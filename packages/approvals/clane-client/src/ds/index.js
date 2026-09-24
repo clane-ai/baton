@@ -65,10 +65,8 @@ export function FileRow({ badge, badgeColor, badgeInk, name, meta, onClick }) {
 export function BadgeTile({ color = 'var(--bg-well)', ink = 'var(--ink)', size = 24, radius, style, children }) {
   return <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, borderRadius: radius ?? Math.round(size / 4), background: color, color: ink, ...mono, fontWeight: 600, ...style }}>{children}</span>;
 }
-export function StatusDot({ status = 'done', size = 7, pulse, style }) {
-  const c = { done: 'var(--green-600)', needsYou: 'var(--blue-500)', running: 'var(--amber-500)', failed: 'var(--red-500)', attention: 'var(--orange-500)' }[status] || status;
-  return <span aria-hidden="true" data-status={status} style={{ display: 'inline-block', width: size, height: size, borderRadius: '50%', background: c, flexShrink: 0, ...style }} />;
-}
+export { StatusDot } from './StatusDot.jsx';
+import { StatusDot } from './StatusDot.jsx';
 export function StatusChip({ status, pulse, tone = 'light', pill = true, style, children }) {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, ...mono, color: 'var(--ink)', background: 'var(--surface-card)', border: '1px solid var(--border-default)', borderRadius: pill ? 'var(--radius-pill)' : 'var(--radius-sm)', padding: '5px 12px', whiteSpace: 'nowrap', ...style }}>
