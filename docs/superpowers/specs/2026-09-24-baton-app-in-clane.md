@@ -118,7 +118,7 @@ area's `components/`:
 
 | Addition | Note |
 |---|---|
-| `DocumentViewer` | tabs over a list of `{label, path, type}`; email (headers, decoded text, attachment chips) via the ported parser, PDF in an iframe from a URL the data layer provides, text in a mono panel; per-tab error text; nothing in the kit shows a source document. |
+| `DocumentViewer` | tabs over a list of `{id, label, type, available, content_type, bytes, url}`; email (headers, decoded text, attachment chips) via the ported parser, PDF in an iframe on the document's URL, text in a mono panel; a tab whose document is not `available` shows why; per-tab error text; nothing in the kit shows a source document. Takes URLs, never paths: documents are engine-served since edge v16. |
 | `FieldGrid` | two-column labelled read-only values with an optional mono source marker and confidence; the kit's `DataTable` shows rows, not a record. Reusable for any record view. |
 | `ArtefactDocument` | one renderer per artefact kind (purchase order, goods receipt, invoice, delivery note, three-way match, payment, review, handoff; key/value fallback) built on `FieldGrid` + a lines table with totals + `StatusPill` policy chips; reads `_provenance` when present. |
 | `ReasonField` | a labelled multi-line field with a helper line ("Draft saved" / "Add a reason to reject"); the only textarea in the kit is `InlineEdit`. |
@@ -139,8 +139,8 @@ holds connector tokens, forwarding to Baton's edge function and adding `X-Baton-
 |---|---|---|
 | `getInbox(cursor?)` | `GET /api/approvals/inbox?cursor=&limit=` | `GET /admin/inbox` |
 | `getItem(key)` | `GET /api/approvals/items/:key` | `GET /admin/tasks/:key` |
-| `getItemDocuments(key)` | `GET /api/approvals/items/:key/documents` | `GET /admin/tasks/:key/documents` |
-| `documentUrl(path)`, `getDocumentText(path)` | `GET /api/approvals/documents?path=` | the run workspace (the platform's workspace file service, or a Baton document route the engine owner adds; the Next app's `/api/workspace` guard is the reference) |
+| `getItemDocuments(key)` | `GET /api/approvals/items/:key/documents` | `GET /admin/tasks/:key/documents` (v16: `id, label, type, available, content_type, bytes`, email, pdf, text order) |
+| `documentUrl(key, id)`, `getDocumentText(key, id)` | `GET /api/approvals/items/:key/documents/:id` (streams inline) | `GET /admin/tasks/:key/documents/:id` (v16). Uploads never come from the UI; the engine syncs documents. The Next app's `/api/workspace` stays only for the local fixtures. |
 | `decide(key, verdict, reason)` | `POST /api/approvals/items/:key/decision` | `POST /admin/tasks/:key/approve` |
 | `retry(key, o)` | `POST /api/approvals/items/:key/retry` | `POST /admin/tasks/:key/retry` |
 | `answer(key, body)` | `POST /api/approvals/items/:key/answer` | `POST /admin/answer {task_key}` |
@@ -151,9 +151,14 @@ holds connector tokens, forwarding to Baton's edge function and adding `X-Baton-
 | `getSpend()` | `GET /api/approvals/spend` | `GET /admin/spend` |
 | `getStatus()` | `GET /api/approvals/status` | `GET /admin/status` |
 
-Cursor: engine-side, opaque, `cursor` in and `next_cursor` out on `/admin/inbox`, `/admin/tasks`,
-`/admin/workflow-runs` and `/admin/events`; the platform route renames nothing except the JSON field to
-`nextCursor` to match the client's one existing consumer.
+Cursor: engine-side since edge v16, keyset, opaque `cursor` in and `next_cursor` out (null on the last page,
+`limit` at most 50) on `/admin/inbox` and `/admin/tasks`; asked for on `/admin/workflow-runs` and `/admin/events`
+too. The platform route renames only the JSON field to `nextCursor` to match the client's one existing consumer.
+
+Actor: the proxy sends `X-Baton-Actor` (v16 records it), so `decision.by` is the Clane user; the Item screen
+renders it as a person (name from the platform's user directory, never the raw id or a token name).
+
+Runs carry `workspace` (v16), shown on the Run header as the document set the run reads.
 
 Until the routes exist, `data/api.ts` can point at the Next app's `/api/*` with a base-URL switch, so pages
 can be built and tested against the fixtures now.
