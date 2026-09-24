@@ -381,3 +381,21 @@ a.row.selected { background: var(--accent-soft); }
 .foot .sp { flex: 1; }
 kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--border-2); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--surface); }
 @media (max-width: 1100px) { .tiles { grid-template-columns: repeat(2, 1fr); } .row { grid-template-columns: 1.6fr 1fr 1fr 84px; } .c-run, .c-flags, .c-wait { display: none; } }
+
+/* ---- item: sources, tabs, panes ---- */
+.tabs { display: flex; gap: 2px; align-items: center; padding: 0 10px; border-bottom: 1px solid var(--border); background: var(--surface-2); border-radius: var(--r-panel) var(--r-panel) 0 0; overflow-x: auto; }
+.tabs .tab { background: none; border: 0; border-bottom: 2px solid transparent; padding: 10px 12px; color: var(--ink-2); font-weight: 500; white-space: nowrap; }
+.tabs .tab:hover { color: var(--ink); }
+.tabs .tab.on { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+.tabs .n { color: var(--ink-3); font-family: var(--mono); font-size: 11px; margin-left: 5px; }
+.tabs .sp { flex: 1; }
+.tabs .tab-tool { color: var(--ink-3); padding: 6px; display: inline-flex; }
+.pane-b { padding: 14px 16px; }
+.mail { border: 1px solid var(--border); border-radius: var(--r-ctl); }
+.mail-h { margin: 0; padding: 10px 12px; border-bottom: 1px solid var(--border); display: grid; grid-template-columns: max-content 1fr; column-gap: 12px; row-gap: 2px; font-size: 12.5px; }
+.mail-h div { display: contents; } .mail-h dt { color: var(--ink-3); } .mail-h dd { margin: 0; overflow-wrap: anywhere; }
+.mail-b { padding: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.mail-att { padding: 0 12px 12px; display: flex; gap: 6px; flex-wrap: wrap; }
+.att { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--border-2); border-radius: var(--r-ctl); padding: 3px 8px; font-size: 12px; }
+.doc-pdf { width: 100%; height: 640px; border: 1px solid var(--border); border-radius: var(--r-ctl); background: #fff; }
+.doc-text { white-space: pre-wrap; font-family: var(--mono); font-size: 12.5px; background: var(--surface-2); border: 1px solid var(--border); padding: 12px; border-radius: var(--r-ctl); max-height: 640px; overflow: auto; margin: 0; }
