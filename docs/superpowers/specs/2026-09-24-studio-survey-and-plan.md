@@ -3,8 +3,15 @@
 **Asked by the user, 24 September 2026:** look at the node graph editor, say what it has, and plan what
 has to be added so a drawn graph can carry typed artefacts and run on the engine.
 
-Surveyed from the studio source rather than from a description. Every claim below names the thing it
-came from. Two sessions were said to be running this survey; neither was, so this is the first one.
+Surveyed from the studio **source**, not from the running editor. Every claim below names the thing it
+came from, and that distinction matters: source says what the code does, not what a person sees while
+doing it.
+
+**What is therefore unverified here.** Whether the canvas gives any visible sign of an edge's inferred
+kind — a label, a colour, a cursor — and so whether a person drawing an approval is told it became an
+escalation. Item 1 below rests on the answer being no. A second pass against the live editor is running
+in parallel to settle exactly that, and its result may change the priority rather than merely confirm
+this. Read that pass before treating the two defects below as fully established.
 
 ## What the editor has
 
