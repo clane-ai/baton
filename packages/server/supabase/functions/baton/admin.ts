@@ -343,6 +343,13 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
       ${String(b.name_prefix ?? "")}, ${await sha256Hex(code)}, ${ttl}::interval, ${b.project_key ? String(b.project_key) : null}) as r`);
     return { status: 200, body: r.ok ? { ...r, code } : r };
   }
+  if (seg[1] === "invites" && seg.length === 3 && method === "DELETE") {
+    // Withdraw a code that has not been redeemed. Agents already created from it are untouched and
+    // are revoked one by one; withdrawing a code and disabling a fleet are different actions.
+    if (!/^[0-9a-f-]{36}$/i.test(seg[2])) return bad("PRECONDITION_FAILED", "invite id must be a uuid");
+    const r = await one(sql`select baton.invite_revoke(${actor}, ${seg[2]}::uuid) as r`);
+    return { status: r.ok === false ? (String((r.error as Json)?.code) === "NOT_FOUND" ? 404 : 400) : 200, body: r };
+  }
   if (seg[1] === "agents" && seg.length === 3 && method === "DELETE") {
     const [{ id }] = await sql`select id from baton.agents where id::text = ${seg[2]} or name = ${seg[2]} limit 1`.then((r) => r.length ? r : [{ id: null }]);
     if (!id) return bad("NOT_FOUND", "no such agent", 404);
