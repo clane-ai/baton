@@ -202,7 +202,7 @@ export type RolesResponse = { ok: true; roles: Role[] };
 export type StepCondition = { task: string; kind: string; field: string; equals: string; outcome?: string; gateway?: string };
 export type StepNext = { key: string; id: string; when: string | null; state?: TaskState };
 export type WorkflowRunStep = { id: string; key: string; title: string; role: string; state: TaskState; attempts: number; cost_usd: number; cost_credits: number; depends_on: string[]; assignee: string | null; updated_at: string; produces: { kind: string }[]; condition?: StepCondition | null; next?: StepNext[]; when?: { gateway?: string; outcome?: string; decided_by?: string; field?: string; equals?: string } | null };
-export type WorkflowRun = { key: string; workflow_key: string | null; workflow_name: string | null; input: string | null; created_by: string; created_at: string; finished_at: string | null; status: string; counts: Record<string, number>; cost_usd: number; cost_credits: number; steps?: WorkflowRunStep[] };
+export type WorkflowRun = { key: string; workspace?: string; workflow_key: string | null; workflow_name: string | null; input: string | null; created_by: string; created_at: string; finished_at: string | null; status: string; counts: Record<string, number>; cost_usd: number; cost_credits: number; steps?: WorkflowRunStep[] };
 export type WorkflowRunsResponse = { ok: true; runs: WorkflowRun[] };
 export type WorkflowRunResponse = { ok: true; run: WorkflowRun };
 
@@ -245,10 +245,51 @@ export type InboxItem = {
   budget_usd: number | null;
 };
 export type InboxTiles = { approvals: number; parked: number; questions: number; overdue: number; total?: number };
-export type InboxResponse = { ok: true; tiles: InboxTiles; items: InboxItem[]; fallback?: boolean; upstream_status?: number; upstream_error?: string | null };
+export type InboxResponse = { ok: true; tiles: InboxTiles; items: InboxItem[]; next_cursor?: string | null; limit?: number };
 
-export type DocumentRef = { label: string; path: string; type: "pdf" | "text" | "email" | "data"; from: "artefact" | "convention"; kind: string | null };
-export type DocumentsResponse = { ok: true; documents: DocumentRef[]; fallback?: boolean };
+/**
+ * A document of a task. Engine v16+ stores documents in object storage and
+ * streams them by `id`; `available: false` means the engine knows the path
+ * but holds no bytes, which the UI shows as a disabled entry. `bytes` arrives
+ * as a string (bigint column) from the engine.
+ */
+export type DocumentRef = {
+  label: string;
+  path: string;
+  type: "pdf" | "text" | "email" | "data";
+  from: "artefact" | "convention";
+  kind: string | null;
+  id?: string | null;
+  available?: boolean;
+  content_type?: string | null;
+  bytes?: string | number | null;
+  updated_at?: string | null;
+};
+/** `workspace` is a real value; "default" is the engine's default workspace, not a placeholder. */
+export type DocumentsResponse = { ok: true; workspace: string; documents: DocumentRef[] };
+
+/** One artefact row of a run, in step order (GET /runs/:key/artifacts). */
+export type RunArtifact = {
+  task_key: string;
+  task_id: string;
+  step: string;
+  role: string;
+  state: TaskState;
+  id: string;
+  kind: string;
+  content: unknown;
+  uri: string | null;
+  sha256: string | null;
+  schema_version: string | null;
+  meta: unknown;
+  created_at: string;
+  created_by?: string | null;
+  documents: DocumentRef[];
+};
+export type RunArtifactsResponse = { ok: true; run: string; workspace: string; artifacts: RunArtifact[] };
+
+/** A keyset page as the client sees it: the engine's `next_cursor` mapped to `nextCursor`, null on the last page. */
+export type Paged<T> = { items: T[]; nextCursor: string | null };
 
 export type Decision = { verdict: "approve" | "request_changes"; by: string; at: string; reason: string | null };
 export type Provenance = Record<string, { source: string; confidence?: number | null; page?: number | null; note?: string | null }>;

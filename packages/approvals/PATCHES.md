@@ -133,14 +133,43 @@ export { Spinner, TypingDots, Skeleton } from './Loading.jsx';
 export { AppHeader } from './AppHeader.jsx';
 ```
 
-## `clane-client/src/lib/api.ts` — authenticated text fetch (open)
+## `clane-client/src/lib/api.ts` — `api.blob()` for PDF documents
 
-The Documents pane shows the text of `.eml`, `.md`, `.txt` and `.json`
-documents inline. The platform wrapper has `get` (JSON) and `download` (blob)
-but no text form, so the facade's `getDocumentText` uses `api.download` and
-reads the blob as text. No edit is required; if a `text<T>()` helper is added
-later the facade can switch to it. Recorded so the reviewer knows it was
-considered.
+Text documents need nothing new: `request()` already returns non-JSON bodies
+as text, so `getDocumentText` uses `api.get`. PDFs are the gap. An
+`<iframe src>` cannot send the bearer token, and `api.download` saves to disk
+instead of returning the bytes. The viewer needs the bytes as a Blob to show an
+object URL, with the same auth, 401 refresh and error handling as `get`.
+Additive, about fifteen lines, beside `download`:
+
+```diff
++/** GET a response as a Blob (bearer, one refresh on 401, ApiError on failure). */
++async function blob(path: string, retryOn401 = true): Promise<Blob> {
++  const base = getApiBase();
++  const url = base ? `${base}${path}` : path;
++  const res = await fetch(url, { headers: buildHeaders({}), credentials: 'include' });
++  if (res.status === 401 && retryOn401) {
++    const fresh = await refreshToken();
++    if (fresh) return blob(path, false);
++    forceLogoutAndRedirect();
++    throw new ApiError(401, 'Unauthorized', null);
++  }
++  if (!res.ok) {
++    const body = await parseBody(res);
++    throw new ApiError(res.status, `HTTP ${res.status}`, body);
++  }
++  return res.blob();
++}
+ ...
+ export const api = {
+   get: <T>(path: string) => request<T>(path, { method: 'GET' }),
++  /** GET a binary response as a Blob, e.g. to show a PDF from an object URL. */
++  blob,
+   /** GET a binary response and save it to disk. */
+   download,
+```
+
+The staging stub in this package declares the same `api.blob(path)` signature.
 
 ## `api/server/nexa-server.js` — already in place (not ours)
 
