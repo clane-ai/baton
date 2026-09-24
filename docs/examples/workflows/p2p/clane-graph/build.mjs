@@ -177,8 +177,8 @@ note('compromise', 'all role nodes',
   'Declared outputs are field NAMES from our artefact schemas, because the studio has no typed contract yet. The names are right and the types are lost, so nothing validates the shape: a role can return a purchase order with a string where a number belongs and the graph will accept it.');
 note('blocked', 'match_gate, approve',
   'Our gateway sits on the step that decides and names the artefact field to read. Clane branches on a separate node evaluating a condition in prose. The meaning survives, the precision does not: "invoice_match.status is matched" is a sentence a model interprets rather than a field comparison the engine enforces.');
-note('not-expressible', 'idempotency',
-  'Our payment step is idempotent by invoice number, so a retry cannot pay twice. A Clane code node has no equivalent, and the runtime re-runs a pending node at least once after a resume. The graph therefore carries a real risk our manifest does not.');
+note('compromise', 'idempotency',
+  'Our payment step is idempotent by invoice number. Run inside the platform, a code node has no equivalent and a resumed run re-executes the pending node at least once, so the risk is real there. Handed to a worker it is narrower than it first looks and narrower than this note used to claim: the task carries a key of run and node, which dedupes submission to the engine but not the call to the bank. Double execution is prevented by the lease while the lease holds, and the key is carried for the code to pass downstream, where it is honoured or it is not.');
 note('not-expressible', 'budgets and attempts',
   'Every step of ours carries a budget and an attempt limit. Neither has a home in a node, so both are lost. The runtime has a global cap on node executions and nothing per step.');
 
