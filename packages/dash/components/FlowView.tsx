@@ -16,11 +16,11 @@ const PROCESS_ORDER = ["analyst", "ui-designer", "backend-dev", "frontend-dev", 
 
 const STATE_FILL: Record<TaskState, string> = {
   draft: "#f1f3f5", ready: "#e7f5ff", blocked: "#fff4e6", in_progress: "#ebfbee",
-  review: "#f3f0ff", done: "#e6fcf5", needs_human: "#fff5f5", cancelled: "#f8f9fa",
+  review: "#f3f0ff", done: "#e6fcf5", needs_human: "#fff5f5", cancelled: "#f8f9fa", failed: "#fdecea",
 };
 const STATE_STROKE: Record<TaskState, string> = {
   draft: "#dee2e6", ready: "#74c0fc", blocked: "#ffa94d", in_progress: "#69db7c",
-  review: "#b197fc", done: "#63e6be", needs_human: "#ff8787", cancelled: "#e9ecef",
+  review: "#b197fc", done: "#63e6be", needs_human: "#ff8787", cancelled: "#e9ecef", failed: "#e03131",
 };
 
 type Edge = { from: string; to: string; label: string; inferred: boolean };

@@ -8,7 +8,8 @@ export type TaskState =
   | "review"
   | "done"
   | "needs_human"
-  | "cancelled";
+  | "cancelled"
+  | "failed";
 
 export const TASK_STATES: TaskState[] = [
   "draft",
@@ -19,6 +20,7 @@ export const TASK_STATES: TaskState[] = [
   "done",
   "needs_human",
   "cancelled",
+  "failed",
 ];
 
 export type ApiError = { code: string; message: string; retryable?: boolean };

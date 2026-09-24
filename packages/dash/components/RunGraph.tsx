@@ -8,11 +8,11 @@ import type { TaskState, WorkflowRun, WorkflowRunStep } from "@/lib/types";
 
 const FILL: Record<TaskState, string> = {
   draft: "#f8f9fa", ready: "#e7f5ff", blocked: "#fff4e6", in_progress: "#ebfbee",
-  review: "#f3f0ff", done: "#e6fcf5", needs_human: "#fff5f5", cancelled: "#f8f9fa",
+  review: "#f3f0ff", done: "#e6fcf5", needs_human: "#fff5f5", cancelled: "#f8f9fa", failed: "#fdecea",
 };
 const STROKE: Record<TaskState, string> = {
   draft: "#ced4da", ready: "#74c0fc", blocked: "#ffa94d", in_progress: "#40c057",
-  review: "#b197fc", done: "#20c997", needs_human: "#fa5252", cancelled: "#ced4da",
+  review: "#b197fc", done: "#20c997", needs_human: "#fa5252", cancelled: "#ced4da", failed: "#e03131",
 };
 
 const LANE_H = 110, LANE_LABEL_W = 120, COL_W = 230, NODE_W = 170, NODE_H = 62, PAD_L = 24, PAD_T = 44, EVENT_R = 16;

@@ -41,7 +41,7 @@ export default function BoardView() {
 
   const byState = useMemo(() => {
     const m: Record<TaskState, Task[]> = {
-      draft: [], ready: [], blocked: [], in_progress: [], review: [], done: [], needs_human: [], cancelled: [],
+      draft: [], ready: [], blocked: [], in_progress: [], review: [], done: [], needs_human: [], cancelled: [], failed: [],
     };
     for (const t of tasks.data?.tasks ?? []) (m[t.state] ?? (m[t.state] = [])).push(t);
     for (const k of TASK_STATES) m[k].sort((a, b) => b.priority - a.priority || a.key.localeCompare(b.key));

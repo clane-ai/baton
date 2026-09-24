@@ -11,19 +11,20 @@ import RunsView from "./RunsView";
 import StreamView from "./StreamView";
 import AttentionView from "./AttentionView";
 import SpendView from "./SpendView";
+import InboxView from "./InboxView";
 
-const TABS = ["now", "board", "flow", "runs", "stream", "attention", "spend"] as const;
+const TABS = ["inbox", "now", "board", "flow", "runs", "stream", "attention", "spend"] as const;
 type Tab = (typeof TABS)[number];
-const LABEL: Record<Tab, string> = { now: "Now", board: "Board", flow: "Flow", runs: "Runs", stream: "Stream", attention: "Attention", spend: "Spend" };
+const LABEL: Record<Tab, string> = { inbox: "Inbox", now: "Now", board: "Board", flow: "Flow", runs: "Runs", stream: "Stream", attention: "Attention", spend: "Spend" };
 
 function tabFromHash(): Tab {
   if (typeof window === "undefined") return "now";
   const h = window.location.hash.replace(/^#/, "") as Tab;
-  return TABS.includes(h) ? h : "now";
+  return TABS.includes(h) ? h : "inbox";
 }
 
 export default function Dashboard() {
-  const [tab, setTab] = useState<Tab>("now");
+  const [tab, setTab] = useState<Tab>("inbox");
   useEffect(() => {
     setTab(tabFromHash());
     const onHash = () => setTab(tabFromHash());
@@ -55,6 +56,7 @@ export default function Dashboard() {
   }, [status.error, status.updatedAt, now, hidden]);
 
   const attentionCount = status.data?.attention.length ?? 0;
+  const inboxCount = status.data?.counts.needs_human ?? 0;
   const working = status.data?.agents.filter((a) => a.current_task).length ?? 0;
   const counts = status.data?.counts ?? {};
   const open = (counts.ready ?? 0) + (counts.in_progress ?? 0) + (counts.review ?? 0) + (counts.blocked ?? 0);
@@ -72,6 +74,7 @@ export default function Dashboard() {
               {t === "now" && status.data ? <span className="count">{working}/{status.data.agents.length}</span> : null}
               {t === "board" && status.data ? <span className="count">{open}</span> : null}
               {t === "attention" ? <span className={`count${attentionCount ? " hot" : ""}`}>{attentionCount}</span> : null}
+              {t === "inbox" ? <span className={`count${inboxCount ? " hot" : ""}`}>{inboxCount}</span> : null}
             </button>
           ))}
         </nav>
@@ -87,6 +90,7 @@ export default function Dashboard() {
       </header>
 
       <main className="view">
+        {tab === "inbox" && <InboxView />}
         {tab === "now" && <NowView status={status} now={now} />}
         {tab === "board" && <BoardView />}
         {tab === "flow" && <FlowView />}
