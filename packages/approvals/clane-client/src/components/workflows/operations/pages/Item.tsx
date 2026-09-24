@@ -11,6 +11,7 @@ import { documentsFor, mergeDocuments } from '../lib/documents';
 import { nextText, stripProcess, summaryLine, waitingText } from '../lib/inbox';
 import { personName } from '../lib/people';
 import { policySummary } from '../lib/policy';
+import { documentNumber } from '../lib/summary';
 import { dsStatus, stateLabel, type Tone } from '../lib/theme';
 import { dateTime } from '../format';
 import { paths } from '../paths';
@@ -41,11 +42,7 @@ const BANNER_TONE: Record<Tone, 'info' | 'success' | 'attention' | 'danger'> = {
 
 const FAILURES = ['gate_failed', 'artifact_rejected', 'deadline_passed', 'budget_exceeded', 'lease_expired', 'task_released'];
 
-const numberOf = (a: Artifact | undefined): string => {
-  const c = (a?.content ?? {}) as Record<string, unknown>;
-  const n = c.po_number ?? c.invoice_number ?? c.grn_number ?? c.payment_ref ?? c.delivery_note_number;
-  return n == null ? '' : String(n);
-};
+const numberOf = (a: Artifact | undefined): string => (a ? documentNumber(a.kind, a.content) : '');
 
 export function Item(): JSX.Element {
   const { t } = useT();

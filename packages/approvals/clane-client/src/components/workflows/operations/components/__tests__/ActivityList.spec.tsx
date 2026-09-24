@@ -41,6 +41,24 @@ describe('ActivityList', () => {
     expect(screen.getByText('TSK-7')).toBeInTheDocument();
   });
 
+  it('names deciders as people, never by a raw platform id', () => {
+    render(
+      <ActivityList
+        events={[
+          ev(4, '2026-09-24T10:00:00Z', 'rejected', { by: 'user:u-7', by_label: 'dana@example.com', reason: 'escalate' }),
+          ev(5, '2026-09-24T10:01:00Z', 'task_retried', { by: 'user:u-8' }),
+          ev(6, '2026-09-24T10:02:00Z', 'approved', { by: 'operator:abhishek' }),
+        ]}
+      />,
+    );
+    const titles = screen.getAllByTestId('activity-title').map((n) => n.textContent);
+    expect(titles).toEqual([
+      'Approved by abhishek',
+      'Put back in the queue by a colleague',
+      'Rejected by dana@example.com: escalate',
+    ]);
+  });
+
   it('says so when nothing has happened', () => {
     render(<ActivityList events={[]} />);
     expect(screen.getByText('Nothing has happened yet.')).toBeInTheDocument();

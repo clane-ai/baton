@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Button, Timeline } from '../../../../ds';
 import { useT } from '../../../../i18n';
 import { money } from '../lib/money';
+import { personName } from '../lib/people';
 import { hhmmss } from '../format';
 
 // A step's or run's history as sentences a person can read, newest first,
@@ -28,6 +29,10 @@ export type ActivityEvent = {
 
 /** Event types that are machinery rather than progress. */
 export const NOISE = new Set(['tool', 'heartbeat', 'prompt', 'turn_end', 'progress', 'tool_batch', 'tool_failure']);
+
+/** The decider as a person: platform label or operator owner, never a raw user id. */
+const byName = (t: T, e: ActivityEvent): string =>
+  personName(s(o(e.payload).by), null, [e]) ?? t('workflow.decide.aColleague');
 
 /** ": <reason>" when there is one. */
 const why = (t: T, p: Obj): string => (p.reason ? t('workflow.event.because', { reason: s(p.reason) }) : '');
@@ -61,13 +66,13 @@ export function sentence(e: ActivityEvent, t: T): string {
     case 'approval_overdue':
       return t('workflow.event.approvalOverdue', { minutes: s(p.waiting_minutes) });
     case 'approved':
-      return t('workflow.event.approved', { by: s(p.by) }) + why(t, p);
+      return t('workflow.event.approved', { by: byName(t, e) }) + why(t, p);
     case 'rejected':
-      return t('workflow.event.rejected', { by: s(p.by) }) + why(t, p);
+      return t('workflow.event.rejected', { by: byName(t, e) }) + why(t, p);
     case 'task_retried':
-      return t('workflow.event.retried', { by: s(p.by) }) + why(t, p);
+      return t('workflow.event.retried', { by: byName(t, e) }) + why(t, p);
     case 'task_cancelled':
-      return t('workflow.event.cancelled', { by: s(p.by) }) + why(t, p);
+      return t('workflow.event.cancelled', { by: byName(t, e) }) + why(t, p);
     case 'branch_not_taken':
       return t('workflow.event.branchNotTaken', { decidedBy: s(p.decided_by), outcome: s(p.outcome_required) });
     case 'cancelled_upstream':
@@ -83,7 +88,7 @@ export function sentence(e: ActivityEvent, t: T): string {
     case 'task_asked':
       return t('workflow.event.asked', { to: p.to_role ? s(p.to_role) : t('workflow.event.aPerson'), question: s(p.question) });
     case 'question_answered':
-      return t('workflow.event.answered', { by: s(p.by) });
+      return t('workflow.event.answered', { by: byName(t, e) });
     case 'task_delegated':
       return t('workflow.event.delegated', { child: s(p.child_key), role: s(p.role) });
     case 'delegation_returned':

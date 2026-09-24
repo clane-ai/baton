@@ -34,3 +34,7 @@ export const dateTime = (iso: string): string => {
 /** count(1, 'item', 'items') → "1 item"; count(3, 'item', 'items') → "3 items". */
 export const count = (n: number, one: string, many: string): string =>
   `${n.toLocaleString('en-GB')} ${n === 1 ? one : many}`;
+
+/** "$1.50"; "-" for nothing. Engine dollar costs (Claude Code runs); credits are shown separately. */
+export const usd = (n: number | null | undefined, digits = 2): string =>
+  n === null || n === undefined || Number.isNaN(Number(n)) ? '-' : `$${Number(n).toFixed(digits)}`;
