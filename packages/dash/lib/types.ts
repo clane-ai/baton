@@ -101,6 +101,7 @@ export type Task = {
   waiting_on?: string | null;
   workflow_run?: string | null;
   github_issue: number | string | null;
+  deadline?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -161,6 +162,8 @@ export type TaskDetailResponse = {
   claims: Claim[];
   messages: Message[];
   events: TaskEvent[];
+  decision?: Decision | null;
+  questions?: Message[];
 };
 
 export type StreamEvent = {
@@ -200,3 +203,46 @@ export type WorkflowRunStep = { id: string; key: string; title: string; role: st
 export type WorkflowRun = { key: string; workflow_key: string | null; workflow_name: string | null; input: string | null; created_by: string; created_at: string; finished_at: string | null; status: string; counts: Record<string, number>; cost_usd: number; cost_credits: number; steps?: WorkflowRunStep[] };
 export type WorkflowRunsResponse = { ok: true; runs: WorkflowRun[] };
 export type WorkflowRunResponse = { ok: true; run: WorkflowRun };
+
+// ---- engine shapes added for the app (engine owner message, 24 Sep 2026) ----
+
+export type InboxKind = "approval" | "parked" | "question";
+export type InboxSummary = {
+  document: string | null;
+  counterparty: string | null;
+  amount: number | null;
+  currency: string | null;
+  flags: string[];
+  produced_by: string | null;
+  produced_at: string | null;
+};
+export type InboxNext = { key: string; title: string; when: string | null };
+export type InboxQuestion = { id: string; body: string; from: string | null; created_at: string };
+export type InboxItem = {
+  id: string;
+  key: string;
+  kind: InboxKind;
+  state: TaskState;
+  role: string;
+  title: string;
+  workflow_run: string | null;
+  run_name: string | null;
+  waiting_since: string;
+  deadline: string | null;
+  overdue: boolean;
+  summary: InboxSummary | null;
+  next: InboxNext[];
+  question?: InboxQuestion | null;
+  attempts: number;
+  max_attempts: number;
+  cost_usd: number | null;
+  budget_usd: number | null;
+};
+export type InboxTiles = { approvals: number; parked: number; questions: number; overdue: number };
+export type InboxResponse = { ok: true; tiles: InboxTiles; items: InboxItem[]; fallback?: boolean };
+
+export type DocumentRef = { label: string; path: string; type: "pdf" | "text" | "email" | "data"; from: "artefact" | "convention"; kind: string | null };
+export type DocumentsResponse = { ok: true; documents: DocumentRef[]; fallback?: boolean };
+
+export type Decision = { verdict: "approve" | "request_changes"; by: string; at: string; reason: string | null };
+export type Provenance = Record<string, { source: string; confidence: number | null; page?: number | null }>;
