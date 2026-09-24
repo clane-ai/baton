@@ -66,19 +66,26 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
     const p = url.searchParams;
     const limit = Math.min(1000, Number(p.get("limit") ?? 200));
     const taskIn = p.get("task_in") ? p.get("task_in")!.split(",").map((s) => s.trim()).filter(Boolean) : null;
+    // cursor = the id of the last event seen (events are listed newest first); keyset, so a stream that grows underneath stays stable
+    const paged = p.get("cursor") !== null;
+    const before = paged && p.get("cursor") ? Number(decodeCursor(p.get("cursor"))?.id ?? p.get("cursor")) : null;
+    const cap = paged ? Math.max(1, Math.min(200, Number(p.get("limit") ?? 100))) : limit;
     const rows = await sql`
       select e.id, e.ts, e.type, e.payload, e.session_id, e.task_id, e.agent_id,
              (select name from baton.agents where id = e.agent_id) as agent,
              (select key from baton.tasks where id = e.task_id) as task_key
         from baton.events e
-       where (${p.get("agent")}::text is null or e.agent_id::text = ${p.get("agent")} or exists (select 1 from baton.agents a where a.id = e.agent_id and a.name = ${p.get("agent")}))
+       where (${Number.isFinite(before) ? before : null}::bigint is null or e.id < ${Number.isFinite(before) ? before : null}::bigint)
+         and (${p.get("agent")}::text is null or e.agent_id::text = ${p.get("agent")} or exists (select 1 from baton.agents a where a.id = e.agent_id and a.name = ${p.get("agent")}))
          and (${p.get("task")}::text is null or e.task_id::text = ${p.get("task")} or exists (select 1 from baton.tasks t where t.id = e.task_id and t.key = ${p.get("task")}))
          and (${p.get("workflow_run")}::text is null or exists (select 1 from baton.tasks t where t.id = e.task_id and t.workflow_run = ${p.get("workflow_run")}))
          and (${taskIn}::text[] is null or exists (select 1 from baton.tasks t where t.id = e.task_id and (t.key = any(${taskIn}::text[]) or t.id::text = any(${taskIn}::text[]))))
          and (${p.get("type")}::text is null or e.type = ${p.get("type")})
          and (${p.get("since")}::text is null or e.ts > ${p.get("since")}::timestamptz)
-       order by e.id desc limit ${limit}`;
-    return { status: 200, body: { ok: true, events: rows } };
+       order by e.id desc limit ${paged ? cap + 1 : cap}`;
+    if (!paged) return { status: 200, body: { ok: true, events: rows } };
+    const page = rows.slice(0, cap); const more = rows.length > cap; const last = page[page.length - 1];
+    return { status: 200, body: { ok: true, events: page, limit: cap, next_cursor: more && last ? encodeCursor(String(last.ts), String(last.id)) : null } };
   }
 
   // ---- inbox (the human read model)
@@ -139,7 +146,18 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
     return row ? { status: 200, body: { ok: true, workflow: row } } : bad("NOT_FOUND", "no such workflow", 404);
   }
   if (seg[1] === "workflow-runs" && seg.length === 2 && method === "GET") {
-    return { status: 200, body: { ok: true, runs: await one(sql`select baton.workflow_runs_json(${Math.min(500, Number(url.searchParams.get("limit") ?? 100))}::int) as r`) } };
+    const p = url.searchParams;
+    if (p.get("cursor") === null) return { status: 200, body: { ok: true, runs: await one(sql`select baton.workflow_runs_json(${Math.min(500, Number(p.get("limit") ?? 100))}::int) as r`) } };
+    const cur = decodeCursor(p.get("cursor"));
+    const cap = Math.max(1, Math.min(50, Number(p.get("limit") ?? 50)));
+    const [{ n }] = await sql`select count(*)::int as n from baton.workflow_runs`;
+    const keys = await sql`select key, created_at from baton.workflow_runs r
+      where (${cur?.sortValue ?? null}::timestamptz is null or (r.created_at, r.key) < (${cur?.sortValue ?? null}::timestamptz, ${cur?.id ?? null}::text))
+      order by r.created_at desc, r.key desc limit ${cap + 1}`;
+    const page = keys.slice(0, cap); const more = keys.length > cap; const last = page[page.length - 1];
+    const runs = [] as Json[];
+    for (const k of page) { const r = await one(sql`select baton.workflow_run_json(${k.key}) - 'steps' as r`); runs.push(r); }
+    return { status: 200, body: { ok: true, runs, total: n, limit: cap, next_cursor: more && last ? encodeCursor(new Date(last.created_at as string).toISOString(), String(last.key)) : null } };
   }
   if (seg[1] === "workflow-runs" && seg.length === 2 && method === "POST") {
     const b = await readJson(req);
@@ -148,6 +166,26 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
       values (${key}, ${b.workflow_key ? String(b.workflow_key) : null}, ${b.workflow_name ? String(b.workflow_name) : null}, ${b.input ? String(b.input) : null}, ${actor}, ${b.workspace ? String(b.workspace) : null})
       on conflict (key) do update set workflow_name = excluded.workflow_name, input = excluded.input, workspace = coalesce(excluded.workspace, baton.workflow_runs.workspace) returning key, workspace`;
     return { status: 200, body: { ok: true, run: row } };
+  }
+  if (seg[1] === "workflow-runs" && seg.length === 4 && seg[3] === "artifacts" && method === "GET") {
+    // Every artefact of a run in one call (latest per kind per step), so a run screen needs no fan-out.
+    const [run] = await sql`select key, workspace from baton.workflow_runs where key = ${seg[2]}`;
+    if (!run) return bad("NOT_FOUND", "no such run", 404);
+    const rows = await sql`
+      select * from (
+        select distinct on (t.id, a.kind) t.key as task_key, t.id as task_id, t.title as step, t.role, t.state, t.created_at as step_created, baton.artifact_json(a) as artifact
+          from baton.tasks t join baton.artifacts a on a.task_id = t.id
+         where t.workflow_run = ${seg[2]}
+         order by t.id, a.kind, a.created_at desc) x
+       order by x.step_created, x.task_key, (x.artifact->>'created_at')`;
+    const stored = await sql`select id, path, content_type, bytes from baton.documents where workspace = ${run.workspace ?? "default"}`;
+    const byPath = new Map(stored.map((s) => [String(s.path), s]));
+    const artifacts = rows.map((r) => {
+      const a = r.artifact as Json;
+      const documents = documentsOf(String(a.kind), a.content).map((d) => { const s = byPath.get(d.path); return { ...d, id: s ? String(s.id) : null, available: !!s, content_type: s?.content_type ?? null, bytes: s?.bytes ?? null }; });
+      return { task_key: r.task_key, task_id: r.task_id, step: String(r.step).replace(/^.*?: /, ""), role: r.role, state: r.state, ...a, documents };
+    });
+    return { status: 200, body: { ok: true, run: run.key, workspace: run.workspace ?? "default", artifacts } };
   }
   if (seg[1] === "workflow-runs" && seg.length === 3 && method === "GET") {
     const r = await one(sql`select baton.workflow_run_json(${seg[2]}) as r`);
