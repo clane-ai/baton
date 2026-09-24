@@ -325,3 +325,20 @@ table.grid.lines tr.flag td { background: #fdecea; }
 .badge.st-needs_human { background: var(--waiting-soft); color: var(--waiting-ink); border-color: transparent; }
 .badge.st-failed { background: var(--stuck-soft); color: var(--stuck-ink); border-color: transparent; }
 .badge.st-cancelled { background: var(--neutral-soft); color: var(--ink-3); border-color: transparent; }
+
+/* ---- app shell ---- */
+.app { display: grid; grid-template-columns: var(--rail) minmax(0, 1fr); min-height: 100vh; }
+.rail { position: sticky; top: 0; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); padding: 18px 12px; display: flex; flex-direction: column; gap: 22px; }
+.rail .brand { font-weight: 700; font-size: 17px; padding: 0 10px; letter-spacing: 0.01em; }
+.rail-group { display: flex; flex-direction: column; gap: 2px; }
+.rail-group h4 { margin: 0 0 6px; padding: 0 10px; font-size: 12px; font-weight: 500; color: var(--ink-3); }
+.rail-link { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--r-ctl); color: var(--ink-2); font-weight: 500; }
+.rail-link:hover { background: var(--surface-2); color: var(--ink); }
+.rail-link.on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.rail-count { margin-left: auto; background: var(--waiting); color: #fff; border-radius: 10px; padding: 1px 7px; font-size: 11px; font-weight: 600; font-family: var(--mono); }
+.main { padding: 22px 28px 48px; min-width: 0; }
+.main > h1 { font-size: 20px; font-weight: 600; margin: 0 0 16px; }
+.screen-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.screen-head h1 { font-size: 20px; font-weight: 600; margin: 0; }
+.screen-head .sp { flex: 1; }
+.main .view { padding-top: 0; }

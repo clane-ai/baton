@@ -1,4 +1,10 @@
-// Pass-through until Task 2 adds the rail.
+import Rail from "./Rail";
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return (
+    <div className="app">
+      <Rail />
+      <main className="main">{children}</main>
+    </div>
+  );
 }
