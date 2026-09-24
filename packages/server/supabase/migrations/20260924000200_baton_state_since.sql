@@ -42,8 +42,10 @@ language sql stable as $$
     'role', t.role, 'state', t.state, 'priority', t.priority, 'depends_on', to_jsonb(t.depends_on),
     'consumes', t.consumes, 'produces', t.produces, 'scope', to_jsonb(t.scope),
     'assignee', t.assignee, 'lease_until', t.lease_until, 'attempts', t.attempts,
-    'max_attempts', t.max_attempts, 'budget_usd', t.budget_usd, 'cost_usd', t.cost_usd,
-    'parent_task', t.parent_task, 'github_issue', t.github_issue, 'version', t.version,
+    'max_attempts', t.max_attempts, 'budget_usd', t.budget_usd, 'cost_usd', t.cost_usd, 'cost_credits', t.cost_credits,
+    'parent_task', t.parent_task, 'waiting_on', t.waiting_on, 'workflow_run', t.workflow_run,
+    'affinity', t.affinity, 'deadline', t.deadline, 'condition', t.condition,
+    'github_issue', t.github_issue, 'version', t.version,
     'created_by', t.created_by, 'created_at', t.created_at, 'updated_at', t.updated_at,
     'state_since', t.state_since);
 $$;
