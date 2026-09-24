@@ -1,0 +1,351 @@
+{
+    "ok": true,
+    "run": {
+        "key": "p2p-122",
+        "input": "PR-2026-103",
+        "steps": [
+            {
+                "id": "86e1df55-506b-42e6-b6f8-535fddeacd8a",
+                "key": "TSK-0926",
+                "role": "buyer",
+                "state": "done",
+                "title": "Procure to pay: Raise purchase order",
+                "assignee": null,
+                "attempts": 1,
+                "cost_usd": 0.1371,
+                "produces": [
+                    {
+                        "kind": "purchase_order"
+                    }
+                ],
+                "condition": null,
+                "depends_on": [],
+                "updated_at": "2026-09-24T09:38:11.89903+00:00",
+                "cost_credits": 0,
+                "next": [
+                    {
+                        "key": "TSK-0927",
+                        "id": "4df5aed3-5576-408c-83c3-b32d365ef107",
+                        "when": null,
+                        "state": "done"
+                    },
+                    {
+                        "key": "TSK-0928",
+                        "id": "ac7058ae-119c-44ef-a86f-415f0e2ca48e",
+                        "when": "yes",
+                        "state": "done"
+                    },
+                    {
+                        "key": "TSK-0929",
+                        "id": "c8e9bf49-6d0e-4605-a030-0a44d3fbd0ff",
+                        "when": "no",
+                        "state": "cancelled"
+                    },
+                    {
+                        "key": "TSK-0930",
+                        "id": "15276e4b-714f-4c20-8cba-b69f1cc7493b",
+                        "when": null,
+                        "state": "done"
+                    },
+                    {
+                        "key": "TSK-0931",
+                        "id": "8c8e565f-df94-490a-9114-66aefccac421",
+                        "when": null,
+                        "state": "done"
+                    }
+                ]
+            },
+            {
+                "id": "4df5aed3-5576-408c-83c3-b32d365ef107",
+                "key": "TSK-0927",
+                "role": "operator",
+                "state": "done",
+                "title": "Procure to pay: Approve purchase order",
+                "assignee": null,
+                "attempts": 0,
+                "cost_usd": 0,
+                "produces": [
+                    {
+                        "kind": "review"
+                    }
+                ],
+                "condition": null,
+                "depends_on": [
+                    "86e1df55-506b-42e6-b6f8-535fddeacd8a"
+                ],
+                "updated_at": "2026-09-24T09:49:26.260706+00:00",
+                "cost_credits": 0,
+                "next": [
+                    {
+                        "key": "TSK-0928",
+                        "id": "ac7058ae-119c-44ef-a86f-415f0e2ca48e",
+                        "when": "yes",
+                        "state": "done"
+                    },
+                    {
+                        "key": "TSK-0929",
+                        "id": "c8e9bf49-6d0e-4605-a030-0a44d3fbd0ff",
+                        "when": "no",
+                        "state": "cancelled"
+                    }
+                ]
+            },
+            {
+                "id": "ac7058ae-119c-44ef-a86f-415f0e2ca48e",
+                "key": "TSK-0928",
+                "role": "supplier-erp",
+                "state": "done",
+                "title": "Procure to pay: Send PO to supplier (ERP integration)",
+                "assignee": null,
+                "attempts": 1,
+                "cost_usd": 0,
+                "produces": [
+                    {
+                        "kind": "delivery_note"
+                    },
+                    {
+                        "kind": "invoice"
+                    }
+                ],
+                "condition": {
+                    "kind": "review",
+                    "task": "4df5aed3-5576-408c-83c3-b32d365ef107",
+                    "field": "verdict",
+                    "equals": "approve",
+                    "gateway": "approve.decide",
+                    "outcome": "yes"
+                },
+                "depends_on": [
+                    "4df5aed3-5576-408c-83c3-b32d365ef107",
+                    "86e1df55-506b-42e6-b6f8-535fddeacd8a"
+                ],
+                "updated_at": "2026-09-24T09:49:32.803458+00:00",
+                "cost_credits": 0,
+                "next": [
+                    {
+                        "key": "TSK-0930",
+                        "id": "15276e4b-714f-4c20-8cba-b69f1cc7493b",
+                        "when": null,
+                        "state": "done"
+                    },
+                    {
+                        "key": "TSK-0931",
+                        "id": "8c8e565f-df94-490a-9114-66aefccac421",
+                        "when": null,
+                        "state": "done"
+                    },
+                    {
+                        "key": "TSK-0932",
+                        "id": "2c150ba2-a4c6-469c-8e10-2fba627b711b",
+                        "when": "ok",
+                        "state": "done"
+                    },
+                    {
+                        "key": "TSK-0933",
+                        "id": "85a389b1-63d5-4ee3-b0f1-bbd94a37ab7f",
+                        "when": "bad",
+                        "state": "cancelled"
+                    }
+                ],
+                "when": {
+                    "gateway": "approve.decide",
+                    "outcome": "yes",
+                    "decided_by": "TSK-0927",
+                    "field": "review.verdict",
+                    "equals": "approve"
+                }
+            },
+            {
+                "id": "c8e9bf49-6d0e-4605-a030-0a44d3fbd0ff",
+                "key": "TSK-0929",
+                "role": "buyer",
+                "state": "cancelled",
+                "title": "Procure to pay: Rework note to requester",
+                "assignee": null,
+                "attempts": 0,
+                "cost_usd": 0,
+                "produces": [
+                    {
+                        "kind": "handoff"
+                    }
+                ],
+                "condition": {
+                    "kind": "review",
+                    "task": "4df5aed3-5576-408c-83c3-b32d365ef107",
+                    "field": "verdict",
+                    "equals": "request_changes",
+                    "gateway": "approve.decide",
+                    "outcome": "no"
+                },
+                "depends_on": [
+                    "4df5aed3-5576-408c-83c3-b32d365ef107",
+                    "86e1df55-506b-42e6-b6f8-535fddeacd8a"
+                ],
+                "updated_at": "2026-09-24T09:49:26.260706+00:00",
+                "cost_credits": 0,
+                "next": [],
+                "when": {
+                    "gateway": "approve.decide",
+                    "outcome": "no",
+                    "decided_by": "TSK-0927",
+                    "field": "review.verdict",
+                    "equals": "request_changes"
+                }
+            },
+            {
+                "id": "15276e4b-714f-4c20-8cba-b69f1cc7493b",
+                "key": "TSK-0930",
+                "role": "receiving",
+                "state": "done",
+                "title": "Procure to pay: Book goods receipt",
+                "assignee": null,
+                "attempts": 1,
+                "cost_usd": 0.1204,
+                "produces": [
+                    {
+                        "kind": "goods_receipt"
+                    }
+                ],
+                "condition": null,
+                "depends_on": [
+                    "ac7058ae-119c-44ef-a86f-415f0e2ca48e",
+                    "86e1df55-506b-42e6-b6f8-535fddeacd8a"
+                ],
+                "updated_at": "2026-09-24T09:49:58.431154+00:00",
+                "cost_credits": 0,
+                "next": [
+                    {
+                        "key": "TSK-0931",
+                        "id": "8c8e565f-df94-490a-9114-66aefccac421",
+                        "when": null,
+                        "state": "done"
+                    }
+                ]
+            },
+            {
+                "id": "8c8e565f-df94-490a-9114-66aefccac421",
+                "key": "TSK-0931",
+                "role": "ap-clerk",
+                "state": "done",
+                "title": "Procure to pay: Three-way match",
+                "assignee": null,
+                "attempts": 1,
+                "cost_usd": 0.13,
+                "produces": [
+                    {
+                        "kind": "invoice_match"
+                    }
+                ],
+                "condition": null,
+                "depends_on": [
+                    "15276e4b-714f-4c20-8cba-b69f1cc7493b",
+                    "86e1df55-506b-42e6-b6f8-535fddeacd8a",
+                    "ac7058ae-119c-44ef-a86f-415f0e2ca48e"
+                ],
+                "updated_at": "2026-09-24T09:50:30.813854+00:00",
+                "cost_credits": 0,
+                "next": [
+                    {
+                        "key": "TSK-0932",
+                        "id": "2c150ba2-a4c6-469c-8e10-2fba627b711b",
+                        "when": "ok",
+                        "state": "done"
+                    },
+                    {
+                        "key": "TSK-0933",
+                        "id": "85a389b1-63d5-4ee3-b0f1-bbd94a37ab7f",
+                        "when": "bad",
+                        "state": "cancelled"
+                    }
+                ]
+            },
+            {
+                "id": "2c150ba2-a4c6-469c-8e10-2fba627b711b",
+                "key": "TSK-0932",
+                "role": "bank",
+                "state": "done",
+                "title": "Procure to pay: Schedule payment (bank integration)",
+                "assignee": null,
+                "attempts": 1,
+                "cost_usd": 0,
+                "produces": [
+                    {
+                        "kind": "payment"
+                    }
+                ],
+                "condition": {
+                    "kind": "invoice_match",
+                    "task": "8c8e565f-df94-490a-9114-66aefccac421",
+                    "field": "status",
+                    "equals": "matched",
+                    "gateway": "match.decide",
+                    "outcome": "ok"
+                },
+                "depends_on": [
+                    "8c8e565f-df94-490a-9114-66aefccac421",
+                    "ac7058ae-119c-44ef-a86f-415f0e2ca48e"
+                ],
+                "updated_at": "2026-09-24T09:50:38.695232+00:00",
+                "cost_credits": 0,
+                "next": [],
+                "when": {
+                    "gateway": "match.decide",
+                    "outcome": "ok",
+                    "decided_by": "TSK-0931",
+                    "field": "invoice_match.status",
+                    "equals": "matched"
+                }
+            },
+            {
+                "id": "85a389b1-63d5-4ee3-b0f1-bbd94a37ab7f",
+                "key": "TSK-0933",
+                "role": "ap-clerk",
+                "state": "cancelled",
+                "title": "Procure to pay: Dispute the invoice",
+                "assignee": null,
+                "attempts": 0,
+                "cost_usd": 0,
+                "produces": [
+                    {
+                        "kind": "handoff"
+                    }
+                ],
+                "condition": {
+                    "kind": "invoice_match",
+                    "task": "8c8e565f-df94-490a-9114-66aefccac421",
+                    "field": "status",
+                    "equals": "mismatched",
+                    "gateway": "match.decide",
+                    "outcome": "bad"
+                },
+                "depends_on": [
+                    "8c8e565f-df94-490a-9114-66aefccac421",
+                    "ac7058ae-119c-44ef-a86f-415f0e2ca48e"
+                ],
+                "updated_at": "2026-09-24T09:50:25.820504+00:00",
+                "cost_credits": 0,
+                "next": [],
+                "when": {
+                    "gateway": "match.decide",
+                    "outcome": "bad",
+                    "decided_by": "TSK-0931",
+                    "field": "invoice_match.status",
+                    "equals": "mismatched"
+                }
+            }
+        ],
+        "counts": {
+            "done": 6,
+            "cancelled": 2
+        },
+        "status": "done",
+        "cost_usd": 0.3875,
+        "created_at": "2026-09-24T09:37:40.939137+00:00",
+        "created_by": "operator:abhishek",
+        "finished_at": "2026-09-24T09:50:38.695232+00:00",
+        "cost_credits": 0,
+        "workflow_key": "procure-to-pay",
+        "workflow_name": "Procure to pay",
+        "workspace": null
+    }
+}

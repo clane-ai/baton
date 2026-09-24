@@ -1,0 +1,54 @@
+{
+    "ok": true,
+    "workspace": "default",
+    "documents": [
+        {
+            "label": "requester email",
+            "path": "inbox/requisitions/PR-2026-103.eml",
+            "type": "email",
+            "from": "convention",
+            "kind": "purchase_order",
+            "id": "8b2f7590-1135-4075-b7b3-4abd0a06a5f0",
+            "available": true,
+            "content_type": "message/rfc822",
+            "bytes": "4790",
+            "updated_at": "2026-09-24T11:17:47.476Z"
+        },
+        {
+            "label": "PO email sent",
+            "path": "outbox/PO-2026-103.eml",
+            "type": "email",
+            "from": "convention",
+            "kind": "purchase_order",
+            "id": "42bff995-6e8b-47c3-a549-edf6f45b7bb0",
+            "available": true,
+            "content_type": "message/rfc822",
+            "bytes": "654",
+            "updated_at": "2026-09-24T11:17:49.587Z"
+        },
+        {
+            "label": "requisition",
+            "path": "inbox/requisitions/PR-2026-103.pdf",
+            "type": "pdf",
+            "from": "convention",
+            "kind": "purchase_order",
+            "id": "cb3d10b8-a27c-45fb-a53c-62c6b66c72e4",
+            "available": true,
+            "content_type": "application/pdf",
+            "bytes": "2925",
+            "updated_at": "2026-09-24T11:17:48.154Z"
+        },
+        {
+            "label": "requisition text",
+            "path": "inbox/requisitions/PR-2026-103.txt",
+            "type": "text",
+            "from": "convention",
+            "kind": "purchase_order",
+            "id": "9690e9b5-d73a-4420-aebf-ae95685eee5d",
+            "available": true,
+            "content_type": "text/plain; charset=utf-8",
+            "bytes": "810",
+            "updated_at": "2026-09-24T11:17:48.915Z"
+        }
+    ]
+}

@@ -1,0 +1,274 @@
+{
+    "ok": true,
+    "task": {
+        "id": "4df5aed3-5576-408c-83c3-b32d365ef107",
+        "key": "TSK-0927",
+        "role": "operator",
+        "spec": "# Task\nA person with purchasing authority approves or rejects the purchase order, using its policy_check and the purchasing policy.\n\n# Workflow input\nPR-2026-103\n\n# Workflow\nProcure to pay 0.3.0 run p2p-122, step \"Approve purchase order\" (approve). Register exactly these artefact kinds: review.",
+        "scope": [],
+        "state": "done",
+        "title": "Procure to pay: Approve purchase order",
+        "version": 3,
+        "affinity": null,
+        "assignee": null,
+        "attempts": 0,
+        "consumes": [
+            {
+                "kind": "purchase_order",
+                "from_task": "86e1df55-506b-42e6-b6f8-535fddeacd8a"
+            }
+        ],
+        "cost_usd": 0,
+        "deadline": "2026-09-24T09:40:39.773+00:00",
+        "priority": 299,
+        "produces": [
+            {
+                "kind": "review"
+            }
+        ],
+        "condition": null,
+        "acceptance": "Given the inputs of step approve, when the operator finishes, then a valid review artefact exists and it satisfies: Approve purchase order.",
+        "budget_usd": null,
+        "created_at": "2026-09-24T09:37:42.039848+00:00",
+        "created_by": "operator:abhishek",
+        "depends_on": [
+            "86e1df55-506b-42e6-b6f8-535fddeacd8a"
+        ],
+        "updated_at": "2026-09-24T09:49:26.260706+00:00",
+        "waiting_on": null,
+        "lease_until": null,
+        "parent_task": null,
+        "cost_credits": 0,
+        "github_issue": null,
+        "max_attempts": 3,
+        "workflow_run": "p2p-122"
+    },
+    "claims": [],
+    "events": [
+        {
+            "id": 4609,
+            "ts": "2026-09-24T09:49:26.260706+00:00",
+            "type": "gate_passed",
+            "agent": null,
+            "payload": {},
+            "session_id": null
+        },
+        {
+            "id": 4608,
+            "ts": "2026-09-24T09:49:26.260706+00:00",
+            "type": "task_state_changed",
+            "agent": null,
+            "payload": {
+                "to": "done",
+                "from": "review",
+                "actor": "gateway",
+                "attempts": 0
+            },
+            "session_id": null
+        },
+        {
+            "id": 4605,
+            "ts": "2026-09-24T09:49:26.260706+00:00",
+            "type": "approved",
+            "agent": null,
+            "payload": {
+                "by": "operator:abhishek",
+                "reason": "approve"
+            },
+            "session_id": null
+        },
+        {
+            "id": 4604,
+            "ts": "2026-09-24T09:49:26.260706+00:00",
+            "type": "task_state_changed",
+            "agent": null,
+            "payload": {
+                "to": "review",
+                "from": "needs_human",
+                "actor": "operator:abhishek",
+                "attempts": 0
+            },
+            "session_id": null
+        },
+        {
+            "id": 4603,
+            "ts": "2026-09-24T09:41:00.152059+00:00",
+            "type": "approval_overdue",
+            "agent": null,
+            "payload": {
+                "key": "TSK-0927",
+                "deadline": "2026-09-24T09:40:39.773+00:00",
+                "waiting_minutes": 0
+            },
+            "session_id": null
+        },
+        {
+            "id": 4599,
+            "ts": "2026-09-24T09:38:06.215187+00:00",
+            "type": "task_state_changed",
+            "agent": null,
+            "payload": {
+                "to": "needs_human",
+                "from": "draft",
+                "actor": "gate",
+                "attempts": 0
+            },
+            "session_id": null
+        },
+        {
+            "id": 4598,
+            "ts": "2026-09-24T09:38:06.215187+00:00",
+            "type": "approval_required",
+            "agent": null,
+            "payload": {
+                "key": "TSK-0927",
+                "title": "Procure to pay: Approve purchase order"
+            },
+            "session_id": null
+        },
+        {
+            "id": 4581,
+            "ts": "2026-09-24T09:37:42.039848+00:00",
+            "type": "task_created",
+            "agent": null,
+            "payload": {
+                "key": "TSK-0927",
+                "role": "operator",
+                "actor": "operator:abhishek",
+                "state": "draft"
+            },
+            "session_id": null
+        }
+    ],
+    "children": [],
+    "consumed": [
+        {
+            "id": "cee5fe32-0488-4398-b4b9-c1e839db1b91",
+            "uri": "storage://artifacts/TSK-0926/purchase_order-1790242685922.json",
+            "kind": "purchase_order",
+            "meta": {},
+            "sha256": "2f1a1cdce0d89b9d02fb7dda18b163554a9d8a4d84ddf53e1ad516c46f4323e3",
+            "content": {
+                "lines": [
+                    {
+                        "sku": "NL-SRV2U",
+                        "item": "Rack server 2U, 2x CPU, 256 GB",
+                        "line": 1,
+                        "unit": "each",
+                        "quantity": 3,
+                        "line_total": 25200,
+                        "unit_price": 8400
+                    }
+                ],
+                "total": 25200,
+                "vendor": {
+                    "id": "V-1001",
+                    "name": "Nordlicht Computing GmbH",
+                    "email": "orders@nordlicht-computing.example",
+                    "approved": true
+                },
+                "currency": "EUR",
+                "needed_by": "2026-11-01",
+                "po_number": "PO-2026-103",
+                "requester": "Priya Raman",
+                "cost_center": "CC-430",
+                "requisition": "PR-2026-103",
+                "policy_check": {
+                    "notes": "Total 25,200.00 EUR falls in the 10,000.01-50,000 band, so director approval is needed. This is above the manager-level approver's authority (limit 10,000), so the approver should reject with reason 'escalate' for routing to a director. Vendor V-1001 is approved. Requisition estimate of 8,400.00 matches the catalogue price, so there is no price difference. No budget data was provided; within_budget is not verified against a budget.",
+                    "within_budget": true,
+                    "approver_level": "director",
+                    "vendor_approved": true,
+                    "approval_required": true
+                },
+                "delivery_address": "Goods-in, Unit 4, Northwest Business Park, Dublin 15"
+            },
+            "task_id": "86e1df55-506b-42e6-b6f8-535fddeacd8a",
+            "task_key": "TSK-0926",
+            "created_at": "2026-09-24T09:38:06.156304+00:00",
+            "created_by": "d7f99a0a-a703-40e4-af5b-e07e1e2ff771",
+            "schema_version": "v1"
+        }
+    ],
+    "messages": [],
+    "artifacts": [
+        {
+            "id": "f7471607-6530-4959-818f-e5023cc6ba9e",
+            "uri": "baton://approval/TSK-0927",
+            "kind": "review",
+            "meta": {
+                "by": "operator:abhishek"
+            },
+            "sha256": null,
+            "content": {
+                "summary": "approve",
+                "verdict": "approve",
+                "findings": []
+            },
+            "task_id": "4df5aed3-5576-408c-83c3-b32d365ef107",
+            "task_key": "TSK-0927",
+            "created_at": "2026-09-24T09:49:26.260706+00:00",
+            "created_by": null,
+            "schema_version": "v1"
+        }
+    ],
+    "dependents": [
+        {
+            "id": "ac7058ae-119c-44ef-a86f-415f0e2ca48e",
+            "key": "TSK-0928",
+            "state": "done",
+            "title": "Procure to pay: Send PO to supplier (ERP integration)"
+        },
+        {
+            "id": "c8e9bf49-6d0e-4605-a030-0a44d3fbd0ff",
+            "key": "TSK-0929",
+            "state": "cancelled",
+            "title": "Procure to pay: Rework note to requester"
+        }
+    ],
+    "depends_on": [
+        {
+            "id": "86e1df55-506b-42e6-b6f8-535fddeacd8a",
+            "key": "TSK-0926",
+            "state": "done",
+            "title": "Procure to pay: Raise purchase order"
+        }
+    ],
+    "assignee_name": null,
+    "decision": {
+        "verdict": "approve",
+        "by": "operator:abhishek",
+        "at": "2026-09-24T09:49:26.260706+00:00",
+        "reason": "approve"
+    },
+    "questions": [],
+    "documents": [
+        {
+            "label": "requester email",
+            "path": "inbox/requisitions/PR-2026-103.eml",
+            "type": "email",
+            "from": "convention",
+            "kind": "purchase_order"
+        },
+        {
+            "label": "PO email sent",
+            "path": "outbox/PO-2026-103.eml",
+            "type": "email",
+            "from": "convention",
+            "kind": "purchase_order"
+        },
+        {
+            "label": "requisition",
+            "path": "inbox/requisitions/PR-2026-103.pdf",
+            "type": "pdf",
+            "from": "convention",
+            "kind": "purchase_order"
+        },
+        {
+            "label": "requisition text",
+            "path": "inbox/requisitions/PR-2026-103.txt",
+            "type": "text",
+            "from": "convention",
+            "kind": "purchase_order"
+        }
+    ]
+}

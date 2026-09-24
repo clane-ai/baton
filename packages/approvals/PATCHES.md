@@ -96,9 +96,78 @@ The staging stub in this package declares the same `api.blob(path)` signature.
 
 ## `clane-client/src/components/workflows/WorkflowsPage.jsx` — mount the section
 
-Written in Task 5 once the section component exists; the gateway agent confirms
-the segment. The rule it follows: when `parseLocation()` gives
-`{ route: 'build', section: 'workflows', sub: '<segment>' }`, WorkflowsPage
-renders the operations section instead of treating `<segment>` as a workflow
-id. Nothing in `lib/spaRoute.js` changes: the sub-segment slot already carries
-it, and deeper paths are owned by the section's own router.
+`lib/spaRoute` already parses `/app/build/workflows/<segment>` as
+`{ route: 'build', section: 'workflows', sub: '<segment>' }`. WorkflowsPage
+checks for the reserved segment before it treats `sub` as a workflow id, and
+lazy-loads the section. `OPERATIONS_SEGMENT` must equal the last segment of
+`SECTION_MOUNT` in `operations/paths.ts`; the gateway agent picks the value.
+
+```diff
+-import React, { useCallback, useEffect, useState } from 'react';
++import React, { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+ ...
+ import { WorkflowStudio } from './studio/WorkflowStudio';
++
++// The operational screens (approvals, runs, documents, activity, spend) own
++// /app/build/workflows/<OPERATIONS_SEGMENT>/… and route below it themselves.
++// Must match the last segment of SECTION_MOUNT in ./operations/paths.ts.
++const OPERATIONS_SEGMENT = 'operations';
++const WorkflowOperations = lazy(() => import('./operations/Section'));
+ ...
++  // Operations mode — checked before the id route so the segment is never
++  // fetched as a workflow.
++  if (openId === OPERATIONS_SEGMENT) {
++    return (
++      <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex' }}>
++        <Suspense fallback={null}>
++          <WorkflowOperations />
++        </Suspense>
++      </div>
++    );
++  }
++
+   // Studio mode — fill the column edge-to-edge.
+   if (openId) {
+```
+
+An entry point in the list header opens it:
+`openWorkflow(OPERATIONS_SEGMENT)` behind a secondary button labelled
+`t('workflow.nav.approvals')`.
+
+## `clane-client/src/lib/spaRoute.js` — keep deeper paths on a replace
+
+**Required for deep links.** On mount App.jsx normalises the URL with
+`writeRouteToUrl('build', { section: 'workflows', sub, replace: true })`.
+That targets `/app/build/workflows/operations`, so a hard refresh on
+`/app/build/workflows/operations/items/TSK-0927` replaces the address with the
+section root. The item still shows once, because the section's router read the
+URL first, but the next refresh lands on Approvals. The fix: a *replace* whose
+target is a prefix of the current path leaves the deeper path alone. Pushes are
+unchanged.
+
+```diff
+   const target = `${BASE}${seg}${trailing}`;
+
+   // Don't push a no-op entry when the URL already matches - common
+   // case is mount-time resolveInitialRoute() returned the same value
+   // we got from the URL. Avoids a phantom history entry on first load.
+   if (window.location.pathname === target) return;
++  // A replace (mount-time normalisation) must not truncate a deeper path
++  // owned by a nested router, e.g. build/workflows/operations/items/<key>.
++  if (opts.replace && window.location.pathname.startsWith(`${target}/`)) return;
+```
+
+Spec for `src/lib/__tests__/spaRoute.spec.js`:
+
+```js
+it('keeps a deeper nested path on a replace', () => {
+  window.history.pushState({}, '', '/app/build/workflows/operations/items/TSK-0927');
+  writeRouteToUrl('build', { section: 'workflows', sub: 'operations', replace: true });
+  expect(window.location.pathname).toBe('/app/build/workflows/operations/items/TSK-0927');
+});
+it('still pushes the bare section when navigating', () => {
+  window.history.pushState({}, '', '/app/build/workflows/operations/items/TSK-0927');
+  writeRouteToUrl('build', { section: 'workflows' });
+  expect(window.location.pathname).toBe('/app/build/workflows');
+});
+```

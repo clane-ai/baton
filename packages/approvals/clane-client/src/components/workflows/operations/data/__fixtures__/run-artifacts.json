@@ -1,0 +1,423 @@
+{
+  "ok": true,
+  "run": "p2p-122",
+  "workspace": "default",
+  "artifacts": [
+    {
+      "task_key": "TSK-0926",
+      "task_id": "86e1df55-506b-42e6-b6f8-535fddeacd8a",
+      "step": "Raise purchase order",
+      "role": "buyer",
+      "state": "done",
+      "id": "cee5fe32-0488-4398-b4b9-c1e839db1b91",
+      "uri": "storage://artifacts/TSK-0926/purchase_order-1790242685922.json",
+      "kind": "purchase_order",
+      "meta": {},
+      "sha256": "2f1a1cdce0d89b9d02fb7dda18b163554a9d8a4d84ddf53e1ad516c46f4323e3",
+      "content": {
+        "lines": [
+          {
+            "sku": "NL-SRV2U",
+            "item": "Rack server 2U, 2x CPU, 256 GB",
+            "line": 1,
+            "unit": "each",
+            "quantity": 3,
+            "line_total": 25200,
+            "unit_price": 8400
+          }
+        ],
+        "total": 25200,
+        "vendor": {
+          "id": "V-1001",
+          "name": "Nordlicht Computing GmbH",
+          "email": "orders@nordlicht-computing.example",
+          "approved": true
+        },
+        "currency": "EUR",
+        "needed_by": "2026-11-01",
+        "po_number": "PO-2026-103",
+        "requester": "Priya Raman",
+        "cost_center": "CC-430",
+        "requisition": "PR-2026-103",
+        "policy_check": {
+          "notes": "Total 25,200.00 EUR falls in the 10,000.01-50,000 band, so director approval is needed. This is above the manager-level approver's authority (limit 10,000), so the approver should reject with reason 'escalate' for routing to a director. Vendor V-1001 is approved. Requisition estimate of 8,400.00 matches the catalogue price, so there is no price difference. No budget data was provided; within_budget is not verified against a budget.",
+          "within_budget": true,
+          "approver_level": "director",
+          "vendor_approved": true,
+          "approval_required": true
+        },
+        "delivery_address": "Goods-in, Unit 4, Northwest Business Park, Dublin 15"
+      },
+      "created_at": "2026-09-24T09:38:06.156304+00:00",
+      "created_by": "d7f99a0a-a703-40e4-af5b-e07e1e2ff771",
+      "schema_version": "v1",
+      "documents": [
+        {
+          "label": "requester email",
+          "path": "inbox/requisitions/PR-2026-103.eml",
+          "type": "email",
+          "from": "convention",
+          "kind": "purchase_order",
+          "id": "8b2f7590-1135-4075-b7b3-4abd0a06a5f0",
+          "available": true,
+          "content_type": "message/rfc822",
+          "bytes": "4790"
+        },
+        {
+          "label": "PO email sent",
+          "path": "outbox/PO-2026-103.eml",
+          "type": "email",
+          "from": "convention",
+          "kind": "purchase_order",
+          "id": "42bff995-6e8b-47c3-a549-edf6f45b7bb0",
+          "available": true,
+          "content_type": "message/rfc822",
+          "bytes": "654"
+        },
+        {
+          "label": "requisition",
+          "path": "inbox/requisitions/PR-2026-103.pdf",
+          "type": "pdf",
+          "from": "convention",
+          "kind": "purchase_order",
+          "id": "cb3d10b8-a27c-45fb-a53c-62c6b66c72e4",
+          "available": true,
+          "content_type": "application/pdf",
+          "bytes": "2925"
+        },
+        {
+          "label": "requisition text",
+          "path": "inbox/requisitions/PR-2026-103.txt",
+          "type": "text",
+          "from": "convention",
+          "kind": "purchase_order",
+          "id": "9690e9b5-d73a-4420-aebf-ae95685eee5d",
+          "available": true,
+          "content_type": "text/plain; charset=utf-8",
+          "bytes": "810"
+        }
+      ]
+    },
+    {
+      "task_key": "TSK-0927",
+      "task_id": "4df5aed3-5576-408c-83c3-b32d365ef107",
+      "step": "Approve purchase order",
+      "role": "operator",
+      "state": "done",
+      "id": "f7471607-6530-4959-818f-e5023cc6ba9e",
+      "uri": "baton://approval/TSK-0927",
+      "kind": "review",
+      "meta": {
+        "by": "operator:abhishek"
+      },
+      "sha256": null,
+      "content": {
+        "summary": "approve",
+        "verdict": "approve",
+        "findings": []
+      },
+      "created_at": "2026-09-24T09:49:26.260706+00:00",
+      "created_by": null,
+      "schema_version": "v1",
+      "documents": []
+    },
+    {
+      "task_key": "TSK-0928",
+      "task_id": "ac7058ae-119c-44ef-a86f-415f0e2ca48e",
+      "step": "Send PO to supplier (ERP integration)",
+      "role": "supplier-erp",
+      "state": "done",
+      "id": "7b4359db-6856-42ec-8542-bcdda1274e41",
+      "uri": "storage://artifacts/TSK-0928/delivery_note-1790243372310.json",
+      "kind": "delivery_note",
+      "meta": {
+        "po": "PO-2026-103",
+        "source": "supplier-erp"
+      },
+      "sha256": "f2c872e6d311d1223883afaece5f06e76d40574f621de04083ae2643e2136413",
+      "content": {
+        "lines": [
+          {
+            "sku": "NL-SRV2U",
+            "item": "Rack server 2U, 2x CPU, 256 GB",
+            "line": 1,
+            "quantity_shipped": 3
+          }
+        ],
+        "vendor": "Nordlicht Computing GmbH",
+        "carrier": "DHL Freight",
+        "tracking": "DHL1030042IE",
+        "po_number": "PO-2026-103",
+        "email_path": "inbox/deliveries/DN-2026-103.eml",
+        "shipped_at": "2026-09-26",
+        "document_path": "inbox/deliveries/DN-2026-103.pdf",
+        "delivery_note_number": "DN-2026-103"
+      },
+      "created_at": "2026-09-24T09:49:32.460921+00:00",
+      "created_by": "0a972b88-4360-4f80-9d0e-de85f6a9f9c8",
+      "schema_version": "v1",
+      "documents": [
+        {
+          "label": "delivery note email",
+          "path": "inbox/deliveries/DN-2026-103.eml",
+          "type": "email",
+          "from": "artefact",
+          "kind": "delivery_note",
+          "id": "5ab6e694-41eb-4d6c-bd36-a7dedb8ee854",
+          "available": true,
+          "content_type": "message/rfc822",
+          "bytes": "4026"
+        },
+        {
+          "label": "acknowledgement",
+          "path": "inbox/deliveries/PO-2026-103-ack.eml",
+          "type": "email",
+          "from": "convention",
+          "kind": "delivery_note",
+          "id": "1cae8d5a-008c-41c8-9a14-ccc13f9a15bc",
+          "available": true,
+          "content_type": "message/rfc822",
+          "bytes": "407"
+        },
+        {
+          "label": "delivery note document",
+          "path": "inbox/deliveries/DN-2026-103.pdf",
+          "type": "pdf",
+          "from": "artefact",
+          "kind": "delivery_note",
+          "id": "a5102de7-c896-40bf-8831-d058663c4881",
+          "available": true,
+          "content_type": "application/pdf",
+          "bytes": "2449"
+        },
+        {
+          "label": "count sheet",
+          "path": "inbox/deliveries/count-PO-2026-103.txt",
+          "type": "text",
+          "from": "convention",
+          "kind": "delivery_note",
+          "id": "8f2f8cc4-c612-44f1-a85c-d82c2b2394b5",
+          "available": true,
+          "content_type": "text/plain; charset=utf-8",
+          "bytes": "261"
+        }
+      ]
+    },
+    {
+      "task_key": "TSK-0928",
+      "task_id": "ac7058ae-119c-44ef-a86f-415f0e2ca48e",
+      "step": "Send PO to supplier (ERP integration)",
+      "role": "supplier-erp",
+      "state": "done",
+      "id": "748050aa-c38a-4792-8c2d-19b4df9cfc9f",
+      "uri": "storage://artifacts/TSK-0928/invoice-1790243372603.json",
+      "kind": "invoice",
+      "meta": {
+        "po": "PO-2026-103",
+        "source": "supplier-erp"
+      },
+      "sha256": "3bb3dce854c8a371db24a833dd3483a7d879256e7481cd6d7d91fd684a615ca3",
+      "content": {
+        "tax": 0,
+        "bank": {
+          "bic": "COBADEFFXXX",
+          "iban": "DE89370400440532013000"
+        },
+        "lines": [
+          {
+            "sku": "NL-SRV2U",
+            "item": "Rack server 2U, 2x CPU, 256 GB",
+            "line": 1,
+            "quantity": 3,
+            "line_total": 25200,
+            "unit_price": 8400
+          }
+        ],
+        "total": 25200,
+        "due_at": "2026-10-27",
+        "vendor": "Nordlicht Computing GmbH",
+        "currency": "EUR",
+        "subtotal": 25200,
+        "issued_at": "2026-09-27",
+        "po_number": "PO-2026-103",
+        "email_path": "inbox/invoices/INV-2026-103.eml",
+        "vendor_email": "orders@nordlicht-computing.example",
+        "document_path": "inbox/invoices/INV-2026-103.pdf",
+        "invoice_number": "INV-2026-103"
+      },
+      "created_at": "2026-09-24T09:49:32.751938+00:00",
+      "created_by": "0a972b88-4360-4f80-9d0e-de85f6a9f9c8",
+      "schema_version": "v1",
+      "documents": [
+        {
+          "label": "invoice email",
+          "path": "inbox/invoices/INV-2026-103.eml",
+          "type": "email",
+          "from": "artefact",
+          "kind": "invoice",
+          "id": "85e1855b-b15d-4e91-bb82-b91fe2680176",
+          "available": true,
+          "content_type": "message/rfc822",
+          "bytes": "4403"
+        },
+        {
+          "label": "invoice document",
+          "path": "inbox/invoices/INV-2026-103.pdf",
+          "type": "pdf",
+          "from": "artefact",
+          "kind": "invoice",
+          "id": "1f814960-ef74-49d1-8c5f-65eb92412c03",
+          "available": true,
+          "content_type": "application/pdf",
+          "bytes": "2709"
+        },
+        {
+          "label": "invoice text",
+          "path": "inbox/invoices/INV-2026-103.txt",
+          "type": "text",
+          "from": "convention",
+          "kind": "invoice",
+          "id": "f24986ea-8b5d-4ed0-be28-ab3b8da07a4c",
+          "available": true,
+          "content_type": "text/plain; charset=utf-8",
+          "bytes": "397"
+        }
+      ]
+    },
+    {
+      "task_key": "TSK-0930",
+      "task_id": "15276e4b-714f-4c20-8cba-b69f1cc7493b",
+      "step": "Book goods receipt",
+      "role": "receiving",
+      "state": "done",
+      "id": "b0cff858-35f7-4b5c-9b36-868d92675655",
+      "uri": "storage://artifacts/TSK-0930/goods_receipt-1790243393099.json",
+      "kind": "goods_receipt",
+      "meta": {},
+      "sha256": "bb02f637e929124d64ea2c4c826473127589f143745257c29a451f93b467f83a",
+      "content": {
+        "lines": [
+          {
+            "sku": "NL-SRV2U",
+            "item": "Rack server 2U, 2x CPU, 256 GB",
+            "line": 1,
+            "note": "ok",
+            "condition": "good",
+            "quantity_ordered": 3,
+            "quantity_received": 3
+          }
+        ],
+        "complete": true,
+        "po_number": "PO-2026-103",
+        "grn_number": "GRN-2026-103",
+        "received_at": "2026-09-27T09:40:00",
+        "received_by": "receiving (baton)",
+        "discrepancies": [],
+        "delivery_note_number": "DN-2026-103"
+      },
+      "created_at": "2026-09-24T09:49:53.330726+00:00",
+      "created_by": "dfbb1dd1-22f5-45f2-8b66-5e8821bf5d90",
+      "schema_version": "v1",
+      "documents": [
+        {
+          "label": "count sheet",
+          "path": "inbox/deliveries/count-PO-2026-103.txt",
+          "type": "text",
+          "from": "convention",
+          "kind": "goods_receipt",
+          "id": "8f2f8cc4-c612-44f1-a85c-d82c2b2394b5",
+          "available": true,
+          "content_type": "text/plain; charset=utf-8",
+          "bytes": "261"
+        }
+      ]
+    },
+    {
+      "task_key": "TSK-0931",
+      "task_id": "8c8e565f-df94-490a-9114-66aefccac421",
+      "step": "Three-way match",
+      "role": "ap-clerk",
+      "state": "done",
+      "id": "3af1e5b2-ce9d-47c3-a254-d319e777af76",
+      "uri": "storage://artifacts/TSK-0931/invoice_match-1790243425303.json",
+      "kind": "invoice_match",
+      "meta": {},
+      "sha256": "3c17aa2afe0c32613ddc16a51b422d81f4e09a577fa853477254078fe515bc8e",
+      "content": {
+        "lines": [
+          {
+            "ok": true,
+            "item": "Rack server 2U, 2x CPU, 256 GB",
+            "line": 1,
+            "variance": "",
+            "ordered_qty": 3,
+            "invoiced_qty": 3,
+            "received_qty": 3,
+            "po_unit_price": 8400,
+            "invoice_unit_price": 8400
+          }
+        ],
+        "status": "matched",
+        "summary": "Ordered 3, received 3 (good), invoiced 3. Unit price 8,400.00 EUR equals PO price (tolerance +1%). Line total 3 x 8,400.00 = 25,200.00 equals invoice total 25,200.00 EUR. Matched; payable 25,200.00 EUR.",
+        "po_number": "PO-2026-103",
+        "tolerance": {
+          "quantity": 0,
+          "price_pct": 1
+        },
+        "variances": [],
+        "grn_number": "GRN-2026-103",
+        "amount_payable": 25200,
+        "invoice_number": "INV-2026-103"
+      },
+      "created_at": "2026-09-24T09:50:25.776178+00:00",
+      "created_by": "657331ff-ebb6-4aff-a747-56e3792e76ae",
+      "schema_version": "v1",
+      "documents": []
+    },
+    {
+      "task_key": "TSK-0932",
+      "task_id": "2c150ba2-a4c6-469c-8e10-2fba627b711b",
+      "step": "Schedule payment (bank integration)",
+      "role": "bank",
+      "state": "done",
+      "id": "19e4a901-a0eb-4e71-bea9-4a43079496dc",
+      "uri": "storage://artifacts/TSK-0932/payment-1790243438467.json",
+      "kind": "payment",
+      "meta": {
+        "source": "bank-gateway"
+      },
+      "sha256": "bb5ea57f829b88e7c71f06a658c9b6370985f8ae529e4eed60f874479fd78f5b",
+      "content": {
+        "amount": 25200,
+        "status": "scheduled",
+        "vendor": "Nordlicht Computing GmbH",
+        "currency": "EUR",
+        "po_number": "PO-2026-103",
+        "beneficiary": {
+          "iban": "DE89370400440532013000",
+          "name": "Nordlicht Computing GmbH"
+        },
+        "payment_ref": "PAY-2026-103",
+        "scheduled_for": "2026-10-27",
+        "invoice_number": "INV-2026-103",
+        "remittance_path": "outbox/remittance-INV-2026-103.eml"
+      },
+      "created_at": "2026-09-24T09:50:38.654441+00:00",
+      "created_by": "2d783007-b78d-4c9d-bd44-04372aff40c1",
+      "schema_version": "v1",
+      "documents": [
+        {
+          "label": "payment remittance",
+          "path": "outbox/remittance-INV-2026-103.eml",
+          "type": "email",
+          "from": "artefact",
+          "kind": "payment",
+          "id": "3065de61-2c5b-4e84-a2e8-f2ac379aa8d6",
+          "available": true,
+          "content_type": "message/rfc822",
+          "bytes": "459"
+        }
+      ]
+    }
+  ]
+}

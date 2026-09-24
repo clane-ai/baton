@@ -5,6 +5,17 @@
 // its own keys. English only for now; other languages fall back to English.
 export const WORKFLOW = {
   en: {
+    // Section and navigation
+    'workflow.breadcrumb': 'Workflow',
+    'workflow.nav.label': 'Workflow operations',
+    'workflow.nav.approvals': 'Approvals',
+    'workflow.nav.item': 'Work item',
+    'workflow.nav.runs': 'Runs',
+    'workflow.nav.run': 'Run',
+    'workflow.nav.documents': 'Documents',
+    'workflow.nav.activity': 'Activity',
+    'workflow.nav.spend': 'Spend',
+    'workflow.nav.waiting': '{{n}} waiting',
     // States
     'workflow.state.loading': 'Loading',
     'workflow.state.error.title': "Couldn't load this",
