@@ -49,6 +49,41 @@ not built is listed.
 
 Example captures: `docs/examples/api/inbox.json`, `task-detail.json`, `task-documents.json`, `workflow-run.json`, `run-artifacts.json`.
 
+## The operator surfaces (fleet and configuration)
+
+Not part of the Workflow section's screens, but part of the engine, and undocumented until 24 September
+2026, which cost an implementer an afternoon of asking. These belong in Clane's Admin area, except
+webhooks which belong in its Settings.
+
+| Need | Route | Mutating |
+|---|---|---|
+| Roles with their model and concurrency limit | `GET /admin/roles` | no |
+| Create or update a role (upsert by name) | `POST /admin/roles {name, description, definition_path, default_model, max_concurrent}` | yes |
+| Agents: machine, status, last seen, revoked-at, current task | `GET /admin/agents` (the list carries everything; there is no detail route) | no |
+| Create an agent (its token is returned **once**) | `POST /admin/agents {name, role, machine, owner_email}` | yes |
+| Revoke an agent | `DELETE /admin/agents/<id or name>` | yes |
+| Invites with a derived `state` of redeemed, revoked, expired or pending | `GET /admin/invites` | no |
+| Mint an invite (the one-time code is returned **once**) | `POST /admin/invites {roles[], machine, name_prefix, ttl_hours, project_key}` | yes |
+| **Revoke an invite** (edge v20) | `DELETE /admin/invites/<id>` | yes |
+| Webhook subscriptions and their pending delivery counts | `GET /admin/webhooks` (**never returns the secret**) | no |
+| Create a subscription (the signing secret is returned **once**) | `POST /admin/webhooks {url, events}` | yes |
+| Delete a subscription; drain pending deliveries | `DELETE /admin/webhooks/<id>`; `POST /admin/webhooks/flush` | yes |
+| Conformance: a live report plus the stored daily ones | `GET /admin/conformance?days=` | no |
+| Generate today's conformance report | `POST /admin/conformance/run` | yes |
+| Queue and agent health; cost | `GET /admin/status`; `GET /admin/spend` | no |
+
+Three rules that are not obvious from the routes:
+
+- **Invite redemption is not on this face and must never be proxied.** It is `POST /join`, deliberately
+  unauthenticated, because the one-time code *is* the credential and the machine redeeming it holds
+  nothing else yet.
+- **Revoking an invite never touches agents already created from it.** Those are revoked one by one.
+  Withdrawing a code and disabling a fleet are different actions; collapsing them would mean a mistyped
+  invite silently stopping machines that are working.
+- **Minting an invite and revoking an agent deserve more than ordinary access.** Those two are where a
+  compromised browser session becomes a compromised fleet. The engine cannot yet tell one operator from
+  another, so until approver authority exists the platform is the only place that distinction can live.
+
 Flag codes in `summary.flags`: `vendor_not_approved`, `level_director`, `level_cfo`, `over_budget`, `price_difference`, `mismatched`, `short_delivery`, `damaged`, `missing`, `incomplete`, `payment_rejected`, `changes_requested`, `blocker`, `major`, `tests_failed`. Human text is in `summary.notes`.
 
 Artefact kinds and their JSON Schemas: `packages/schemas/*.json`. Workflow definitions: `docs/workflow-yaml.md`.
