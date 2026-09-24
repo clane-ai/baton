@@ -151,37 +151,41 @@ For a parked step the area becomes Retry: attempts and budget so far, optional n
 reason. For a question from an agent it becomes Answer: the question in full, a reply field. For a
 decided or finished task it shows who decided, when, and the reason.
 
-## 3. Visual direction
+## 3. Visual direction (revised 24 September 2026 after sign-off)
 
-The product is a ledger of decisions over business documents. The look should read as a well-set
-document, not as a dashboard of cards.
+The user chose a monday.com-style theme: the product language, not the brand assets. No logo, names or
+icons are copied.
 
-**Type.** IBM Plex Sans for everything on screen, IBM Plex Mono for keys, document numbers and money
-columns. One family with a matching mono keeps the document tables aligned and gives the app a
-paper-and-ledger character that Inter or the system stack would not. Base 13 px, 1.45 line height;
-headings 15 and 18 px, semibold; table rows 34 px. Sentence case throughout; no tracked-out capitals.
+**Feel.** A clean white workspace on a light grey canvas, rounded corners (8 px on panels, 6 px on
+controls, pills fully rounded), generous whitespace, subtle shadows instead of rules to separate
+surfaces, and colour used as information: status pills and column chips in a saturated palette.
 
-**Colour.** Paper `#fbfbf9`, panel `#ffffff`, rule `#e3e4e0`, ink `#17181c`, secondary ink `#5a5c60`.
-One accent, Baton blue `#2b4fd8`, used for the primary action and the active nav item and nothing
-else. Semantic: ok `#1f7a3a`, attention `#b25e00`, blocked `#b8232f`. State chips are tinted text on a
-pale ground, no filled pills. Colour appears only where it carries meaning: a rejected vendor, a short
-line, an overdue approval.
+**Type.** Figtree for everything on screen (geometric, friendly, variable weight, via `next/font`,
+self-hosted). IBM Plex Mono stays for keys, document numbers and money columns so tables align.
+Base 14 px, 1.5 line height; headings 16 and 20 px semibold; row height 40 px.
 
-**Density.** Compact. Approvers process lists; the queue shows 20 rows without scrolling at 1440 px,
-the item screen shows the whole purchase order and its email without scrolling at 1080 px tall.
-Minimum width 1200 px; below that the item screen stacks sources above the document. No phone layout
-in M2.
+**Colour.** Canvas `#f6f7fb`, surface `#ffffff`, border `#e6e9ef`, ink `#323338`, secondary ink
+`#676879`. Primary action and active nav: purple-blue `#6161ff`, hover `#5151d5`, soft `#eeeeff`.
+Status palette: done green `#00c875`, working orange `#fdab3d`, stuck red `#e2445c`, waiting purple
+`#a25ddc`, info blue `#579bfc`, neutral grey `#c4c4c4`, each with a pale tint for chips. Task states map
+to it once, in one place: done → green, in_progress/review → orange, needs_human → purple, failed →
+red, blocked → orange tint, ready/draft → blue tint, cancelled → grey.
 
-**Motion.** None on load. A decision animates the row leaving the queue and the next item arriving;
-that is the one moment that moves.
+**Shape.** Board-like rows: each queue group (Approvals, Parked, Questions) has a coloured left stripe
+and a group header with a count; rows are 40 px, hover lifts to the surface tint; column chips
+(policy flags, states) are filled pills with white text. The left rail has an icon per entry, the
+active entry is filled with the soft accent. Stat tiles are white with a soft shadow, the number in
+the accent when it needs attention. The item screen keeps the sources-left, document-right layout;
+the decision bar is a white surface with a shadow above it and the primary button in the accent.
 
-**Component library: decision.** No external UI library. Reason: the app needs about twelve
-components (rail, stat tile, table, filter menu, tabs, field, chip, sheet, button, textarea, toast,
-empty state), all with a document-like styling that a kit would fight; the package has zero UI
-dependencies today and stays that way for the customer's handover; Next 15 with React 19 still has
-rough edges in some kits. Two small additions: `lucide-react` for icons (tree-shaken, MIT) and the two
-Plex families served from `next/font` (self-hosted, no runtime request). PDFs use the browser's own
-viewer in an iframe, as today.
+**Density.** Slightly more open than the first proposal: 16 queue rows visible at 1440 px, the whole
+purchase order and its email visible at 1080 px tall. Minimum width 1200 px; below that the item
+screen stacks. No phone layout in M2.
+
+**Motion.** None on load. A decided row leaves the queue with a short fade and the next item slides in.
+
+**Component library: decision, unchanged.** No external UI library. `lucide-react` for icons and the
+two families via `next/font`. PDFs in the browser's viewer in an iframe.
 
 ## 4. What the engine must add
 
@@ -252,6 +256,12 @@ screen demonstrated on the dev server against the fixtures before it is called d
 `packages/dash` and `docs` only.
 
 ## 7. Sign-off
+
+Signed off 24 September 2026 by the user ("its fine use monday.com theme and start building"): IA,
+item layout and engine asks as proposed; visual direction as revised in section 3. The engine owner
+ships asks in the order 1, 5, 7, 2, 3, 4, 8, then 6.
+
+Original questions, kept for the record:
 
 Please answer: (a) is the information architecture right, in particular Inbox as the landing page and
 the operator console under Operations; (b) is the item layout right, sources left and document right;
