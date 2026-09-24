@@ -200,7 +200,8 @@ export type Role = {
 export type RolesResponse = { ok: true; roles: Role[] };
 
 export type StepCondition = { task: string; kind: string; field: string; equals: string; outcome?: string; gateway?: string };
-export type WorkflowRunStep = { id: string; key: string; title: string; role: string; state: TaskState; attempts: number; cost_usd: number; cost_credits: number; depends_on: string[]; assignee: string | null; updated_at: string; produces: { kind: string }[]; condition?: StepCondition | null };
+export type StepNext = { key: string; id: string; when: string | null; state?: TaskState };
+export type WorkflowRunStep = { id: string; key: string; title: string; role: string; state: TaskState; attempts: number; cost_usd: number; cost_credits: number; depends_on: string[]; assignee: string | null; updated_at: string; produces: { kind: string }[]; condition?: StepCondition | null; next?: StepNext[]; when?: { gateway?: string; outcome?: string; decided_by?: string; field?: string; equals?: string } | null };
 export type WorkflowRun = { key: string; workflow_key: string | null; workflow_name: string | null; input: string | null; created_by: string; created_at: string; finished_at: string | null; status: string; counts: Record<string, number>; cost_usd: number; cost_credits: number; steps?: WorkflowRunStep[] };
 export type WorkflowRunsResponse = { ok: true; runs: WorkflowRun[] };
 export type WorkflowRunResponse = { ok: true; run: WorkflowRun };
