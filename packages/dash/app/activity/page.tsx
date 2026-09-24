@@ -1,5 +1,12 @@
+import { Suspense } from "react";
+import ActivityScreen from "@/components/activity/ActivityScreen";
+
 export const dynamic = "force-dynamic";
 
 export default function Page() {
-  return <h1>Activity</h1>;
+  return (
+    <Suspense fallback={<div className="muted">Loading…</div>}>
+      <ActivityScreen />
+    </Suspense>
+  );
 }

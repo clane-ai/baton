@@ -504,3 +504,14 @@ button.row.selected { background: var(--accent-soft); }
 .sheet-h .sp { flex: 1; }
 .sheet-b { padding: 16px; overflow: auto; flex: 1; }
 @media (max-width: 1100px) { .docs-row { grid-template-columns: 1.3fr 1.2fr 130px; } .docs-row .cell:nth-child(n+4) { display: none; } }
+
+/* ---- activity ---- */
+.act-list { padding: 4px 16px; }
+.act-row { display: grid; grid-template-columns: 150px 1fr auto; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); align-items: baseline; cursor: pointer; }
+.act-row:last-child { border-bottom: 0; }
+.act-row:hover { background: var(--surface-2); }
+.act-row .t, .act-row .who { color: var(--ink-3); font-size: 12px; }
+.act-row .what { overflow-wrap: anywhere; }
+.act-row .payload { font-family: var(--mono); }
+.act-payload { grid-column: 1 / -1; margin-top: 4px; }
+.lbl { color: var(--ink-2); font-size: 13px; display: inline-flex; gap: 6px; align-items: center; }
