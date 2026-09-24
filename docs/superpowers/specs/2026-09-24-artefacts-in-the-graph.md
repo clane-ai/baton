@@ -25,6 +25,74 @@ The consequence, measured rather than asserted: converting a real Clane workflow
 every step as the generic kind, because a free-text channel has no kind. **Conversion therefore switches
 off the engine's main quality mechanism.** The gate can only check that something was submitted.
 
+## Corrected, 24 September 2026: most of this already exists and runs
+
+The largest finding of the day, from reading the platform rather than the studio, and it changes what
+this document is for. **Clane already has a typed node contract, and the orchestrator already enforces
+it.** What is missing is that the editor cannot author one.
+
+**The contract.** The shared types define a node contract of inputs and outputs. An input port carries a
+name, a **type**, the channel it reads from, a **required** flag and a default. An output port carries a
+name, a **type** and a description. The port types are string, number, boolean, json, array and file.
+The file's own comment describes it as a node working inside declared ports rather than a free-for-all.
+
+**The enforcement.** Three checks exist and the orchestrator calls all three: a pre-flight over the whole
+graph when a run starts, an input check as a node is entered, and an output check as it leaves. The
+pre-flight is not advisory — it fails and the run does not start.
+
+**Why none of it is visible.** When a node has no explicit contract, one is *derived* from the legacy
+declared inputs and output fields, with every input forced to not-required and **every output typed as a
+string**, deliberately, so that existing graphs stay lenient. No studio surface writes a contract, so no
+real workflow has one, so everything runs on the derived lenient version. That is also the whole
+explanation of the code editor promising typed objects and generating string for every leaf: it is not a
+separate defect, it is the derived contract showing through.
+
+**So the gap is one authoring surface, not eleven node types.** The contract lives on the node and is
+type-agnostic, so the engine does not care which node type declares. The cost is almost entirely the cost
+of building the authoring experience at all; the increment per node type after that is small. That
+reverses the scope limit recorded earlier in this document, which said typing would reach two node types
+out of eleven.
+
+### The hazard to decide before building, not during
+
+**`required` defaults to true on an input port, and every contract today is derived with it false.** The
+moment an editor writes an explicit contract for a node, that node's inputs become required, the
+pre-flight begins enforcing, and a graph that ran this morning refuses to start. Whoever builds this has
+to decide deliberately whether authoring is additive or whether the first save flips a workflow into
+strict mode. Discovering that from a customer's failed run is the bad version.
+
+### Port types and kinds are two layers, and both are needed
+
+A port type is a primitive. An `invoice` is not a primitive: at the port level it is json, and the kind
+refines what shape of json it is. So a kind registry does not replace the port type, it sits above it.
+Say that explicitly wherever the registry is built, or it will be built as a competing enumeration and
+the two will disagree.
+
+### "Declare" means three different things, and conflating them is what makes this expensive
+
+- **Derived, never hand-typed.** An app action's output shape is knowable from the connector's own tool
+  definition, exactly as its inputs already are. A router or validator produces a branch decision whose
+  possible values are already on screen as its outcome labels: an enum the editor can derive without
+  asking anybody. Making an author retype either would be worse than what exists today.
+- **Hand-declared, because nothing else can know.** A role node's declaration is prose aimed at an
+  extractor, and that is legitimate: no schema can tell a model which sentence holds the manager's name.
+  A human review node is the sharper case and **the highest priority of all of them**: it produces the
+  approver's decision and possibly an edited artefact, only the author knows which, and today it cannot
+  declare anything at all. It is the only node whose output is both unknowable and unauthorable.
+- **Declared and strictly checkable.** A code node is deterministic, so its declaration is a real
+  contract the output check can enforce properly rather than leniently. It is the one place where
+  turning enforcement on costs nothing in fidelity.
+
+Default to derivation; reserve hand-authoring for the two cases where derivation is impossible. That
+keeps the authoring surface small, which matters because the surface is the whole cost.
+
+### Still unchecked
+
+Whether the graph pre-flight has ever actually refused a real run. Whether the studio's serialisation
+would preserve a contract it did not author, which decides whether one could be written through the
+interface today and survive an editor save. And the reachability logic inside the pre-flight, which is
+described by its comment rather than read.
+
 ## The six changes, in the order they pay off
 
 ### 1. A node declares what it produces, by kind
