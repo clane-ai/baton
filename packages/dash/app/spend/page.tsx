@@ -1,5 +1,7 @@
+import SpendScreen from "@/components/spend/SpendScreen";
+
 export const dynamic = "force-dynamic";
 
 export default function Page() {
-  return <h1>Spend</h1>;
+  return <SpendScreen />;
 }
