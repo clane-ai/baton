@@ -91,12 +91,20 @@ describe('Inbox panel: summary (Home)', () => {
       getInbox: () => Promise.resolve({ ...inbox, tiles: { ...inbox.tiles, approvals: 1 }, items: [approvalItem, ...inbox.items], nextCursor: null }),
     });
     await refreshInbox();
-    markActed('TSK-0927', 'approval', 'Approved TSK-0927. Send purchase order is ready.');
+    // The decision's own background refresh finishes (the engine still lists the item).
+    await act(async () => {
+      markActed('TSK-0927', 'approval', 'Approved TSK-0927. Send purchase order is ready.');
+      await refreshInbox();
+    });
     render(<ApprovalsPanel onOpenItem={jest.fn()} />);
     // no loading step: the queue is there on the first render
     expect(screen.getByText('Approved TSK-0927. Send purchase order is ready.')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /TSK-0927/ })).not.toBeInTheDocument();
     expect(screen.getByText('3 waiting')).toBeInTheDocument();
+    // Home's own refresh on arrival settles inside act.
+    await act(async () => {
+      await refreshInbox();
+    });
   });
 
   it('lets an item a colleague decided first simply disappear', async () => {

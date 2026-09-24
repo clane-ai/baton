@@ -15,6 +15,8 @@ export const WORKFLOW = {
     'workflow.nav.documents': 'Documents',
     'workflow.nav.activity': 'Activity',
     'workflow.nav.spend': 'Spend',
+    // The rail entry in the platform shell (Shell.jsx work items).
+    'shell.work.workflow': 'Workflow',
     'workflow.nav.definitions': 'Definitions',
     'workflow.definitions.missing.title': 'The workflow studio is not available here',
     'workflow.definitions.missing.hint': 'Open Workflow from the main navigation to build and edit workflows.',
