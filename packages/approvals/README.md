@@ -1,10 +1,11 @@
 # Workflow operational screens — staging
 
 The operational screens of Clane's **Workflow** section (Approvals, Runs,
-Documents, Activity, Spend over the Baton engine), built here and handed to the
-platform client's owner to move in. They join the
-workflow studio inside the main client under `/app/build/workflows`
-(architect ruling, 2026-09-24).
+Documents, Activity, Spend over the Baton engine), built here and landed in the
+platform client on 2026-09-24. Workflow is a top-level section at
+`/app/workflow` (Runs, Documents, Activity, Spend, Definitions hosting the
+studio, work items); the inbox is `ApprovalsPanel` at the top of Home, below
+the command centre header.
 
 - Plan: `docs/superpowers/plans/2026-09-24-approvals-area.md`
 - Spec: `docs/superpowers/specs/2026-09-24-baton-app-in-clane.md`
@@ -31,12 +32,14 @@ outside `AuthProvider`. So a spec that passes here passes there.
 
 ## The section
 
-`WorkflowOperations` (`operations/Section.tsx`) mounts its own router under
-`SECTION_MOUNT` (`operations/paths.ts`, the one placement constant) with a tab
-row for the five screens. The main client's `spaRoute` knows only
-`/app/build/workflows/<segment>`; everything deeper belongs to this router.
-All server calls go through `operations/data/api.ts` to `/api/workflow-ops`.
-All copy is in `catalog.workflow.js` under `workflow.*`.
+`WorkflowSection` (`operations/Section.tsx`) takes `opsEnabled` (the
+`workflow-ops` module), `definitions` (the studio, never gated) and `onHome`,
+and mounts its own router under `SECTION_MOUNT` (`/app/workflow`). The main
+client's `spaRoute` owns `/app/workflow/<section>/<sub>`; everything deeper
+belongs to this router. `ApprovalsPanel` is the one inbox, on the shared
+`inboxStore`: after an action the item leaves the queue at once and the person
+returns to Home. All server calls go through `operations/data/api.ts` to
+`/api/workflow-ops`. All copy is in `catalog.workflow.js`.
 
 ## Commands
 
@@ -64,33 +67,31 @@ Last run, 2026-09-24:
 writing anything if a target file exists with different content, and it never
 runs git. Stage and commit by explicit path afterwards.
 
-## Waiting on others
+## Status
 
-- **No platform work from this session.** The user ruled on 2026-09-24 that
-  this work stays out of `C:\git\clane.ai` entirely, worktrees included. The
-  platform's client owner moves it with `scripts/move.mjs` and applies
-  `PATCHES.md`; `platform-check` only reads the checkout and writes to a
-  temporary folder.
-- **Gateway agent (clane-ai-f5).** The final `SECTION_MOUNT` segment; the
-  WorkflowsPage mount and `/api/config` `modules` check; `api.blob()` in
-  `lib/api.ts`; the `spaRoute` replace guard for deep links. All in
-  `PATCHES.md`.
-- **Design-system owner.** Accessible shared Tabs, Input, FilterBar,
-  ApprovalCard and Drawer would let the area-local versions go.
+- Landed in the platform on 2026-09-24 in three groups (see `PATCHES.md`),
+  gated by `platform-check`: tsc 0 added, Jest 195/195, 0 warnings.
+- On the dev box the operational screens and the Home panel stay hidden until
+  the server runs with `WORKFLOW_OPS_AREA=true`.
+- Browser verification is with another session (clane-ai-9f); interface
+  defects it finds come back here.
+- Design-system owner: accessible shared Tabs, Input, FilterBar, ApprovalCard
+  and Drawer would let the area-local versions go.
 
 ## UAT script
 
 Run against a platform build with `WORKFLOW_OPS_AREA=true` and a Baton engine
 with at least one procure-to-pay run.
 
-1. Open Build, Workflows, then Approvals. The tab row shows the waiting count.
-2. Approvals lists decisions, parked steps and questions. Search narrows it;
-   `j`, `k` and `Enter` move and open.
+1. Home shows "Waiting for you" below the command centre header, with the
+   oldest items; "Show all" opens the whole list, where `j` and `k` move.
+2. The rail shows Workflow; it opens on Runs, and Definitions shows the studio.
+   `/app/build/workflows/<id>` redirects to `/app/workflow/definitions/<id>`.
 3. Open a purchase-order approval. The requester email, the requisition PDF
    and the business document show side by side; a document not in the
    workspace is a disabled tab marked "Not uploaded".
-4. Reject is disabled until a reason is typed. Approve once; the receipt names
-   the next step and offers the next waiting item.
+4. Reject is disabled until a reason is typed. Approve once; you are back on
+   Home with the item gone from the queue and the confirmation shown.
 5. Refresh the browser on the item's URL; the same item opens.
 6. Runs lists the run. Open it: the graph, eight steps with the branches not
    taken, the workspace chip, every artefact under its own number.
@@ -98,5 +99,5 @@ with at least one procure-to-pay run.
 8. Activity filters by run and loads older events.
 9. Spend shows totals, the day chart, and the most expensive steps.
 10. Switch to dark mode; every screen stays legible.
-11. With `WORKFLOW_OPS_AREA` unset, the Approvals entry is absent and the
-    section URL does not open.
+11. With `WORKFLOW_OPS_AREA` unset, Home looks as before (no panel, no gap)
+    and Workflow shows only Definitions.
