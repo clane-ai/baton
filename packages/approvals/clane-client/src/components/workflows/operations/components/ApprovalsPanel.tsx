@@ -478,7 +478,9 @@ export function ApprovalsPanel({
     .join(' + ');
 
   return (
-    <section aria-label={t('workflow.approvals.title')} style={{ display: 'grid', gap: 16 }}>
+    // Carries the design-system scope itself: Home is outside the Workflow
+    // section's .cl-ds wrapper, and the tokens only exist inside one.
+    <section aria-label={t('workflow.approvals.title')} className="cl-ds" style={{ display: 'grid', gap: 16, color: 'var(--ink)', fontFamily: 'var(--font-body)' }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 12 }}>
         <h2 style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600, color: 'var(--ink)' }}>
           {t('workflow.approvals.title')}

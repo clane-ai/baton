@@ -50,6 +50,11 @@ afterEach(async () => {
 });
 
 describe('Inbox panel: summary (Home)', () => {
+  it('carries the design-system scope itself, since Home is outside the Workflow section', async () => {
+    render(<ApprovalsPanel onOpenItem={jest.fn()} />);
+    expect(await screen.findByRole('region', { name: 'Waiting for you' })).toHaveClass('cl-ds');
+  });
+
   it('shows how much is waiting and the oldest few, each linking to its work item', async () => {
     const onOpenItem = jest.fn();
     render(<ApprovalsPanel onOpenItem={onOpenItem} />);
