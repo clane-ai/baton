@@ -80,7 +80,8 @@ Deno.serve(async (req: Request) => {
     if (path.startsWith("/admin") || path === "/work-available" || path === "/runs/usage" || path === "/agent/inbox") {
       const ctx = await authenticate(req, path);
       if (!ctx) return unauthorized();
-      const r = await handleAdmin(ctx, req, path, url);
+      const r = await handleAdmin(ctx, req, path, url) as ({ status: number; body: unknown; raw?: boolean; headers?: Record<string, string> } | null);
+      if (r && r.raw) return new Response(r.body as BodyInit, { status: r.status, headers: r.headers ?? {} });
       if (r) return json(r.body, r.status);
     }
 

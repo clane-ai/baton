@@ -1,0 +1,130 @@
+{
+    "ok": true,
+    "tiles": {
+        "approvals": 0,
+        "parked": 3,
+        "questions": 0,
+        "overdue": 0,
+        "total": 3
+    },
+    "items": [
+        {
+            "id": "442559c0-7a23-4ac1-b814-0591654ace60",
+            "key": "TSK-0798",
+            "kind": "parked",
+            "state": "failed",
+            "role": "frontend-dev",
+            "title": "test task",
+            "workflow_run": null,
+            "run_name": null,
+            "waiting_since": "2026-09-23T07:46:16.390Z",
+            "deadline": null,
+            "overdue": false,
+            "summary": {
+                "document": "test",
+                "counterparty": null,
+                "amount": null,
+                "currency": null,
+                "flags": [
+                    "tests_failed"
+                ],
+                "notes": [
+                    "1 failed"
+                ],
+                "kind": "test_report",
+                "produced_by": null,
+                "produced_at": "2026-09-23T07:46:16.390787+00:00"
+            },
+            "next": [],
+            "question": null,
+            "last_failure": null,
+            "attempts": 1,
+            "max_attempts": 3,
+            "cost_usd": 0,
+            "budget_usd": null,
+            "assignee": null
+        },
+        {
+            "id": "6147c844-727c-41d7-b4e7-053ea21c4afd",
+            "key": "TSK-0804",
+            "kind": "parked",
+            "state": "needs_human",
+            "role": "frontend-dev",
+            "title": "deleg parent",
+            "workflow_run": null,
+            "run_name": null,
+            "waiting_since": "2026-09-23T12:03:38.128Z",
+            "deadline": null,
+            "overdue": false,
+            "summary": {
+                "document": null,
+                "counterparty": null,
+                "amount": null,
+                "currency": null,
+                "flags": [],
+                "notes": [],
+                "kind": null,
+                "produced_by": null,
+                "produced_at": null
+            },
+            "next": [],
+            "question": null,
+            "last_failure": {
+                "ts": "2026-09-23T12:03:38.128702+00:00",
+                "type": "delegation_failed",
+                "payload": {
+                    "child_id": "b7103f7d-98bf-4347-bd89-827a2c11efc7",
+                    "child_key": "TSK-0805",
+                    "child_state": "cancelled"
+                }
+            },
+            "attempts": 1,
+            "max_attempts": 3,
+            "cost_usd": 0,
+            "budget_usd": null,
+            "assignee": null
+        },
+        {
+            "id": "10d8d504-3735-47f5-b10c-340a4e774ec3",
+            "key": "TSK-0806",
+            "kind": "parked",
+            "state": "needs_human",
+            "role": "frontend-dev",
+            "title": "deleg parent",
+            "workflow_run": null,
+            "run_name": null,
+            "waiting_since": "2026-09-23T12:03:46.234Z",
+            "deadline": null,
+            "overdue": false,
+            "summary": {
+                "document": null,
+                "counterparty": null,
+                "amount": null,
+                "currency": null,
+                "flags": [],
+                "notes": [],
+                "kind": null,
+                "produced_by": null,
+                "produced_at": null
+            },
+            "next": [],
+            "question": null,
+            "last_failure": {
+                "ts": "2026-09-23T12:03:46.234398+00:00",
+                "type": "delegation_failed",
+                "payload": {
+                    "child_id": "09a2c6cd-dd14-4440-946a-0ba87cd4e379",
+                    "child_key": "TSK-0807",
+                    "child_state": "cancelled"
+                }
+            },
+            "attempts": 1,
+            "max_attempts": 3,
+            "cost_usd": 0,
+            "budget_usd": null,
+            "assignee": null
+        }
+    ],
+    "next_cursor": null,
+    "limit": 5
+}

@@ -114,13 +114,13 @@ export function plan(manifest, { input = '', run }) {
 }
 
 /** Create the tasks on the server in order. Returns { run, tasks: [{node, key, id}], skipped }. */
-export async function compile(cfg, manifest, { input, run, dryRun = false, affinity, publish = true }) {
+export async function compile(cfg, manifest, { input, run, dryRun = false, affinity, publish = true, workspace }) {
   const { steps, skipped, gateways } = plan(manifest, { input, run });
   const api = new Api(cfg.serverUrl, cfg.operatorToken);
   const wfKey = String(manifest.key ?? manifest.name ?? 'workflow').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   if (!dryRun) {
     if (publish) must(await api.post('/admin/workflows', { key: wfKey, name: manifest.name, version: manifest.version, manifest }), 'publish workflow');
-    must(await api.post('/admin/workflow-runs', { key: run, workflow_key: publish ? wfKey : undefined, workflow_name: manifest.name, input }), 'create run');
+    must(await api.post('/admin/workflow-runs', { key: run, workflow_key: publish ? wfKey : undefined, workflow_name: manifest.name, input, workspace }), 'create run');
   }
   const created = new Map(); // node id -> { id, key, produces }
   const out = [];

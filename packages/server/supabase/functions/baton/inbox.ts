@@ -78,7 +78,18 @@ export function decisionOf(events: Json[]): Json | null {
 }
 
 /** Human inbox: approvals, parked tasks and open questions to nobody, each with a server-built summary. */
-export async function inboxJson(): Promise<Json> {
+const b64 = (s: string) => btoa(unescape(encodeURIComponent(s)));
+const unb64 = (s: string) => { try { return decodeURIComponent(escape(atob(s))); } catch { return ""; } };
+
+/** Opaque keyset cursor: "<sort value>|<id>". Survives redeploys and rows changing under the reader. */
+export function encodeCursor(sortValue: string, id: string): string { return b64(`${sortValue}|${id}`); }
+export function decodeCursor(c: string | null): { sortValue: string; id: string } | null {
+  if (!c) return null;
+  const s = unb64(c); const i = s.lastIndexOf("|");
+  return i > 0 ? { sortValue: s.slice(0, i), id: s.slice(i + 1) } : null;
+}
+
+export async function inboxJson(cursor: string | null = null, limit = 50): Promise<Json> {
   const rows = await sql`
     with waiting as (
       select t.* from baton.tasks t where t.state in ('needs_human', 'failed')
@@ -123,5 +134,14 @@ export async function inboxJson(): Promise<Json> {
       attempts: t.attempts, max_attempts: t.max_attempts, cost_usd: t.cost_usd, budget_usd: t.budget_usd, assignee: r.assignee_name ?? null,
     });
   }
-  return { ok: true, tiles: { approvals, parked, questions, overdue, total: items.length }, items };
+  // keyset page over (waiting_since asc, id asc); tiles always describe the whole inbox
+  items.sort((a, b) => String(a.waiting_since).localeCompare(String(b.waiting_since)) || String(a.id).localeCompare(String(b.id)));
+  const c = decodeCursor(cursor);
+  const start = c ? items.findIndex((i) => `${i.waiting_since}` > c.sortValue || (`${i.waiting_since}` === c.sortValue && String(i.id) > c.id)) : 0;
+  const from = start < 0 ? items.length : start;
+  const cap = Math.max(1, Math.min(50, limit));
+  const page = items.slice(from, from + cap);
+  const last = page[page.length - 1];
+  const next_cursor = from + cap < items.length && last ? encodeCursor(String(last.waiting_since), String(last.id)) : null;
+  return { ok: true, tiles: { approvals, parked, questions, overdue, total: items.length }, items: page, next_cursor, limit: cap };
 }

@@ -4,7 +4,8 @@ import { sql } from "./db.ts";
 import { newToken, sha256Hex, type Ctx } from "./auth.ts";
 import { drainOutbox } from "./gh.ts";
 import { drainWebhooks } from "./webhooks.ts";
-import { inboxJson, documentsOf, decisionOf } from "./inbox.ts";
+import { inboxJson, documentsOf, decisionOf, decodeCursor, encodeCursor } from "./inbox.ts";
+import { uploadBytes, downloadObject, sha256Hex as shaHex } from "./storage.ts";
 
 type Json = Record<string, unknown>;
 // postgres.js serialises objects for jsonb parameters itself; never pre-stringify.
@@ -24,7 +25,8 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
   // A platform proxy holding the operator token may name the signed-in person (X-Baton-Actor); the audit
   // trail then records user:<name> instead of the token owner. Interim until Clane identity mints operators.
   const named = ctx.kind === "operator" ? (req.headers.get("x-baton-actor") ?? "").trim().slice(0, 120) : "";
-  const actor = named ? `user:${named}` : ctx.actor;
+  const actor = named ? (named.startsWith("user:") ? named : `user:${named}`) : ctx.actor;
+  const actorLabel = ctx.kind === "operator" ? (req.headers.get("x-baton-actor-label") ?? "").trim().slice(0, 200) : "";
 
   // Routes the daemon may call with an agent token.
   if (path === "/work-available" && method === "GET") {
@@ -80,7 +82,7 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
   }
 
   // ---- inbox (the human read model)
-  if (seg[1] === "inbox" && method === "GET") return { status: 200, body: await inboxJson() };
+  if (seg[1] === "inbox" && method === "GET") return { status: 200, body: await inboxJson(url.searchParams.get("cursor"), Number(url.searchParams.get("limit") ?? 50)) };
 
   // ---- tasks: filter by one or more states, search, page
   if (seg[1] === "tasks" && seg.length === 2 && method === "GET") {
@@ -94,6 +96,20 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
          and (${p.get("workflow_run")}::text is null or t.workflow_run = ${p.get("workflow_run")})
          and (${q}::text is null or t.key ilike ${q} or t.title ilike ${q} or t.workflow_run ilike ${q} or exists (select 1 from baton.artifacts a where a.task_id = t.id and a.content::text ilike ${q}))`;
     const [{ n }] = await sql`select count(*)::int as n from baton.tasks t ${where}`;
+    const cur = decodeCursor(p.get("cursor"));
+    if (p.get("cursor") !== null) {
+      // keyset page: created_at desc, id desc; stable while rows change underneath the reader
+      const cap = Math.max(1, Math.min(50, Number(p.get("limit") ?? 50)));
+      const rows = await sql`
+        select baton.task_json(t) || jsonb_build_object('assignee_name', (select name from baton.agents where id = t.assignee)) as r, t.created_at, t.id
+          from baton.tasks t ${where}
+           and (${cur?.sortValue ?? null}::timestamptz is null or (t.created_at, t.id::text) < (${cur?.sortValue ?? null}::timestamptz, ${cur?.id ?? null}::text))
+         order by t.created_at desc, t.id desc limit ${cap + 1}`;
+      const page = rows.slice(0, cap);
+      const more = rows.length > cap;
+      const last = page[page.length - 1];
+      return { status: 200, body: { ok: true, tasks: page.map((x) => x.r), total: n, limit: cap, next_cursor: more && last ? encodeCursor(new Date(last.created_at as string).toISOString(), String(last.id)) : null } };
+    }
     const rows = await sql`
       select baton.task_json(t) || jsonb_build_object('assignee_name', (select name from baton.agents where id = t.assignee)) as r
         from baton.tasks t ${where}
@@ -128,9 +144,9 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
   if (seg[1] === "workflow-runs" && seg.length === 2 && method === "POST") {
     const b = await readJson(req);
     const key = String(b.key ?? "").trim(); if (!key) return bad("PRECONDITION_FAILED", "key is required");
-    const [row] = await sql`insert into baton.workflow_runs (key, workflow_key, workflow_name, input, created_by)
-      values (${key}, ${b.workflow_key ? String(b.workflow_key) : null}, ${b.workflow_name ? String(b.workflow_name) : null}, ${b.input ? String(b.input) : null}, ${actor})
-      on conflict (key) do update set workflow_name = excluded.workflow_name, input = excluded.input returning key`;
+    const [row] = await sql`insert into baton.workflow_runs (key, workflow_key, workflow_name, input, created_by, workspace)
+      values (${key}, ${b.workflow_key ? String(b.workflow_key) : null}, ${b.workflow_name ? String(b.workflow_name) : null}, ${b.input ? String(b.input) : null}, ${actor}, ${b.workspace ? String(b.workspace) : null})
+      on conflict (key) do update set workflow_name = excluded.workflow_name, input = excluded.input, workspace = coalesce(excluded.workspace, baton.workflow_runs.workspace) returning key, workspace`;
     return { status: 200, body: { ok: true, run: row } };
   }
   if (seg[1] === "workflow-runs" && seg.length === 3 && method === "GET") {
@@ -179,12 +195,25 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
       d.documents = [...((d.consumed as Json[]) ?? []), ...((d.artifacts as Json[]) ?? [])].flatMap((a) => documentsOf(String(a.kind), a.content));
       return { status: 200, body: d };
     }
-    if (seg[3] === "documents" && method === "GET") {
+    if (seg[3] === "documents" && seg.length === 4 && method === "GET") {
       const d = await one(sql`select baton.task_detail(${id}::uuid) as r`);
       if (d.ok === false) return { status: 404, body: d };
+      const [{ ws }] = await sql`select baton.task_workspace(${id}::uuid) as ws`;
       const seen = new Set<string>();
-      const documents = [...((d.consumed as Json[]) ?? []), ...((d.artifacts as Json[]) ?? [])].flatMap((a) => documentsOf(String(a.kind), a.content)).filter((x) => (seen.has(x.path) ? false : (seen.add(x.path), true)));
-      return { status: 200, body: { ok: true, documents } };
+      const wanted = [...((d.consumed as Json[]) ?? []), ...((d.artifacts as Json[]) ?? [])].flatMap((a) => documentsOf(String(a.kind), a.content)).filter((x) => (seen.has(x.path) ? false : (seen.add(x.path), true)));
+      const stored = await sql`select id, path, content_type, bytes, updated_at from baton.documents where workspace = ${ws}`;
+      const byPath = new Map(stored.map((s) => [String(s.path), s]));
+      const documents = wanted.map((w) => { const s = byPath.get(w.path); return { ...w, id: s ? String(s.id) : null, available: !!s, content_type: s?.content_type ?? null, bytes: s?.bytes ?? null, updated_at: s?.updated_at ?? null }; });
+      return { status: 200, body: { ok: true, workspace: ws, documents } };
+    }
+    if (seg[3] === "documents" && seg.length === 5 && method === "GET") {
+      const [{ ws }] = await sql`select baton.task_workspace(${id}::uuid) as ws`;
+      const [doc] = await sql`select id, workspace, path, content_type, bytes from baton.documents where id::text = ${seg[4]} and workspace = ${ws}`;
+      if (!doc) return bad("NOT_FOUND", "no such document for this task", 404);
+      const obj = await downloadObject(`docs/${doc.workspace}/${doc.path}`);
+      if (!obj) return bad("NOT_FOUND", "document bytes are missing from storage", 404);
+      const name = String(doc.path).split("/").pop() ?? "document";
+      return { status: 200, body: obj.body, raw: true, headers: { "content-type": String(doc.content_type), "content-length": String(doc.bytes), "content-disposition": `inline; filename="${name.replace(/"/g, "")}"`, "cache-control": "private, max-age=60" } } as unknown as Route;
     }
     const b = method === "POST" ? await readJson(req) : {};
     if (seg[3] === "prioritise" && method === "POST") return { status: 200, body: await one(sql`select baton.task_reprioritise(${actor}, ${id}::uuid, ${Number(b.priority)}::int) as r`) };
@@ -193,6 +222,27 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
     if (seg[3] === "retry" && method === "POST") { const r = await one(sql`select baton.task_retry(${actor}, ${id}::uuid, ${b.reset_attempts !== false}, ${b.budget_usd == null ? null : Number(b.budget_usd)}, ${b.reason ? String(b.reason) : null}, ${b.deadline ? String(b.deadline) : null}) as r`); try { await drainWebhooks(); } catch { /* ignore */ } return { status: 200, body: r }; }
     if (seg[3] === "force-release" && method === "POST") return { status: 200, body: await one(sql`select baton.task_force_release(${actor}, ${id}::uuid) as r`) };
     if (seg[3] === "gate" && method === "POST") return { status: 200, body: await one(sql`select baton.run_gate(${id}::uuid) as r`) };
+  }
+
+  // ---- documents: files a workspace holds, uploaded by the sync command or a worker, streamed to screens by id
+  if (seg[1] === "documents" && seg.length === 2 && method === "POST") {
+    const b = await readJson(req);
+    const workspace = String(b.workspace ?? "default").trim(), path = String(b.path ?? "").replace(/\\/g, "/").trim();
+    if (!path || path.includes("..") || path.startsWith("/") || /^[a-z]:/i.test(path)) return bad("PRECONDITION_FAILED", "path must be relative, forward slashes, no ..");
+    if (typeof b.content_base64 !== "string") return bad("PRECONDITION_FAILED", "content_base64 is required");
+    const bytes = Uint8Array.from(atob(b.content_base64), (c) => c.charCodeAt(0));
+    if (bytes.length > 25 * 1024 * 1024) return bad("PRECONDITION_FAILED", "document exceeds 25 MB");
+    const contentType = b.content_type ? String(b.content_type) : "application/octet-stream";
+    await uploadBytes(`docs/${workspace}/${path}`, bytes, contentType);
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    const sha = [...new Uint8Array(digest)].map((x) => x.toString(16).padStart(2, "0")).join("");
+    const r = await one(sql`select baton.document_upsert(${workspace}, ${path}, ${contentType}, ${bytes.length}::bigint, ${sha}, ${actor}) as r`);
+    return { status: r.ok === false ? 400 : 200, body: r };
+  }
+  if (seg[1] === "documents" && seg.length === 2 && method === "GET") {
+    const ws = url.searchParams.get("workspace") ?? "default";
+    const rows = await sql`select id, workspace, path, content_type, bytes, uploaded_by, updated_at from baton.documents where workspace = ${ws} order by path`;
+    return { status: 200, body: { ok: true, workspace: ws, documents: rows } };
   }
 
   // ---- messages

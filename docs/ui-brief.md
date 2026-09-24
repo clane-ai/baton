@@ -41,6 +41,11 @@ not built is listed.
 | Run view: per-step `next[]` and `when` (gateway, outcome, decided_by, field) | `GET /admin/workflow-runs/:key` |
 | Answer by task | `POST /admin/answer {task_key, body}` |
 | Per-field provenance and documents on artefacts | optional `_provenance` and `documents[]` on the six P2P kinds; the LLM roles fill them from now on |
+| **Document bytes from the engine** (no disk on the client side) | `GET /admin/tasks/:key/documents` lists with `id`, `available`, `content_type`, `bytes`; `GET /admin/tasks/:key/documents/:id` streams inline; `POST /admin/documents {workspace, path, content_type, content_base64}` and the agent tool `document_put` upload; `baton documents sync --run <key>` uploads what a run's artefacts refer to; a run names its workspace (`--workspace`) |
+| Cursor paging | `GET /admin/inbox?cursor=&limit=` and `GET /admin/tasks?cursor=&limit=` (keyset, opaque cursor, `next_cursor` null on the last page; `limit` max 50) |
+| Actor behind a proxy | `X-Baton-Actor: user:<id>` on operator-token calls is recorded as the actor (`user:<id>`); `X-Baton-Actor-Label` accepted |
+
+Example captures: `docs/examples/api/inbox.json`, `task-detail.json`, `task-documents.json`, `workflow-run.json`.
 
 Flag codes in `summary.flags`: `vendor_not_approved`, `level_director`, `level_cfo`, `over_budget`, `price_difference`, `mismatched`, `short_delivery`, `damaged`, `missing`, `incomplete`, `payment_rejected`, `changes_requested`, `blocker`, `major`, `tests_failed`. Human text is in `summary.notes`.
 

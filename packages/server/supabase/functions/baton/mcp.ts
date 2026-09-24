@@ -1,7 +1,7 @@
 // The MCP face: JSON-RPC over streamable HTTP, seventeen tools (prd.md section 10, docs/delegation.md).
 import { sql, asAgent } from "./db.ts";
 import type { Agent } from "./auth.ts";
-import { uploadArtifact, signArtifact, sha256Hex } from "./storage.ts";
+import { uploadArtifact, signArtifact, sha256Hex, uploadBytes } from "./storage.ts";
 import { drainOutbox } from "./gh.ts";
 import { drainWebhooks } from "./webhooks.ts";
 
@@ -81,6 +81,9 @@ export const TOOLS: ToolDef[] = [
   { name: "board", mutating: false,
     description: "Counts of tasks by state for my role, and my own tasks.",
     inputSchema: { type: "object", properties: { role: { type: "string" } } } },
+  { name: "document_put", mutating: true,
+    description: "Upload a workspace file (PDF, email, text) that an artefact refers to, so people can open it from the app. Path is relative to the workspace, forward slashes. Needs a live lease on the task.",
+    inputSchema: { type: "object", required: ["task_id", "path", "content_base64"], properties: { task_id: uuid, path: { type: "string" }, content_base64: { type: "string" }, content_type: { type: "string" } } } },
 ];
 
 // postgres.js serialises objects for jsonb parameters itself; never pre-stringify.
@@ -192,6 +195,23 @@ export async function runTool(agent: Agent, name: string, args: Json, session: s
     }
     case "artifact_put":
       return putArtifact(agent, args);
+
+    case "document_put": {
+      const taskId = String(args.task_id);
+      const [{ e }] = await sql`select baton.check_lease(${agent.id}::uuid, ${taskId}::uuid) as e`;
+      if (e) return one(sql`select baton.lease_error(${e}) as r`);
+      const path = String(args.path ?? "").replace(/\\/g, "/").trim();
+      if (!path || path.includes("..") || path.startsWith("/") || /^[a-z]:/i.test(path)) return { ok: false, error: { code: "PRECONDITION_FAILED", message: "path must be relative, forward slashes, no ..", retryable: false } };
+      let bytes: Uint8Array;
+      try { bytes = Uint8Array.from(atob(String(args.content_base64 ?? "")), (c) => c.charCodeAt(0)); } catch { return { ok: false, error: { code: "PRECONDITION_FAILED", message: "content_base64 is not base64", retryable: false } }; }
+      if (bytes.length > 25 * 1024 * 1024) return { ok: false, error: { code: "PRECONDITION_FAILED", message: "document exceeds 25 MB", retryable: false } };
+      const [{ ws }] = await sql`select baton.task_workspace(${taskId}::uuid) as ws`;
+      const contentType = args.content_type ? String(args.content_type) : "application/octet-stream";
+      await uploadBytes(`docs/${ws}/${path}`, bytes, contentType);
+      const digest = await crypto.subtle.digest("SHA-256", bytes);
+      const sha = [...new Uint8Array(digest)].map((x) => x.toString(16).padStart(2, "0")).join("");
+      return one(sql`select baton.document_upsert(${ws}, ${path}, ${contentType}, ${bytes.length}::bigint, ${sha}, ${`agent:${agent.name}`}) as r`);
+    }
 
     case "artifact_get": {
       const kind = String(args.kind);

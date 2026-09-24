@@ -27,7 +27,8 @@ const HELP = `baton <command> [options]
   tasks ls [--state s] [--role r] [--run k] | show <key> | create --title .. --spec .. --acceptance .. --role .. [--run k] [--affinity machine|agent] [--deadline iso]
         | prioritise <key> <n> | cancel <key> [--reason ..] | approve <key> | reject <key> --reason ..   (operator approval tasks)
   webhooks list | add --url .. [--events a,b*] | remove <id> | flush     event subscriptions for orchestrators
-  workflow compile <workflow.yaml|json> --run <key> [--input ..] [--affinity m] [--dry-run] | lint <file> | export <json> | status --run <key> | runs | list
+  workflow compile <workflow.yaml|json> --run <key> [--input ..] [--workspace w] [--affinity m] [--dry-run] | lint <file> | export <json> | status --run <key> | runs | list
+  documents sync --run <key> [--workspace w] [--all]   upload the files the run's artefacts refer to | documents list --workspace w
   answer <message-id> "<text>"
   agents add --name qa-01 --role qa [--machine m] [--store] | list | revoke <name>
   invite --roles qa,frontend-dev --name-prefix pilot-1 [--machine m] [--ttl-hours 24] | invite list
@@ -136,7 +137,7 @@ export async function run(argv) {
         const path = rest[1]; if (!path) throw new Error('usage: baton workflow compile <workflow.json> --run <key> [--input "text"] [--dry-run]');
         const manifest = await loadManifest(path);
         const run = flags.run ? String(flags.run) : `${String(manifest.name).toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now().toString(36)}`;
-        const r = await compile(cfg, manifest, { input: flags.input ? String(flags.input) : '', run, dryRun: !!flags['dry-run'], affinity: flags.affinity ? String(flags.affinity) : undefined });
+        const r = await compile(cfg, manifest, { input: flags.input ? String(flags.input) : '', run, dryRun: !!flags['dry-run'], affinity: flags.affinity ? String(flags.affinity) : undefined, workspace: flags.workspace ? String(flags.workspace) : undefined });
         console.log(`workflow "${manifest.name}" ${manifest.version ?? ''} -> run ${run}${flags['dry-run'] ? ' (dry run)' : ''}`);
         table(r.tasks.map((t) => ({ node: t.node, role: t.role, task: t.key ?? '-', state: t.state ?? '-', produces: t.produces.join(','), after: t.depends_on.join(','), when: t.when ?? '' })), ['node', 'role', 'task', 'state', 'produces', 'after', 'when']);
         for (const g of r.gateways ?? []) console.log(`gateway ${g.id} ("${g.label}") decides on ${g.from}: ${g.outcomes.join(' | ')}`);
@@ -178,6 +179,19 @@ export async function run(argv) {
         return 0;
       }
       throw new Error('usage: baton workflow compile|lint|export|status|runs|list');
+    }
+
+    case 'documents': {
+      // documents sync: upload the workspace files the run's artefacts refer to, so screens can open them
+      // through the engine instead of a folder on this machine. Idempotent: unchanged files are skipped by sha.
+      const api = opApi(cfg);
+      const sub = rest[0] ?? 'sync';
+      if (sub === 'list') { const ws = String(flags.workspace ?? 'default'); const r = must(await api.get(`/admin/documents?workspace=${encodeURIComponent(ws)}`), 'documents'); table(r.documents.map((d) => ({ id: String(d.id).slice(0, 8), path: d.path, type: d.content_type, bytes: d.bytes, by: d.uploaded_by ?? '', updated: fmtAgo(d.updated_at) })), ['id', 'path', 'type', 'bytes', 'by', 'updated']); return 0; }
+      if (sub !== 'sync') throw new Error('usage: baton documents sync --run <key> [--workspace w] [--cwd .] | list --workspace w');
+      const { syncDocuments } = await import('./documents.mjs');
+      const r = await syncDocuments(cfg, { run: flags.run ? String(flags.run) : undefined, workspace: flags.workspace ? String(flags.workspace) : undefined, cwd, all: !!flags.all });
+      console.log(`workspace ${r.workspace}: ${r.uploaded} uploaded, ${r.unchanged} unchanged, ${r.missing.length} missing${r.missing.length ? ' (' + r.missing.slice(0, 5).join(', ') + (r.missing.length > 5 ? ', ...' : '') + ')' : ''}`);
+      return 0;
     }
 
     case 'webhooks': {

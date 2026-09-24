@@ -32,6 +32,24 @@ export async function signArtifact(uri: string, expiresIn = 600): Promise<string
   return `${SUPABASE_URL}/storage/v1${signedURL}`;
 }
 
+/** Upload raw bytes (a workspace document) under docs/<workspace>/<path>. */
+export async function uploadBytes(path: string, bytes: Uint8Array, contentType: string): Promise<string> {
+  const r = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, {
+    method: "POST",
+    headers: headers({ "content-type": contentType, "x-upsert": "true" }),
+    body: bytes,
+  });
+  if (!r.ok) throw new Error(`storage upload failed: ${r.status} ${await r.text()}`);
+  return PREFIX + path;
+}
+
+/** Stream an object back (service key, private bucket). Null when it does not exist. */
+export async function downloadObject(path: string): Promise<Response | null> {
+  const r = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, { headers: headers() });
+  if (!r.ok) return null;
+  return r;
+}
+
 export async function sha256Hex(s: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");

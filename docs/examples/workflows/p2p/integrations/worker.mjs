@@ -9,6 +9,7 @@
 import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { extname } from 'node:path';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -47,6 +48,19 @@ async function input(kind, taskId) {
   return typeof content === 'string' ? JSON.parse(content) : content;
 }
 
+const TYPES = { '.pdf': 'application/pdf', '.txt': 'text/plain; charset=utf-8', '.eml': 'message/rfc822', '.csv': 'text/csv; charset=utf-8' };
+/** Upload the workspace files an artefact points at, so the app can open them (documents live with the engine). */
+async function uploadDocs(taskId, paths) {
+  let n = 0;
+  for (const p of paths) {
+    const full = join(cwd, p);
+    if (!existsSync(full)) continue;
+    const r = await api.tool('document_put', { task_id: taskId, path: p.replace(/\\/g, '/'), content_type: TYPES[extname(p).toLowerCase()] ?? 'application/octet-stream', content_base64: readFileSync(full).toString('base64') });
+    if (r.ok !== false) n++; else log(`document_put ${p} failed: ${r.error?.message}`);
+  }
+  return n;
+}
+
 function scenarioFor(requisition) {
   const p = join(simDir, 'scenarios.json');
   const list = existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : [];
@@ -69,7 +83,8 @@ async function work(task) {
     }
     const out = python('ship', po, sc);
     log(`PO ${po.po_number} sent to ${po.vendor?.name}; acknowledged; shipped ${out.delivery_note.delivery_note_number}; invoiced ${out.invoice.invoice_number} ${out.invoice.total} ${out.invoice.currency}`);
-    await api.tool('task_progress', { task_id: task.id, note: `PO emailed, ack received, ${out.delivery_note.delivery_note_number} and ${out.invoice.invoice_number} filed under inbox/`, pct: 90 });
+    const n = await uploadDocs(task.id, [`outbox/${po.po_number}.eml`, `inbox/deliveries/${po.po_number}-ack.eml`, out.delivery_note.document_path, out.delivery_note.email_path, `inbox/deliveries/${out.delivery_note.delivery_note_number}.txt`, `inbox/deliveries/count-${po.po_number}.txt`, out.invoice.document_path, out.invoice.email_path, `inbox/invoices/${out.invoice.invoice_number}.txt`]);
+    await api.tool('task_progress', { task_id: task.id, note: `PO emailed, ack received, ${out.delivery_note.delivery_note_number} and ${out.invoice.invoice_number} filed under inbox/; ${n} documents uploaded`, pct: 90 });
     const r = await api.tool('task_submit', { task_id: task.id, artifacts: [
       { kind: 'delivery_note', content: out.delivery_note, meta: { source: 'supplier-erp', po: po.po_number } },
       { kind: 'invoice', content: out.invoice, meta: { source: 'supplier-erp', po: po.po_number } } ] });
@@ -86,6 +101,7 @@ async function work(task) {
     }
     const out = python('pay', inv, match);
     log(`payment ${out.payment.payment_ref} scheduled: ${out.payment.amount} ${out.payment.currency} on ${out.payment.scheduled_for}`);
+    await uploadDocs(task.id, [out.payment.remittance_path]);
     const r = await api.tool('task_submit', { task_id: task.id, artifacts: [{ kind: 'payment', content: out.payment, meta: { source: 'bank-gateway' } }] });
     log('submit ->', r.ok ? `gate ${r.state}` : `gate rejected: ${r.error?.message}`);
     return r.ok ? 'done' : 'gate_failed';
