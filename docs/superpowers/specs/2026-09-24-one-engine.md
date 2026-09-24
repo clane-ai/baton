@@ -135,6 +135,15 @@ separate area are not needed, because a route in the main application needs neit
 predicate, the gate on the platform interface and the module list reported to the client all stay,
 because they still decide whether the interface answers and whether the section is offered.
 
+**The wiring lands dark, except on the development box.** Because the section is gated by the
+entitlement and the module list, the commit that wires it ships a route nobody can reach and a rail
+entry nobody is shown: the feature turns on with configuration, not with the commit. That gives two
+independent safety nets, a revert for the structure and a flag for the exposure. The exception matters
+because it is where people will be looking: the development deployment licenses every module by
+wildcard, so the section lights there the moment the wiring lands. Seeing it on development is not a
+gating defect, and development cannot prove the switched-off behaviour. That branch is proved by tests
+with an explicit module list, not by looking.
+
 **Naming.** The area key, the entitlement and the section are named `workflow`. The operational
 interface is a distinct compound resource name sitting beside the existing workflow registry, matching
 this codebase's own precedent where a compound run resource sits beside its plural parent. It is not
