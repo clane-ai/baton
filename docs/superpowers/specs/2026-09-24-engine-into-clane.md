@@ -85,6 +85,10 @@ Each step leaves the system serving. Nothing is switched over until the step bef
    depends on it.
 4. **Data migration.** Move the live procure-to-pay data, or reset it. That is the user's call and
    should be asked rather than assumed, because the runs are the only real test data that exists.
+   **Do the artefact-kind change in this step, not separately.** The kind column is a Postgres enum,
+   which cannot hold per-tenant values, so a kind registry forces it to become text with a reference and
+   validation resolving by slug and version. Changing the shape of that column twice, once here and once
+   for the registry, would be foolish; it is one migration.
 5. **Cut the proxy over**, then the agents, then retire the Supabase deployment. The proxy first because
    it is reversible in one line; the agents second because they are distributed and slower to change.
 

@@ -46,13 +46,35 @@ check before anything runs.
 
 ### 3. Kinds live in a registry, not inside a node
 
-Today a validator node carries an inline schema, so the same document shape is redefined in every
-workflow that touches it, and two workflows can disagree about what an invoice is. Kinds belong to the
-organisation: defined once, versioned, referenced by name. An invoice is an invoice across every
-workflow, or the typing buys nothing.
+Kinds belong to the organisation: defined once, versioned, referenced by name. An invoice is an invoice
+across every workflow, or the typing buys nothing.
 
-This is the change that makes the other five worth having, and the one with the most product surface: it
-needs a place in the application where kinds are managed.
+**Corrected 24 September 2026, measured rather than assumed.** I wrote that inline schemas are redefined
+per workflow and need consolidating. Across the five active definitions and their twenty-eight nodes,
+that is not what exists. A node's declared output fields are names with optional prose, carrying no types
+and no required flag, on four nodes. The single "output schema" in the whole estate sits on a trigger node
+and is not a schema at all: it maps a field to a sentence such as "the purchase order". So **the registry
+is a new capability with one weak precedent to absorb, not a reconciliation of competing schemas.** That
+makes it larger than described, not smaller, and it removes the argument that the work pays for itself by
+deduplication.
+
+**Shape, against the tables that exist.** It is the third instance of a pattern the platform already runs
+twice, for skills and for workflows: a current row carrying source, owner, slug, version and schema, plus
+an append-only version table keyed by parent and version. No install or toggle table, because a kind is a
+tenant's vocabulary rather than something a user opts into. The engine's nineteen seed it as platform
+kinds, so both sides read the same rows, and an inline schema is promoted with a slug when somebody
+chooses rather than bulk-converted.
+
+**Publishing locks the version.** Resolving a declared version range at publish time and storing the lock
+in the workflow version's manifest means a kind changing never disturbs a run in flight, there is no
+migration of half-finished runs, and adopting a new version is an act of republishing, which the product
+already does and already records.
+
+**One structural consequence, and it is the largest single item.** The engine's artefact kind is a
+Postgres enum, and an enum cannot hold per-tenant values. The registry forces that column to become text
+with a reference, and validation to resolve by slug and version rather than by filename. That belongs
+*inside* the engine's move into Clane's database rather than before it, because doing it twice would be
+foolish.
 
 ### 4. Validation becomes a gate, not a node you remember to add
 
@@ -61,6 +83,16 @@ validated before the edge is followed, with no separate node required. The valid
 only for what it is actually good at, which is checking something other than shape.
 
 A gate you cannot forget is worth more than a node you can.
+
+**Position, from the code.** There is exactly one right place: between the executor returning and the
+walker writing the channel, which are two adjacent statements in the work-node wrapper. That is where the
+shape first exists, it is before an edge is chosen, and it preserves the property that nodes never touch
+channels.
+
+**Two dependencies, named rather than assumed.** The gate is meaningless until a failed node stops the
+walk, because a validation failure would otherwise be recorded and stepped over, which is worse than no
+validation: it looks like a control and is not. And the output node is executed inline rather than through
+the wrapper, so it needs the same treatment separately.
 
 ### 5. Documents become first class
 
