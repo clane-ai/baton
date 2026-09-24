@@ -1,0 +1,28 @@
+{
+  "name": "@clane-ai/baton-approvals",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Staging for the Approvals feature area of the Clane web client; clane-client/** copies onto the platform branch unchanged.",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "move": "node scripts/move.mjs"
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-router-dom": "6.26.2"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "jsdom": "^25.0.1",
+    "typescript": "^5.9.2",
+    "vite": "^5.4.11",
+    "vitest": "^3.2.4"
+  }
+}
