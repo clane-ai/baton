@@ -174,17 +174,43 @@ already self-hosts two families for the same reason; the same files can be reuse
 | 3 | Screens: Inbox, Item | 1.5 |
 | 4 | Screens: Runs, Run (RunGraph port), Documents, Activity, Spend | 1.5 |
 | 5 | Next host adapter in `packages/dash` (so the fixtures and UAT script keep working); dark mode pass; loading, empty, error on every surface | 1 |
-| 6 | Clane host adapter and route registration where the architect places it; review with the architect's reviewer; library additions submitted | 1 (+ review time) |
+| 6 | `clane-client` host: `src/lib/baton.ts` over `api.ts`, `spaRoute` ids, `Shell.jsx` nav items, `NeedsYouRoute`/`NeedsYouDetail`/`RunsRoute`/`RunDetail`/`DocumentsRoute`/`ActivityRoute`/`SpendRoute` wrappers, Jest + RTL smoke tests per route; the `packages/api` route for the operator API (engine owner or platform team); review with the architect's reviewer; library additions submitted | 1.5 (+ review time) |
 
-About 7.5 working days to UAT-ready in the Clane client, assuming the architect's placement and API-access
+About 8 working days to UAT-ready in the Clane client, assuming the architect's placement and API-access
 answers arrive by step 5. Steps 1 to 5 need no answer from the architect and start now.
 
-## 9. Open with the architect
+## 9. The host: `clane-client`, not `packages/client`
 
-1. Placement: which route group and sidebar section in the Clane client host these screens, and the workspace
-   they belong to (Baton runs are per project).
-2. API access: server-side proxy in `packages/api` with the operator token, or a connector grant per user.
-   The adapter absorbs either; identity (who approved) should come from the Clane user, not `operator:<name>`.
-3. Fonts: reuse the desktop's self-hosted families or ship our own copies.
+Read-only survey of the Clane monorepo, 24 September 2026. `packages/client` there is the upstream stack's
+component library (`@librechat/client`, Rollup, Radix and Tailwind, no routes, no shell); the monorepo's
+`CLAUDE.md` says the legacy `/client` is being deleted and `clane-client` is "the real frontend going forward".
+Nothing in `clane-client/src` imports `@librechat/client`. The port targets `clane-client`, subject to the
+architect's confirmation.
+
+What `clane-client` is, and what it means for the package:
+
+| Fact | Consequence for `packages/app-ui` |
+|---|---|
+| React 18.3, Vite 5, mostly `.jsx` with some `.tsx`; `build` runs `tsc --noEmit` first; one `src/` feeds six builds (main, mobile, admin, hr, studio, projects) | the package targets React 18 and 19 (no React 19-only APIs: no `use()`, no form actions); ships TypeScript source that Vite compiles; no Next imports |
+| Routing is hand-rolled: `src/lib/spaRoute.js` (`KNOWN_ROUTES`, `SUB_SECTIONS`, `/app/<route>/<sub>`, `history.pushState`) and `src/App.jsx` renders `{route === 'x' && <XRoute/>}` with lazy imports; nav items live in `src/components/Shell.jsx` (LeftRail `items`) | the `Host.route`/`navigate` adapter maps onto `spaRoute`: one route id (proposed `needs-you`, `runs`, `documents`, `activity`, `spend`) with the key as the sub-section; `XxxRoute.jsx` files per convention wrap our screens |
+| Data fetching is hand-rolled `fetch` + `useState` by stated convention (`src/lib/*.ts`); `src/lib/api.ts` is a thin wrapper that sends the platform bearer, refreshes once on 401, resolves the base from `src/lib/base.ts` | the `Api` adapter is a `src/lib/baton.ts` module over `api.get/post` against a new platform route (see open question 2); no query library is introduced |
+| Styling: plain CSS with tokens (`src/styles/tokens.css`, dark mode on `[data-mode="dark"]`), inline-style DS components in `src/ds/` (Button, Input, Tabs, Card, StatCard, StatusChip, StatusDot, EmptyState, Modal, Menu, Stepper, TreeView, FileRow, BadgeTile, Eyebrow, Avatar, Header), a fuller kit under `src/hr/ds/components/` with `.jsx` + `.d.ts` + `.prompt.md` (charts, ProgressBar, Toast, Banner, Drawer, Tooltip, Popover, Breadcrumbs, Tabs, Pagination, DataTable, SortableTable, Timeline, AuditLogRow, FilterBar, Segmented, Select, SearchInput, DatePicker), and Tailwind 3 mapped onto the same variables | the client already carries the skill's components; the package should import them from the client's `ds` and `hr/ds` barrels when mounted there, and from its own `design/` copy when mounted in the Next harness. Dark mode: the skill uses `data-theme="dark"`, the client `data-mode="dark"`; the package's stylesheet honours both selectors |
+| Fonts are already self-hosted in `src/styles/fonts.css` (Space Grotesk, IBM Plex Sans, IBM Plex Mono among others, "no fonts.gstatic.com dependency" since May 2026) | no font files ship with the package when hosted in `clane-client`; the Next harness keeps its own self-hosted copies |
+| Tests: Jest 30 with jsdom and `@testing-library/react`, co-located `__tests__/*.spec.jsx`; lint ignores `clane-client/**`, type-check only | the package's `lib/` tests stay in vitest inside `clane-ai/baton`; screen tests written for the client follow its Jest + RTL layout |
+| Vocabulary: "Nexa" / "Clane" only; "Workspace" is the run sandbox and "Project" the tracked body of work | Baton runs attach to a Project; the queue is "Needs you" (the client already has `PendingApprovalsBody.jsx` and `ApprovalCard.jsx` for the same idea; ours extend, not duplicate) |
+| Closest existing list + detail pattern: `ScheduleRoute.jsx` → `/app/schedule/<id>` → `ScheduleDetail.jsx`; also `AllTasksRoute.jsx`, `workspace/WorkspacePage.jsx` + `WorkspaceDetail.jsx`, `ActionsTimeline.jsx` | Inbox and Item follow the Schedule pattern: `NeedsYouRoute.jsx` (list) and `NeedsYouDetail.jsx` (item) |
+| No browser-side proxy to an external API with a stored bearer exists; connector machinery is `packages/api/src/mcpProxy` and `userTools` (server-side) | the operator API is reached through a new server route in `packages/api` (proposed `/api/baton/*` forwarding to the edge function with a per-organisation operator token), never from the browser with the token |
+
+Graph libraries present in the client (`@xyflow/react`, `elkjs`, `d3`) are not used by the port: the run
+graph stays the small token-styled SVG, which needs no dependency and matches the terminal-look ruling.
+
+## 10. Open with the architect
+
+1. Placement: confirm `clane-client` (not `packages/client`), the route ids, the LeftRail group, and which of the
+   six Vite builds carry the screens; Baton runs attach to a Project.
+2. API access: a server route in `packages/api` (`/api/baton/*`) forwarding to the edge function with a
+   per-organisation operator token, so identity (who approved) is the Clane user, not `operator:<name>`; the
+   edge function would take the actor name from a header the platform sets.
+3. Fonts: `clane-client` already self-hosts the three families; confirm the package ships none when hosted there.
 4. Library additions: the six parts in section 6 go to the architect's reviewer as `.jsx` + `.d.ts` + `.prompt.md`.
 5. Vocabulary: "Needs you" for the queue, "step" and "run" for tasks and workflow runs; confirm.
