@@ -8,7 +8,8 @@
 // system components and the copy catalogue. The staging stubs (lib/api, lib/base,
 // lib/auth, i18n/index, the ds barrel index.js and the verbatim ds copies) are never
 // copied; the platform has the real ones. A target file that already exists
-// with different content stops the whole move before anything is written. It
+// with different content stops the whole move before anything is written,
+// unless --update is given for a deliberate later round. It
 // never runs git; review and commit by explicit path yourself. Edits to
 // existing platform files are in PATCHES.md and are applied by hand.
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync } from 'node:fs';
@@ -70,10 +71,16 @@ export function planMove(target) {
   return rels.map((rel) => ({ rel, from: join(staging, rel), to: join(root, rel) }));
 }
 
-/** Copies the plan. All-or-nothing on conflicts. Returns counts. */
-export function applyMove(target) {
+/**
+ * Copies the plan. By default all-or-nothing on conflicts: a target that
+ * exists with different content stops the move before anything is written.
+ * `{ update: true }` is for a deliberate later round: it overwrites differing
+ * files in the allowlist (never anything else) and reports them as `updated`.
+ */
+export function applyMove(target, { update = false } = {}) {
   const plan = planMove(target);
   const conflicts = [];
+  const updated = [];
   let same = 0;
   const todo = [];
   for (const step of plan) {
@@ -83,7 +90,12 @@ export function applyMove(target) {
         same += 1;
         continue;
       }
-      conflicts.push(step.rel);
+      if (update) {
+        updated.push(step.rel);
+        todo.push({ ...step, body });
+      } else {
+        conflicts.push(step.rel);
+      }
       continue;
     }
     todo.push({ ...step, body });
@@ -95,18 +107,21 @@ export function applyMove(target) {
     mkdirSync(dirname(step.to), { recursive: true });
     writeFileSync(step.to, step.body);
   }
-  return { written: todo.length, same };
+  return { written: todo.length - updated.length, updated, same };
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const target = process.argv[2];
+  const args = process.argv.slice(2);
+  const update = args.includes('--update');
+  const target = args.find((a) => !a.startsWith('--'));
   if (!target) {
-    console.error('usage: node scripts/move.mjs <path to the platform checkout>');
+    console.error('usage: node scripts/move.mjs [--update] <path to the platform checkout>');
     process.exit(2);
   }
   try {
-    const { written, same } = applyMove(target);
-    console.log(`${written} files written, ${same} already identical.`);
+    const { written, updated, same } = applyMove(target, { update });
+    console.log(`${written} files written, ${updated.length} updated, ${same} already identical.`);
+    for (const rel of updated) console.log(`  updated ${rel}`);
     console.log('Next: apply the edits in PATCHES.md by hand, then stage and commit by explicit path.');
   } catch (e) {
     console.error(e instanceof Error ? e.message : String(e));

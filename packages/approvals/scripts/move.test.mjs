@@ -58,3 +58,14 @@ test('refuses a target that is not a clane checkout', () => {
   const dir = mkdtempSync(join(tmpdir(), 'workflow-move-bad-'));
   assert.throws(() => planMove(dir), /clane-client\/src/);
 });
+
+test('an explicit update overwrites differing files it owns, and says which', () => {
+  const dir = target();
+  const f = join(dir, 'clane-client/src/i18n/catalog.workflow.js');
+  mkdirSync(join(dir, 'clane-client/src/i18n'), { recursive: true });
+  writeFileSync(f, 'an older copy');
+  const r = applyMove(dir, { update: true });
+  assert.ok(r.updated.some((p) => p.split(sep).join('/') === 'clane-client/src/i18n/catalog.workflow.js'));
+  assert.notEqual(readFileSync(f, 'utf8'), 'an older copy');
+  assert.ok(existsSync(join(dir, 'clane-client/src/components/workflows/operations/Section.tsx')));
+});

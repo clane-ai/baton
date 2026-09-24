@@ -59,9 +59,12 @@ function copyClient(dest) {
 
 function patch(dest) {
   const src = join(dest, 'clane-client', 'src');
-  const edit = (rel, fn) => {
+  // After the first landing the platform already carries these edits; each is
+  // applied only if its marker is absent, so the check works for later rounds.
+  const edit = (rel, fn, marker) => {
     const p = join(src, rel);
     const before = readFileSync(p, 'utf8');
+    if (before.includes(marker)) return;
     const after = fn(before);
     if (after === before) throw new Error(`patch did not apply to ${rel}; PATCHES.md is out of date`);
     writeFileSync(p, after);
@@ -70,11 +73,12 @@ function patch(dest) {
     /```js\r?\n(\/\/ Promoted from src\/hr\/ds[\s\S]*?)```/,
   );
   if (!promoted) throw new Error('PATCHES.md has no ds barrel block');
-  edit('ds/index.js', (s) => `${s}\n${promoted[1]}`);
+  edit('ds/index.js', (s) => `${s}\n${promoted[1]}`, "from './Drawer.jsx'");
   edit('i18n/catalog.js', (s) =>
     s
       .replace("import { EXTRACTED } from './catalog.extracted.js';", "import { EXTRACTED } from './catalog.extracted.js';\nimport { WORKFLOW } from './catalog.workflow.js';")
       .replace('...EXTRACTED.en }', '...EXTRACTED.en, ...WORKFLOW.en }'),
+    'catalog.workflow.js',
   );
   edit('lib/api.ts', (s) => {
     const fn = [
@@ -99,7 +103,7 @@ function patch(dest) {
     return s
       .replace('export const api = {', `${fn}\nexport const api = {`)
       .replace("  get: <T>(path: string) => request<T>(path, { method: 'GET' }),", "  get: <T>(path: string) => request<T>(path, { method: 'GET' }),\n  blob,");
-  });
+  }, 'async function blob(');
 }
 
 function tscErrors(dir) {
@@ -112,9 +116,11 @@ const moved = `${work}-moved`;
 console.log(`platform: ${platform}`);
 copyClient(base);
 copyClient(moved);
-const { written } = applyMove(moved);
+// --update: after the first landing the area is already in the platform copy;
+// this round's staging files replace it (allowlist only).
+const { written, updated } = applyMove(moved, { update: true });
 patch(moved);
-console.log(`moved ${written} files and applied the code patches in ${moved}`);
+console.log(`moved ${written} new and ${updated.length} changed files, applied any missing code patches in ${moved}`);
 
 const before = tscErrors(base);
 const after = tscErrors(moved);
