@@ -1,4 +1,4 @@
-import { api, ApiError } from '../../../lib/api';
+import { api, ApiError } from '../../../../../lib/api';
 import {
   BASE,
   errorText,
@@ -14,8 +14,8 @@ import {
   searchItems,
 } from '../api';
 
-jest.mock('../../../lib/api', () => ({
-  ...jest.requireActual('../../../lib/api'),
+jest.mock('../../../../../lib/api', () => ({
+  ...jest.requireActual('../../../../../lib/api'),
   api: { get: jest.fn(), post: jest.fn(), blob: jest.fn() },
 }));
 

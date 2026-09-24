@@ -1,8 +1,9 @@
-# Approvals area — staging
+# Workflow operational screens — staging
 
-The Approvals feature area of the Clane web client (the Baton engine's screens:
-Inbox, Work, Runs, Documents, Activity, Spend), staged here until the platform
-branch and write access are confirmed. Plan:
+The operational screens of Clane's Workflow section (Approvals, Runs,
+Documents, Activity, Spend over the Baton engine), staged here while the
+platform worktree waits for approval. They join the workflow studio inside the
+main client under `/app/build/workflows` (architect ruling, 2026-09-24). Plan:
 `docs/superpowers/plans/2026-09-24-approvals-area.md`; spec:
 `docs/superpowers/specs/2026-09-24-baton-app-in-clane.md`.
 
@@ -13,11 +14,9 @@ the move is a copy that keeps relative paths:
 
 | Staging path | Platform path |
 | --- | --- |
-| `clane-client/approvals.html` | `clane-client/approvals.html` |
-| `clane-client/vite.approvals.config.ts` | `clane-client/vite.approvals.config.ts` |
-| `clane-client/src/approvals/**` | `clane-client/src/approvals/**` |
-| `clane-client/src/ds/<Promoted>.jsx` + `.d.ts` | `clane-client/src/ds/…` (Task 2) |
-| `clane-client/src/i18n/catalog.approvals.js` | `clane-client/src/i18n/catalog.approvals.js` |
+| `clane-client/src/components/workflows/operations/**` | same |
+| `clane-client/src/ds/<Promoted>.jsx` + `.d.ts` | same (Task 2) |
+| `clane-client/src/i18n/catalog.workflow.js` | same |
 
 ## Do not copy (staging stubs)
 
@@ -36,7 +35,7 @@ Edits to files that already exist on the platform are in `PATCHES.md`.
 ```
 pnpm --filter @clane-ai/baton-approvals typecheck
 pnpm --filter @clane-ai/baton-approvals test      # Jest 30 + babel-jest, same config as clane-client
-pnpm --filter @clane-ai/baton-approvals move -- <path to clane.ai checkout>
+pnpm --filter @clane-ai/baton-approvals move -- <path to the platform worktree>
 ```
 
 The move script (Task 9) copies everything except the stubs and prints the
