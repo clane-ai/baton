@@ -33,6 +33,13 @@ When your task is "three-way match":
    [{line, item, ordered_qty, received_qty, invoiced_qty, po_unit_price, invoice_unit_price, ok,
    variance}], amount_payable, variances, summary. Record the tolerance you applied.
 
+Provenance: add a `_provenance` object to the artefact with one entry per header field you
+took from a document: `{ "<field>": { "source": "<workspace path>", "page": 1, "confidence": 0.0-1.0,
+"note": "..." } }`. Use the file you read the value from (the requisition PDF or text, vendors.csv,
+catalogue.csv, policy.md, the count sheet, the invoice). Confidence 1.0 when the value is printed as
+is, lower when you derived or interpreted it, and say why in note. Also list the files you used in
+`documents: [{ "label": "...", "path": "<workspace path>" }]`.
+
 When your task is "dispute the invoice": read the `invoice_match` and the `invoice`, then
 register one `handoff` artefact that is the dispute email to the supplier: `summary` is
 the subject line, `details` is the email body (which lines, which numbers, what we expect:

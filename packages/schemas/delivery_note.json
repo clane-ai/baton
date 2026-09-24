@@ -4,14 +4,114 @@
   "title": "delivery_note",
   "description": "The supplier delivery note for a purchase order: what was shipped, when, and where the document lives.",
   "type": "object",
-  "required": ["delivery_note_number", "po_number", "vendor", "shipped_at", "lines"],
+  "required": [
+    "delivery_note_number",
+    "po_number",
+    "vendor",
+    "shipped_at",
+    "lines"
+  ],
   "properties": {
-    "delivery_note_number": { "type": "string" }, "po_number": { "type": "string" }, "vendor": { "type": "string" },
-    "shipped_at": { "type": "string" }, "carrier": { "type": "string" }, "tracking": { "type": "string" },
-    "lines": { "type": "array", "minItems": 1, "items": { "type": "object", "required": ["line", "item", "quantity_shipped"], "properties": {
-      "line": { "type": "integer" }, "sku": { "type": "string" }, "item": { "type": "string" }, "quantity_shipped": { "type": "number", "minimum": 0 } } } },
-    "document_path": { "type": "string", "description": "Where the PDF was filed, relative to the shared inbox." },
-    "email_path": { "type": "string" }
+    "delivery_note_number": {
+      "type": "string"
+    },
+    "po_number": {
+      "type": "string"
+    },
+    "vendor": {
+      "type": "string"
+    },
+    "shipped_at": {
+      "type": "string"
+    },
+    "carrier": {
+      "type": "string"
+    },
+    "tracking": {
+      "type": "string"
+    },
+    "lines": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "line",
+          "item",
+          "quantity_shipped"
+        ],
+        "properties": {
+          "line": {
+            "type": "integer"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "item": {
+            "type": "string"
+          },
+          "quantity_shipped": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "document_path": {
+      "type": "string",
+      "description": "Where the PDF was filed, relative to the shared inbox."
+    },
+    "email_path": {
+      "type": "string"
+    },
+    "documents": {
+      "type": "array",
+      "description": "Workspace files this artefact is based on or produced, relative to the workspace.",
+      "items": {
+        "type": "object",
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "_provenance": {
+      "type": "object",
+      "description": "Per field: where the value came from and how sure the producer is.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "document path or name, e.g. inbox/requisitions/PR-2026-101.pdf or masterdata/catalogue.csv"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    }
   },
   "additionalProperties": true
 }

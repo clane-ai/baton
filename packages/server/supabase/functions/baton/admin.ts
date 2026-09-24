@@ -4,6 +4,7 @@ import { sql } from "./db.ts";
 import { newToken, sha256Hex, type Ctx } from "./auth.ts";
 import { drainOutbox } from "./gh.ts";
 import { drainWebhooks } from "./webhooks.ts";
+import { inboxJson, documentsOf, decisionOf } from "./inbox.ts";
 
 type Json = Record<string, unknown>;
 // postgres.js serialises objects for jsonb parameters itself; never pre-stringify.
@@ -59,6 +60,7 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
   if (seg[1] === "events" && method === "GET") {
     const p = url.searchParams;
     const limit = Math.min(1000, Number(p.get("limit") ?? 200));
+    const taskIn = p.get("task_in") ? p.get("task_in")!.split(",").map((s) => s.trim()).filter(Boolean) : null;
     const rows = await sql`
       select e.id, e.ts, e.type, e.payload, e.session_id, e.task_id, e.agent_id,
              (select name from baton.agents where id = e.agent_id) as agent,
@@ -66,23 +68,34 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
         from baton.events e
        where (${p.get("agent")}::text is null or e.agent_id::text = ${p.get("agent")} or exists (select 1 from baton.agents a where a.id = e.agent_id and a.name = ${p.get("agent")}))
          and (${p.get("task")}::text is null or e.task_id::text = ${p.get("task")} or exists (select 1 from baton.tasks t where t.id = e.task_id and t.key = ${p.get("task")}))
+         and (${p.get("workflow_run")}::text is null or exists (select 1 from baton.tasks t where t.id = e.task_id and t.workflow_run = ${p.get("workflow_run")}))
+         and (${taskIn}::text[] is null or exists (select 1 from baton.tasks t where t.id = e.task_id and (t.key = any(${taskIn}::text[]) or t.id::text = any(${taskIn}::text[]))))
          and (${p.get("type")}::text is null or e.type = ${p.get("type")})
          and (${p.get("since")}::text is null or e.ts > ${p.get("since")}::timestamptz)
        order by e.id desc limit ${limit}`;
     return { status: 200, body: { ok: true, events: rows } };
   }
 
-  // ---- tasks
+  // ---- inbox (the human read model)
+  if (seg[1] === "inbox" && method === "GET") return { status: 200, body: await inboxJson() };
+
+  // ---- tasks: filter by one or more states, search, page
   if (seg[1] === "tasks" && seg.length === 2 && method === "GET") {
     const p = url.searchParams;
-    const rows = await sql`
-      select baton.task_json(t) || jsonb_build_object('assignee_name', (select name from baton.agents where id = t.assignee)) as r
-        from baton.tasks t
-       where (${p.get("state")}::text is null or t.state::text = ${p.get("state")})
+    const states = p.get("state") ? p.get("state")!.split(",").map((s) => s.trim()).filter(Boolean) : null;
+    const q = p.get("q") ? `%${p.get("q")!.trim()}%` : null;
+    const limit = Math.min(1000, Number(p.get("limit") ?? 500)), offset = Math.max(0, Number(p.get("offset") ?? 0));
+    const where = sql`
+       where (${states}::text[] is null or t.state::text = any(${states}::text[]))
          and (${p.get("role")}::text is null or t.role = ${p.get("role")})
          and (${p.get("workflow_run")}::text is null or t.workflow_run = ${p.get("workflow_run")})
-       order by (t.state = 'in_progress') desc, t.priority desc, t.created_at desc limit ${Math.min(1000, Number(p.get("limit") ?? 500))}`;
-    return { status: 200, body: { ok: true, tasks: rows.map((x) => x.r) } };
+         and (${q}::text is null or t.key ilike ${q} or t.title ilike ${q} or t.workflow_run ilike ${q} or exists (select 1 from baton.artifacts a where a.task_id = t.id and a.content::text ilike ${q}))`;
+    const [{ n }] = await sql`select count(*)::int as n from baton.tasks t ${where}`;
+    const rows = await sql`
+      select baton.task_json(t) || jsonb_build_object('assignee_name', (select name from baton.agents where id = t.assignee)) as r
+        from baton.tasks t ${where}
+       order by (t.state = 'in_progress') desc, t.priority desc, t.created_at desc limit ${limit} offset ${offset}`;
+    return { status: 200, body: { ok: true, tasks: rows.map((x) => x.r), total: n, offset, limit } };
   }
   if (seg[1] === "tasks" && seg.length === 2 && method === "POST") {
     const b = await readJson(req);
@@ -119,7 +132,15 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
   }
   if (seg[1] === "workflow-runs" && seg.length === 3 && method === "GET") {
     const r = await one(sql`select baton.workflow_run_json(${seg[2]}) as r`);
-    return r ? { status: 200, body: { ok: true, run: r } } : bad("NOT_FOUND", "no such run", 404);
+    if (!r) return bad("NOT_FOUND", "no such run", 404);
+    const steps = (r.steps as Json[]) ?? [];
+    const byId = new Map(steps.map((s) => [String(s.id), s]));
+    for (const s of steps) {
+      s.next = steps.filter((d) => ((d.depends_on as string[]) ?? []).includes(String(s.id))).map((d) => ({ key: d.key, id: d.id, when: (d.condition as Json | null)?.outcome ?? null, state: d.state }));
+      const c = s.condition as Json | null;
+      if (c) { const dec = byId.get(String(c.task)); s.when = { gateway: c.gateway ?? null, outcome: c.outcome ?? null, decided_by: dec?.key ?? null, field: `${c.kind}.${c.field}`, equals: c.equals }; }
+    }
+    return { status: 200, body: { ok: true, run: r } };
   }
   // ---- webhooks: outbound event subscriptions for orchestrators
   if (seg[1] === "webhooks" && seg.length === 2 && method === "GET") {
@@ -146,7 +167,22 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
   if (seg[1] === "tasks" && seg.length >= 3) {
     const [{ id }] = await sql`select id from baton.tasks where id::text = ${seg[2]} or key = ${seg[2]} limit 1`.then((r) => r.length ? r : [{ id: null }]);
     if (!id) return bad("NOT_FOUND", "no such task", 404);
-    if (seg.length === 3 && method === "GET") return { status: 200, body: await one(sql`select baton.task_detail(${id}::uuid) as r`) };
+    if (seg.length === 3 && method === "GET") {
+      const d = await one(sql`select baton.task_detail(${id}::uuid) as r`);
+      if (d.ok === false) return { status: 404, body: d };
+      const t = d.task as Json;
+      d.decision = t.role === "operator" ? decisionOf((d.events as Json[]) ?? []) : null;
+      d.questions = ((d.messages as Json[]) ?? []).filter((m) => m.kind === "question" && !m.answered_at);
+      d.documents = [...((d.consumed as Json[]) ?? []), ...((d.artifacts as Json[]) ?? [])].flatMap((a) => documentsOf(String(a.kind), a.content));
+      return { status: 200, body: d };
+    }
+    if (seg[3] === "documents" && method === "GET") {
+      const d = await one(sql`select baton.task_detail(${id}::uuid) as r`);
+      if (d.ok === false) return { status: 404, body: d };
+      const seen = new Set<string>();
+      const documents = [...((d.consumed as Json[]) ?? []), ...((d.artifacts as Json[]) ?? [])].flatMap((a) => documentsOf(String(a.kind), a.content)).filter((x) => (seen.has(x.path) ? false : (seen.add(x.path), true)));
+      return { status: 200, body: { ok: true, documents } };
+    }
     const b = method === "POST" ? await readJson(req) : {};
     if (seg[3] === "prioritise" && method === "POST") return { status: 200, body: await one(sql`select baton.task_reprioritise(${actor}, ${id}::uuid, ${Number(b.priority)}::int) as r`) };
     if (seg[3] === "cancel" && method === "POST") { const r = await one(sql`select baton.task_cancel(${actor}, ${id}::uuid, ${b.reason ? String(b.reason) : null}) as r`); try { await drainWebhooks(); } catch { /* ignore */ } return { status: 200, body: r }; }
@@ -159,7 +195,14 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
   // ---- messages
   if (seg[1] === "answer" && method === "POST") {
     const b = await readJson(req);
-    const r = await one(sql`select baton.answer(${actor}, null, ${String(b.message_id)}::uuid, ${String(b.body ?? "")}) as r`);
+    let messageId = b.message_id ? String(b.message_id) : null;
+    if (!messageId && b.task_key) {
+      const [m] = await sql`select m.id from baton.messages m join baton.tasks t on t.id = m.task_id where (t.key = ${String(b.task_key)} or t.id::text = ${String(b.task_key)}) and m.kind = 'question' and m.answered_at is null order by m.created_at desc limit 1`;
+      if (!m) return bad("NOT_FOUND", "that task has no open question", 404);
+      messageId = String(m.id);
+    }
+    if (!messageId) return bad("PRECONDITION_FAILED", "message_id or task_key is required");
+    const r = await one(sql`select baton.answer(${actor}, null, ${messageId}::uuid, ${String(b.body ?? "")}) as r`);
     try { await drainWebhooks(); } catch { /* ignore */ }
     return { status: 200, body: r };
   }

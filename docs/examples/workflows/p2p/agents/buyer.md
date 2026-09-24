@@ -39,6 +39,13 @@ When your task is "raise a purchase order":
    {approval_required, approver_level, vendor_approved, within_budget, notes}. The schema
    rejects unknown keys; if the gate rejects the artefact, fix the named field and submit again.
 
+Provenance: add a `_provenance` object to the artefact with one entry per header field you
+took from a document: `{ "<field>": { "source": "<workspace path>", "page": 1, "confidence": 0.0-1.0,
+"note": "..." } }`. Use the file you read the value from (the requisition PDF or text, vendors.csv,
+catalogue.csv, policy.md, the count sheet, the invoice). Confidence 1.0 when the value is printed as
+is, lower when you derived or interpreted it, and say why in note. Also list the files you used in
+`documents: [{ "label": "...", "path": "<workspace path>" }]`.
+
 When your task is a "rework note" (the approver rejected the order): read the
 `purchase_order` and the approver's `review` (its summary carries the reason) with
 `artifact_get`, then register one `handoff` artefact: `summary` says what was rejected and

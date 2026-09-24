@@ -33,6 +33,16 @@ not built is listed.
 | Spend | `GET /admin/spend` |
 | Roles, agents | `GET /admin/roles`, `GET /admin/agents` |
 | Workspace documents (pdf, text, email) | dashboard-local `GET /api/workspace?path=` (BATON_WORKSPACE) |
+| **Inbox** (approvals, parked, open questions) with server-built summary, flags, next steps, tiles | `GET /admin/inbox` (edge v15) |
+| Documents of a task, resolved server-side, email first | `GET /admin/tasks/:key/documents` |
+| Decision on an operator task, open questions, documents | fields `decision`, `questions`, `documents` on `GET /admin/tasks/:key` |
+| Events by run or by task list | `GET /admin/events?workflow_run=` and `?task_in=k1,k2` |
+| Task search and paging | `GET /admin/tasks?q=&state=a,b&offset=&limit=` returns `total` |
+| Run view: per-step `next[]` and `when` (gateway, outcome, decided_by, field) | `GET /admin/workflow-runs/:key` |
+| Answer by task | `POST /admin/answer {task_key, body}` |
+| Per-field provenance and documents on artefacts | optional `_provenance` and `documents[]` on the six P2P kinds; the LLM roles fill them from now on |
+
+Flag codes in `summary.flags`: `vendor_not_approved`, `level_director`, `level_cfo`, `over_budget`, `price_difference`, `mismatched`, `short_delivery`, `damaged`, `missing`, `incomplete`, `payment_rejected`, `changes_requested`, `blocker`, `major`, `tests_failed`. Human text is in `summary.notes`.
 
 Artefact kinds and their JSON Schemas: `packages/schemas/*.json`. Workflow definitions: `docs/workflow-yaml.md`.
 Events worth surfacing: `approval_required`, `approval_overdue`, `gate_failed`, `artifact_rejected`,

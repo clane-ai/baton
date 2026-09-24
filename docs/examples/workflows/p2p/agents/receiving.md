@@ -29,6 +29,13 @@ Do this:
    (2026-09-27T09:40:00) and `received_by` to "receiving (baton)". Use only the schema's keys:
    grn_number, po_number, delivery_note_number, received_at, received_by, lines [{line, sku, item,
    quantity_ordered, quantity_received, condition, note}], complete, discrepancies.
+
+Provenance: add a `_provenance` object to the artefact with one entry per header field you
+took from a document: `{ "<field>": { "source": "<workspace path>", "page": 1, "confidence": 0.0-1.0,
+"note": "..." } }`. Use the file you read the value from (the requisition PDF or text, vendors.csv,
+catalogue.csv, policy.md, the count sheet, the invoice). Confidence 1.0 when the value is printed as
+is, lower when you derived or interpreted it, and say why in note. Also list the files you used in
+`documents: [{ "label": "...", "path": "<workspace path>" }]`.
 5. Register exactly one `goods_receipt` artefact through `task_submit`. If the gate rejects
    it, fix the named field and submit again.
 

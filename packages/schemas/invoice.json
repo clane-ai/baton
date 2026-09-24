@@ -4,15 +4,143 @@
   "title": "invoice",
   "description": "A supplier invoice as received: header, lines and totals, plus where the document was filed.",
   "type": "object",
-  "required": ["invoice_number", "po_number", "vendor", "issued_at", "due_at", "currency", "lines", "total"],
+  "required": [
+    "invoice_number",
+    "po_number",
+    "vendor",
+    "issued_at",
+    "due_at",
+    "currency",
+    "lines",
+    "total"
+  ],
   "properties": {
-    "invoice_number": { "type": "string" }, "po_number": { "type": "string" }, "vendor": { "type": "string" },
-    "issued_at": { "type": "string" }, "due_at": { "type": "string" }, "currency": { "type": "string" },
-    "lines": { "type": "array", "minItems": 1, "items": { "type": "object", "required": ["line", "item", "quantity", "unit_price", "line_total"], "properties": {
-      "line": { "type": "integer" }, "sku": { "type": "string" }, "item": { "type": "string" }, "quantity": { "type": "number" }, "unit_price": { "type": "number" }, "line_total": { "type": "number" } } } },
-    "subtotal": { "type": "number" }, "tax": { "type": "number" }, "total": { "type": "number" },
-    "bank": { "type": "object", "properties": { "iban": { "type": "string" }, "bic": { "type": "string" } } },
-    "document_path": { "type": "string" }, "email_path": { "type": "string" }
+    "invoice_number": {
+      "type": "string"
+    },
+    "po_number": {
+      "type": "string"
+    },
+    "vendor": {
+      "type": "string"
+    },
+    "issued_at": {
+      "type": "string"
+    },
+    "due_at": {
+      "type": "string"
+    },
+    "currency": {
+      "type": "string"
+    },
+    "lines": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "line",
+          "item",
+          "quantity",
+          "unit_price",
+          "line_total"
+        ],
+        "properties": {
+          "line": {
+            "type": "integer"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "item": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit_price": {
+            "type": "number"
+          },
+          "line_total": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "subtotal": {
+      "type": "number"
+    },
+    "tax": {
+      "type": "number"
+    },
+    "total": {
+      "type": "number"
+    },
+    "bank": {
+      "type": "object",
+      "properties": {
+        "iban": {
+          "type": "string"
+        },
+        "bic": {
+          "type": "string"
+        }
+      }
+    },
+    "document_path": {
+      "type": "string"
+    },
+    "email_path": {
+      "type": "string"
+    },
+    "documents": {
+      "type": "array",
+      "description": "Workspace files this artefact is based on or produced, relative to the workspace.",
+      "items": {
+        "type": "object",
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "_provenance": {
+      "type": "object",
+      "description": "Per field: where the value came from and how sure the producer is.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "document path or name, e.g. inbox/requisitions/PR-2026-101.pdf or masterdata/catalogue.csv"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    }
   },
   "additionalProperties": true
 }
