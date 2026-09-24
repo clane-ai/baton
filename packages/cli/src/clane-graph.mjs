@@ -87,9 +87,14 @@ export function fromClaneGraph(claneManifest, opts = {}) {
   // channel name -> the artefact kind the node writing it produces, so a declared input can say which
   // artefact it wants rather than which node wrote it.
   const channelKinds = new Map();
+  // channel name -> the node that writes it, so an input can name the PRODUCING STEP and not merely a
+  // kind. The engine pins the producing task in `consumes`, and resolving by latest-of-kind instead
+  // would silently pick the wrong artefact in any run that produces a kind twice.
+  const channelNodes = new Map();
   for (const n of nodes) {
     const c = n.data?.config ?? {};
     const channel = String(c.output_key ?? n.id);
+    channelNodes.set(channel, n.id);
     if (String(n.type) === 'human') { channelKinds.set(channel, 'review'); continue; }
     channelKinds.set(channel, first(kinds[n.id], c.baton?.produces?.[0]) ?? proposeKind(n, schemas).kind ?? 'other');
   }
@@ -147,7 +152,7 @@ export function fromClaneGraph(claneManifest, opts = {}) {
             'converter');
           continue;
         }
-        const declared = new Set(declaredInputs(n, channelKinds).map((i) => i.channel));
+        const declared = new Set(declaredInputs(n, channelKinds, channelNodes).map((i) => i.channel));
         const undeclared = reads.filter((r) => !declared.has(r));
         if (undeclared.length && !opts.allowUndeclaredInputs) {
           dropped.add(n.id);
@@ -162,7 +167,7 @@ export function fromClaneGraph(claneManifest, opts = {}) {
             kind: 'clane_code',
             language: String(cfg.language ?? 'python'),
             source: String(cfg.code ?? ''),
-            inputs: declaredInputs(n, channelKinds),
+            inputs: declaredInputs(n, channelKinds, channelNodes),
             node: n.id,
             // Stable across a retry of the same step in the same run, and deliberately NOT including
             // the attempt: a key that changes per retry makes a receiving system see a second distinct
@@ -346,7 +351,7 @@ function kindFor(n, kinds, note, schemas) {
  *  Only declared bindings are carried. An undeclared read is refused rather than guessed at, because
  *  the alternative is a worker running code against nothing and producing a plausible, empty result.
  */
-export function declaredInputs(n, channelKinds) {
+export function declaredInputs(n, channelKinds, channelNodes = new Map()) {
   const cfg = n?.data?.config ?? {};
   const out = [];
   for (const b of Array.isArray(cfg.inputs) ? cfg.inputs : []) {
@@ -354,7 +359,7 @@ export function declaredInputs(n, channelKinds) {
     const from = String(b?.from ?? '').trim();
     if (!as || !from) continue;
     const channel = from.split('.')[0];
-    out.push({ as, channel, kind: channelKinds.get(channel) ?? null, path: from });
+    out.push({ as, channel, kind: channelKinds.get(channel) ?? null, path: from, from_node: channelNodes.get(channel) ?? null });
   }
   return out;
 }

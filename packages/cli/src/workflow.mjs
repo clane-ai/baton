@@ -137,6 +137,21 @@ export function plan(manifest, { input = '', run }) {
   return { steps, skipped, gateways };
 }
 
+/** An input names the step that produces it; only the compiler knows that step's task id, because the
+ *  tasks are created here. Pinning it means a worker resolves the artefact of THAT task rather than the
+ *  latest of its kind, which is the one place resolution could silently pick the wrong artefact in a
+ *  run that produces a kind twice. */
+function pinPayload(payload, created) {
+  if (!payload || !Array.isArray(payload.inputs)) return payload;
+  return {
+    ...payload,
+    inputs: payload.inputs.map((i) => {
+      const t = i.from_node ? created.get(i.from_node) : null;
+      return t ? { ...i, from_task: t.id } : i;
+    }),
+  };
+}
+
 /** Create the tasks on the server in order. Returns { run, tasks: [{node, key, id}], skipped }. */
 export async function compile(cfg, manifest, { input, run, dryRun = false, affinity, publish = true, workspace }) {
   const { steps, skipped, gateways } = plan(manifest, { input, run });
@@ -155,7 +170,7 @@ export async function compile(cfg, manifest, { input, run, dryRun = false, affin
       priority: 300 - i, produces: s.produces.map((kind) => ({ kind })),
       consumes: deps.flatMap((d) => d.produces.map((kind) => ({ kind, from_task: d.id }))),
       depends_on: deps.map((d) => d.id), scope: s.scope, budget_usd: s.budget, max_attempts: s.maxAttempts, workflow_run: run,
-      affinity: s.affinity ?? affinity, deadline: s.deadline, payload: s.payload,
+      affinity: s.affinity ?? affinity, deadline: s.deadline, payload: pinPayload(s.payload, created),
       condition: s.condition && created.get(s.condition.fromStep) ? { task: created.get(s.condition.fromStep).id, kind: s.condition.kind, field: s.condition.field, equals: s.condition.equals, outcome: s.condition.outcome, gateway: s.condition.gateway } : undefined,
     };
     if (dryRun) { out.push({ node: s.id, role: s.role, produces: s.produces, depends_on: s.upstream, scope: s.scope, when: s.condition ? `${s.condition.gateway}=${s.condition.outcome}` : '' }); created.set(s.id, { id: `<${s.id}>`, key: `<${s.id}>`, produces: s.produces }); continue; }
