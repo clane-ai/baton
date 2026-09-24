@@ -30,7 +30,16 @@ export const CLANE_WORKER = 'clane-worker';
  *  conversion rather than discovered when a task is claimed. */
 const LANGUAGES = new Set(['python', 'node', 'bash']);
 /** A heuristic, and named as one. Version one supports code that returns a value: a worker has no
- *  workspace, so a node that writes a file fails in a way that looks like broken code. */
+ *  workspace, so a node that writes a file fails in a way that looks like broken code.
+ *
+ *  This limit is PROVISIONAL and may be looser than it looks. The platform's executors will not run
+ *  without a conversation context at all, and the answer settled on that side is a service identity per
+ *  organisation with one conversation per engine run — which gives a run a workspace after all.
+ *
+ *  Do not widen it on that reasoning alone. The experiment that would lift it, once a worker actually
+ *  executes something: have one step write a file and a later step in the SAME run read it back. If the
+ *  second step sees it, the workspace spans the run and this refusal can go, with evidence behind it.
+ *  If it does not, the refusal is right and the reason is better understood than it is today. */
 function writesFiles(language, code) {
   if (language === 'python') {
     return /\bopen\s*\([^)]*['"][wax]/.test(code) || /\b(pathlib|shutil)\b/.test(code);
