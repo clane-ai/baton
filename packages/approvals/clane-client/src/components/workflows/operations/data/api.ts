@@ -24,12 +24,35 @@ export const BASE = '/api/workflow-ops';
 
 type Query = Record<string, string | number | boolean | null | undefined>;
 
-/** `?a=1&b=x` from the defined, non-empty entries, in insertion order; '' when none. */
+/** The engine's page-size ceiling (docs/api/workflow-ops-proxy.md). */
+const MAX_PAGE = 50;
+
+/**
+ * `?a=1&b=x` from the defined, non-empty entries, in insertion order; '' when
+ * none. `cursor` is the exception: the engine only pages (and only returns
+ * next_cursor) when the parameter is present, so a first page sends `cursor=`.
+ */
 function qs(q: Query): string {
   const parts = Object.entries(q)
-    .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    .filter(([k, v]) => v !== undefined && v !== null && (v !== '' || k === 'cursor'))
     .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`);
   return parts.length ? `?${parts.join('&')}` : '';
+}
+
+const pageSize = (n: number | undefined): number => Math.min(Math.max(1, n ?? MAX_PAGE), MAX_PAGE);
+
+/**
+ * The engine answers some refusals with HTTP 200 and `{ ok: false, error }`
+ * (a race with another approver, a stale page). Those are errors, not success.
+ */
+async function act(path: string, body: unknown): Promise<unknown> {
+  const r = await api.post<{ ok?: boolean; error?: unknown }>(path, body);
+  if (r && r.ok === false) {
+    const err = r.error as { message?: string } | string | undefined;
+    const message = typeof err === 'string' ? err : err?.message ?? 'The engine refused this action';
+    throw new ApiError(409, message, r);
+  }
+  return r;
 }
 
 const seg = (s: string): string => encodeURIComponent(s);
@@ -60,7 +83,7 @@ export async function getInbox(
   cursor?: string | null,
   limit = 50,
 ): Promise<InboxResponse & { nextCursor: string | null }> {
-  const r = await api.get<InboxResponse>(`${BASE}/inbox${qs({ cursor, limit })}`);
+  const r = await api.get<InboxResponse>(`${BASE}/inbox${qs({ cursor: cursor ?? '', limit: pageSize(limit) })}`);
   return { ...r, nextCursor: r.next_cursor ?? null };
 }
 
@@ -113,7 +136,9 @@ export function searchItems(q: {
   limit?: number;
 }): Promise<{ tasks: Task[]; total: number; nextCursor: string | null }> {
   return api
-    .get<{ ok: true; tasks: Task[]; total: number; next_cursor?: string | null }>(`${BASE}/items${qs(q)}`)
+    .get<{ ok: true; tasks: Task[]; total: number; next_cursor?: string | null }>(
+      `${BASE}/items${qs({ ...q, limit: pageSize(q.limit), cursor: q.cursor ?? '' })}`,
+    )
     .then((r) => ({ tasks: r.tasks ?? [], total: r.total ?? 0, nextCursor: r.next_cursor ?? null }));
 }
 
@@ -121,19 +146,19 @@ export function searchItems(q: {
 
 /** Approve or reject a gate. `reason` is required by the engine for a rejection. */
 export function decide(key: string, verdict: 'approve' | 'reject', reason: string | null): Promise<unknown> {
-  return api.post(`${BASE}/items/${seg(key)}/decision`, { verdict, reason });
+  return act(`${BASE}/items/${seg(key)}/decision`, { verdict, reason });
 }
 
 export function retry(
   key: string,
   o: { reason?: string | null; budget_usd?: number; deadline?: string; reset_attempts?: boolean } = {},
 ): Promise<unknown> {
-  return api.post(`${BASE}/items/${seg(key)}/retry`, o);
+  return act(`${BASE}/items/${seg(key)}/retry`, o);
 }
 
 /** Answer the item's open question. The proxy sets task_key from the URL. */
 export function answer(key: string, body: string): Promise<unknown> {
-  return api.post(`${BASE}/items/${seg(key)}/answer`, { body });
+  return act(`${BASE}/items/${seg(key)}/answer`, { body });
 }
 
 // ---- runs ----
@@ -144,7 +169,7 @@ export function getRuns(
 ): Promise<{ runs: WorkflowRun[]; total?: number; nextCursor: string | null }> {
   return api
     .get<{ ok: true; runs: WorkflowRun[]; total?: number; next_cursor?: string | null }>(
-      `${BASE}/runs${qs({ cursor, limit })}`,
+      `${BASE}/runs${qs({ cursor: cursor ?? '', limit: pageSize(limit) })}`,
     )
     .then((r) => ({ runs: r.runs ?? [], total: r.total, nextCursor: r.next_cursor ?? null }));
 }
@@ -178,7 +203,9 @@ export function getEvents(q: {
   cursor?: string | null;
 }): Promise<{ events: StreamEvent[]; nextCursor: string | null }> {
   return api
-    .get<{ ok: true; events: StreamEvent[]; next_cursor?: string | null }>(`${BASE}/events${qs(q)}`)
+    .get<{ ok: true; events: StreamEvent[]; next_cursor?: string | null }>(
+      `${BASE}/events${qs({ ...q, limit: pageSize(q.limit), cursor: q.cursor ?? '' })}`,
+    )
     .then((r) => ({ events: r.events ?? [], nextCursor: r.next_cursor ?? null }));
 }
 

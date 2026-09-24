@@ -50,7 +50,7 @@ describe('getInbox', () => {
   it('asks for the first page and maps next_cursor to nextCursor', async () => {
     get.mockResolvedValue({ ok: true, tiles: { approvals: 1, parked: 0, questions: 0, overdue: 0 }, items: [], next_cursor: 'c2', limit: 50 });
     const r = await getInbox();
-    expect(get).toHaveBeenCalledWith(`${BASE}/inbox?limit=50`);
+    expect(get).toHaveBeenCalledWith(`${BASE}/inbox?cursor=&limit=50`);
     expect(r.nextCursor).toBe('c2');
     expect(r.tiles.approvals).toBe(1);
   });
@@ -101,6 +101,17 @@ describe('documents', () => {
 });
 
 describe('actions', () => {
+  it('turns an engine refusal sent with HTTP 200 into an error with its message', async () => {
+    post.mockResolvedValue({ ok: false, error: { code: 'CONFLICT', message: 'task is already done' } });
+    await expect(decide('TSK-1', 'approve', null)).rejects.toThrow('task is already done');
+    await expect(decide('TSK-1', 'approve', null)).rejects.toBeInstanceOf(ApiError);
+  });
+  it('treats retry and answer refusals the same way', async () => {
+    post.mockResolvedValue({ ok: false, error: { code: 'CONFLICT', message: 'not parked' } });
+    const { retry } = jest.requireActual('../api') as typeof import('../api');
+    await expect(retry('TSK-1')).rejects.toThrow('not parked');
+    await expect(answer('TSK-1', 'yes')).rejects.toThrow('not parked');
+  });
   it('posts a decision with verdict and reason', async () => {
     post.mockResolvedValue({ ok: true });
     await decide('TSK-1', 'reject', 'escalate');
@@ -120,15 +131,20 @@ describe('paged lists', () => {
     expect(get).toHaveBeenCalledWith(`${BASE}/runs?cursor=r1&limit=50`);
     expect(r).toEqual({ runs: [{ key: 'p2p-1' }], total: undefined, nextCursor: 'r2' });
   });
-  it('drops empty filters from the events query', async () => {
+  it('asks for the first page of runs with an empty cursor, which is what starts engine paging', async () => {
+    get.mockResolvedValue({ ok: true, runs: [], next_cursor: null });
+    await getRuns();
+    expect(get).toHaveBeenCalledWith(`${BASE}/runs?cursor=&limit=50`);
+  });
+  it('drops empty filters from the events query, keeps the cursor and caps the page at 50', async () => {
     get.mockResolvedValue({ ok: true, events: [], next_cursor: null });
-    await getEvents({ workflow_run: 'p2p-1', task: '', agent: undefined, limit: 100 });
-    expect(get).toHaveBeenCalledWith(`${BASE}/events?workflow_run=p2p-1&limit=100`);
+    await getEvents({ workflow_run: 'p2p-1', task: '', agent: undefined, limit: 200 });
+    expect(get).toHaveBeenCalledWith(`${BASE}/events?workflow_run=p2p-1&limit=50&cursor=`);
   });
   it('searches items with q and maps the page', async () => {
     get.mockResolvedValue({ ok: true, tasks: [], total: 0, next_cursor: null });
     const r = await searchItems({ q: 'PO-2026' });
-    expect(get).toHaveBeenCalledWith(`${BASE}/items?q=PO-2026`);
+    expect(get).toHaveBeenCalledWith(`${BASE}/items?q=PO-2026&limit=50&cursor=`);
     expect(r).toEqual({ tasks: [], total: 0, nextCursor: null });
   });
 });

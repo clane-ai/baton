@@ -16,6 +16,24 @@ describe('useAsync', () => {
   });
 });
 
+describe('switching what is loaded', () => {
+  it("never shows the previous key's data under the new key", async () => {
+    const load = jest.fn((k: string) => (k === 'A' ? Promise.resolve('data A') : new Promise<string>(() => {})));
+    const { result, rerender } = renderHook(({ k }) => useAsync(() => load(k), [k]), { initialProps: { k: 'A' } });
+    await waitFor(() => expect(result.current.data).toBe('data A'));
+    rerender({ k: 'B' });
+    expect(result.current.data).toBeUndefined();
+    expect(result.current.loading).toBe(true);
+  });
+  it('does the same for a poll', async () => {
+    const load = jest.fn((k: string) => (k === 'A' ? Promise.resolve('data A') : new Promise<string>(() => {})));
+    const { result, rerender } = renderHook(({ k }) => usePoll(() => load(k), [k], 60000), { initialProps: { k: 'A' } });
+    await waitFor(() => expect(result.current.data).toBe('data A'));
+    rerender({ k: 'B' });
+    expect(result.current.data).toBeUndefined();
+  });
+});
+
 describe('usePaged', () => {
   const pages: Record<string, { items: { key: string }[]; nextCursor: string | null }> = {
     first: { items: [{ key: 'A' }, { key: 'B' }], nextCursor: 'c2' },
@@ -45,6 +63,22 @@ describe('usePaged', () => {
 
 describe('usePoll', () => {
   afterEach(() => jest.useRealTimers());
+  it('keeps a load that is slower than the interval instead of discarding it', async () => {
+    jest.useFakeTimers();
+    let resolveFirst: (v: string) => void = () => {};
+    const load = jest.fn(() => new Promise<string>((r) => (resolveFirst = r)));
+    const { result } = renderHook(() => usePoll(load, [], 1000));
+    await act(async () => {
+      jest.advanceTimersByTime(3500);
+      await Promise.resolve();
+    });
+    expect(load).toHaveBeenCalledTimes(1); // ticks skipped while the first load is still out
+    await act(async () => {
+      resolveFirst('slow but good');
+      await Promise.resolve();
+    });
+    expect(result.current.data).toBe('slow but good');
+  });
   it('reloads on the interval and keeps the last good data across an error', async () => {
     jest.useFakeTimers();
     let n = 0;

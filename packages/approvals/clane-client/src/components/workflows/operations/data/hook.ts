@@ -1,7 +1,11 @@
-// Async state for the Approvals pages, in the platform's hand-rolled style
-// (src/hr/data/hook.ts): no query library, plain effects, stale results from
-// superseded loads dropped.
-import { useCallback, useEffect, useRef, useState } from 'react';
+// Async state for the Workflow screens, in the platform's hand-rolled style
+// (src/hr/data/hook.ts): no query library, plain effects.
+//
+// Every result is stamped with the dependencies it was loaded for. When the
+// dependencies change (another item, another run), the old result is not
+// shown under the new key: the screen goes back to loading until its own
+// data arrives. Results of superseded loads are dropped.
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DependencyList } from 'react';
 
 export type AsyncState<T> = {
@@ -11,79 +15,90 @@ export type AsyncState<T> = {
   reload: () => void;
 };
 
+type Box<T> = { epoch: object; data?: T; error?: Error; at?: number };
+
 const asError = (e: unknown): Error => (e instanceof Error ? e : new Error(String(e)));
+
+/** A new object whenever `deps` change; results carry it so stale ones are never shown. */
+function useEpoch(deps: DependencyList): object {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => ({}), deps);
+}
 
 /** Load once per change of `deps`. */
 export function useAsync<T>(load: () => Promise<T>, deps: DependencyList): AsyncState<T> {
-  const [data, setData] = useState<T | undefined>(undefined);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | undefined>(undefined);
+  const epoch = useEpoch(deps);
+  const [box, setBox] = useState<Box<T> | null>(null);
+  const [busy, setBusy] = useState(true);
   const [nonce, setNonce] = useState(0);
   const loadRef = useRef(load);
   loadRef.current = load;
 
   useEffect(() => {
     let live = true;
-    setLoading(true);
+    setBusy(true);
     loadRef.current().then(
-      (d) => {
+      (data) => {
         if (!live) return;
-        setData(d);
-        setError(undefined);
-        setLoading(false);
+        setBox({ epoch, data });
+        setBusy(false);
       },
       (e: unknown) => {
         if (!live) return;
-        setError(asError(e));
-        setLoading(false);
+        setBox((prev) => ({ epoch, data: prev?.epoch === epoch ? prev.data : undefined, error: asError(e) }));
+        setBusy(false);
       },
     );
     return () => {
       live = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...deps, nonce]);
+  }, [epoch, nonce]);
 
   const reload = useCallback(() => setNonce((n) => n + 1), []);
-  return { data, loading, error, reload };
+  const mine = box?.epoch === epoch ? box : null;
+  return { data: mine?.data, loading: busy || !mine, error: mine?.error, reload };
 }
 
 export type PollState<T> = AsyncState<T> & { updatedAt: number | null };
 
 /**
  * Load now and every `ms`, pausing while the tab is hidden and loading again
- * as soon as it is visible. Keeps the last good data across a failed load, so
- * a network blip shows a notice instead of emptying the page.
+ * as soon as it is visible. A tick is skipped while a load is still out, so a
+ * slow engine is waited for rather than cancelled. Keeps the last good data
+ * across a failed load, so a network blip shows a notice instead of emptying
+ * the page.
  */
 export function usePoll<T>(load: () => Promise<T>, deps: DependencyList, ms: number): PollState<T> {
-  const [data, setData] = useState<T | undefined>(undefined);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | undefined>(undefined);
-  const [updatedAt, setUpdatedAt] = useState<number | null>(null);
+  const epoch = useEpoch(deps);
+  const [box, setBox] = useState<Box<T> | null>(null);
   const loadRef = useRef(load);
   loadRef.current = load;
-  const gen = useRef(0);
+  /** The epoch whose load is out, if any. */
+  const inflight = useRef<object | null>(null);
+  const current = useRef(epoch);
+  current.current = epoch;
 
   const once = useCallback(() => {
-    const mine = ++gen.current;
+    const mine = current.current;
+    if (inflight.current === mine) return;
+    inflight.current = mine;
     loadRef.current().then(
-      (d) => {
-        if (mine !== gen.current) return;
-        setData(d);
-        setError(undefined);
-        setUpdatedAt(Date.now());
-        setLoading(false);
+      (data) => {
+        if (inflight.current === mine) inflight.current = null;
+        if (mine !== current.current) return;
+        setBox({ epoch: mine, data, at: Date.now() });
       },
       (e: unknown) => {
-        if (mine !== gen.current) return;
-        setError(asError(e));
-        setLoading(false);
+        if (inflight.current === mine) inflight.current = null;
+        if (mine !== current.current) return;
+        setBox((prev) =>
+          prev?.epoch === mine ? { ...prev, error: asError(e) } : { epoch: mine, error: asError(e) },
+        );
       },
     );
   }, []);
 
   useEffect(() => {
-    setLoading(true);
     let timer: ReturnType<typeof setInterval> | null = null;
     const start = (): void => {
       if (timer) return;
@@ -94,21 +109,23 @@ export function usePoll<T>(load: () => Promise<T>, deps: DependencyList, ms: num
       if (timer) clearInterval(timer);
       timer = null;
     };
-    const onVisibility = (): void => {
-      if (document.visibilityState === 'hidden') stop();
-      else start();
-    };
+    const onVisibility = (): void => (document.visibilityState === 'hidden' ? stop() : start());
     if (document.visibilityState !== 'hidden') start();
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
       stop();
       document.removeEventListener('visibilitychange', onVisibility);
-      gen.current += 1;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...deps, ms, once]);
+  }, [epoch, ms, once]);
 
-  return { data, loading, error, updatedAt, reload: once };
+  const mine = box?.epoch === epoch ? box : null;
+  return {
+    data: mine?.data,
+    loading: !mine || (mine.at === undefined && !mine.error),
+    error: mine?.error,
+    updatedAt: mine?.at ?? null,
+    reload: once,
+  };
 }
 
 export type PagedState<T> = {
@@ -128,7 +145,8 @@ const defaultKey = (t: unknown): string => {
 /**
  * Keyset paging over `cursor` / `nextCursor`. `loadMore` appends the next
  * page; rows already shown (same `keyOf`) are not repeated if the list moved
- * between pages. `reload` starts again from the first page.
+ * between pages. `reload` starts again from the first page. A failed later
+ * page keeps the rows already shown and reports the error.
  */
 export function usePaged<T>(
   loadPage: (cursor: string | null) => Promise<{ items: T[]; nextCursor: string | null }>,
@@ -149,6 +167,10 @@ export function usePaged<T>(
   const fetchPage = useCallback((from: string | null, append: boolean) => {
     const mine = ++gen.current;
     setLoading(true);
+    if (!append) {
+      setItems([]);
+      setHasMore(false);
+    }
     loadRef.current(from).then(
       (page) => {
         if (mine !== gen.current) return;
