@@ -104,24 +104,60 @@ export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL
          and (${q}::text is null or t.key ilike ${q} or t.title ilike ${q} or t.workflow_run ilike ${q} or exists (select 1 from baton.artifacts a where a.task_id = t.id and a.content::text ilike ${q}))`;
     const [{ n }] = await sql`select count(*)::int as n from baton.tasks t ${where}`;
     const cur = decodeCursor(p.get("cursor"));
+    // Ordering is explicit and additive. Absent, every caller sees exactly what it saw before: the
+    // attention order on the unpaged path and newest-first on the keyset path. `waiting` is what a
+    // board about stalled work wants, and it sorts on state_since rather than created_at, because a
+    // task that has moved through four states was not created when it started waiting.
+    const order = (p.get("order") ?? "").trim();
+    const ORDERS: Record<string, { col: "state_since" | "created_at"; dir: "asc" | "desc" }> = {
+      waiting: { col: "state_since", dir: "asc" },
+      waiting_desc: { col: "state_since", dir: "desc" },
+      oldest: { col: "created_at", dir: "asc" },
+      newest: { col: "created_at", dir: "desc" },
+    };
+    if (order && !ORDERS[order]) return bad("PRECONDITION_FAILED", `unknown order "${order}"; use ${Object.keys(ORDERS).join(", ")}`);
+    const ord = ORDERS[order];
+
     if (p.get("cursor") !== null) {
-      // keyset page: created_at desc, id desc; stable while rows change underneath the reader
+      // Keyset page. The cursor must walk the same column and direction the caller sorted by, or the
+      // second page belongs to a different ordering than the first: ascending compares greater-than,
+      // descending compares less-than, and the id breaks ties the same way.
       const cap = Math.max(1, Math.min(50, Number(p.get("limit") ?? 50)));
+      const asc = ord?.dir === "asc";
+      const byState = ord?.col === "state_since";
       const rows = await sql`
-        select baton.task_json(t) || jsonb_build_object('assignee_name', (select name from baton.agents where id = t.assignee)) as r, t.created_at, t.id
+        select baton.task_json(t) || jsonb_build_object('assignee_name', (select name from baton.agents where id = t.assignee)) as r,
+               ${byState ? sql`t.state_since as sort_at` : sql`t.created_at as sort_at`}, t.id
           from baton.tasks t ${where}
-           and (${cur?.sortValue ?? null}::timestamptz is null or (t.created_at, t.id::text) < (${cur?.sortValue ?? null}::timestamptz, ${cur?.id ?? null}::text))
-         order by t.created_at desc, t.id desc limit ${cap + 1}`;
+           and (${cur?.sortValue ?? null}::timestamptz is null or ${
+             byState
+               ? (asc
+                   ? sql`(t.state_since, t.id::text) > (${cur?.sortValue ?? null}::timestamptz, ${cur?.id ?? null}::text)`
+                   : sql`(t.state_since, t.id::text) < (${cur?.sortValue ?? null}::timestamptz, ${cur?.id ?? null}::text)`)
+               : (asc
+                   ? sql`(t.created_at, t.id::text) > (${cur?.sortValue ?? null}::timestamptz, ${cur?.id ?? null}::text)`
+                   : sql`(t.created_at, t.id::text) < (${cur?.sortValue ?? null}::timestamptz, ${cur?.id ?? null}::text)`)
+           })
+         order by ${byState ? sql`t.state_since` : sql`t.created_at`} ${asc ? sql`asc` : sql`desc`}, t.id ${asc ? sql`asc` : sql`desc`}
+         limit ${cap + 1}`;
       const page = rows.slice(0, cap);
       const more = rows.length > cap;
       const last = page[page.length - 1];
-      return { status: 200, body: { ok: true, tasks: page.map((x) => x.r), total: n, limit: cap, next_cursor: more && last ? encodeCursor(new Date(last.created_at as string).toISOString(), String(last.id)) : null } };
+      return { status: 200, body: { ok: true, tasks: page.map((x) => x.r), total: n, limit: cap, order: order || "newest",
+        next_cursor: more && last ? encodeCursor(new Date(last.sort_at as string).toISOString(), String(last.id)) : null } };
     }
-    const rows = await sql`
-      select baton.task_json(t) || jsonb_build_object('assignee_name', (select name from baton.agents where id = t.assignee)) as r
-        from baton.tasks t ${where}
-       order by (t.state = 'in_progress') desc, t.priority desc, t.created_at desc limit ${limit} offset ${offset}`;
-    return { status: 200, body: { ok: true, tasks: rows.map((x) => x.r), total: n, offset, limit } };
+
+    const rows = ord
+      ? await sql`
+        select baton.task_json(t) || jsonb_build_object('assignee_name', (select name from baton.agents where id = t.assignee)) as r
+          from baton.tasks t ${where}
+         order by ${ord.col === "state_since" ? sql`t.state_since` : sql`t.created_at`} ${ord.dir === "asc" ? sql`asc` : sql`desc`}, t.id ${ord.dir === "asc" ? sql`asc` : sql`desc`}
+         limit ${limit} offset ${offset}`
+      : await sql`
+        select baton.task_json(t) || jsonb_build_object('assignee_name', (select name from baton.agents where id = t.assignee)) as r
+          from baton.tasks t ${where}
+         order by (t.state = 'in_progress') desc, t.priority desc, t.created_at desc limit ${limit} offset ${offset}`;
+    return { status: 200, body: { ok: true, tasks: rows.map((x) => x.r), total: n, offset, limit, ...(order ? { order } : {}) } };
   }
   if (seg[1] === "tasks" && seg.length === 2 && method === "POST") {
     const b = await readJson(req);
