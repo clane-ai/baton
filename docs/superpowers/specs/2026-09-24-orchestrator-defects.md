@@ -35,6 +35,19 @@ had failed, the most recent in June. That proves the behaviour occurs in practic
 anything depends on it, and the per-node property means anyone who was relying on it has a one-line
 fix rather than a rollback.
 
+**A narrower version of the same fault, found by the gateway owner while writing the test:** an action
+that reports an empty error string is treated as success, because success is defined as the absence of
+an error rather than as the presence of a result. That is now pinned by a test rather than left as a
+trap.
+
+**Was it a decision or a description?** The behaviour was asserted by a test reading "fails the node
+(but not the walk)", which makes it look deliberate. It was not. The flag existed from the original
+runtime commit in June and was never acted on; the test arrived in July in a commit whose message is a
+single line. The June commit is the telling one: it explains the node types, the task model, the
+connector resolution and the routing in detail, and says nothing whatsoever about what should happen
+when a step fails. If continuing past a failure had been a decision, that is exactly the message it
+would have been recorded in. So it is a description of what the code did, not a choice that it should.
+
 ## 2. The checkpoint has no lease, and the pending node re-runs at least once
 
 `Run.graphCheckpoint` (`prisma/schema/03-agents.prisma:116-122`) records the pending node, the
