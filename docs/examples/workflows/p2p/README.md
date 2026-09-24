@@ -21,7 +21,8 @@ inputs exist and its gateway outcome holds, and the completion gate decides when
 
 ## Files
 
-- `workflow.json`: the manifest (Clane node-graph format with `config.role_ref` and `config.baton`).
+- `workflow.yaml`: the workflow in the YAML form (docs/workflow-yaml.md); this is the file to edit.
+- `workflow.json`: the same workflow as a Clane node-graph manifest (what the designer exchanges; `baton workflow export` produces the YAML from it).
 - `agents/*.md`: role definitions for the three LLM roles; copy them into `<workspace>/.claude/agents/`.
 - `integrations/worker.mjs`: the supplier ERP and the bank as Baton agents that are scripts.
 - `sim/make-documents.py`: generates the requisition PDFs, emails and master data for eight scenarios.
@@ -38,7 +39,7 @@ baton agents add --name p2p-buyer --role buyer --store           # and receiving
 python docs/examples/workflows/p2p/sim/make-documents.py ./p2p-run
 cd p2p-run && git init && mkdir -p .claude/agents && cp ../docs/examples/workflows/p2p/agents/*.md .claude/agents/ && git add -A && git commit -m ws
 # one run per requisition
-baton workflow compile docs/examples/workflows/p2p/workflow.json --run p2p-101 --input PR-2026-101
+baton workflow compile docs/examples/workflows/p2p/workflow.yaml --run p2p-101 --input PR-2026-101
 # the players
 node docs/examples/workflows/p2p/sim/human.mjs --cwd ./p2p-run
 node docs/examples/workflows/p2p/integrations/worker.mjs --role supplier-erp --cwd ./p2p-run

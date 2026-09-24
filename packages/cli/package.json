@@ -24,5 +24,8 @@
   },
   "publishConfig": {
     "access": "restricted"
+  },
+  "dependencies": {
+    "yaml": "^2.9.1"
   }
 }

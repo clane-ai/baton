@@ -1,0 +1,60 @@
+workflow: Locale greetings
+version: 0.1.0
+description: "Add locale-aware greetings to the demo app: an analyst specifies it, backend-dev owns
+  the config file, frontend-dev implements against it, qa verifies. Every step runs unattended on
+  whatever machine holds that role."
+inputs:
+  feature:
+    type: text
+    label: Feature request
+    required: true
+steps:
+  spec:
+    role: analyst
+    title: Write the task spec
+    do: "Read the feature request and the repository. Write a complete task_spec: summary, screens or
+      surfaces, acceptance criteria, and the exact path and keys of any configuration file the
+      feature needs. Do not write code. Do not create any tasks: the workflow already defines the
+      next steps."
+    produces:
+      - task_spec
+    budget_usd: 1
+  config:
+    role: backend-dev
+    title: Create the locale config
+    do: From the task_spec, create the JSON config file it names (path and keys exactly as specified)
+      with sensible values, commit it on branch baton/<your task key> and push. Register a config
+      artefact describing the path, keys and values.
+    after: spec
+    produces:
+      - config
+    budget_usd: 1
+    scope:
+      - src/**
+  implement:
+    role: frontend-dev
+    title: Implement the feature
+    do: Read the task_spec and the config artefact. Pull the branch the config names if it names one.
+      Implement the feature against that config file, add unit tests, run the test command, commit
+      on branch baton/<your task key> and push. Register a build artefact (sha, branch,
+      test_command). Do not open a pull request.
+    after:
+      - config
+      - spec
+    produces:
+      - build
+    budget_usd: 2
+    scope:
+      - src/**
+      - test/**
+  verify:
+    role: qa
+    title: Verify
+    do: Read the build artefact, check out its branch, run its test command, and register a test_report
+      with the suite name, passed and failed counts and the commit sha. Do not modify source files.
+    after: implement
+    produces:
+      - test_report
+    budget_usd: 1
+outputs:
+  - test_report

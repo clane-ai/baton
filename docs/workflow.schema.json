@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://clane.sh/baton/schemas/workflow-yaml/v1",
+  "title": "Baton workflow (YAML form)",
+  "description": "Editor schema for docs/workflow-yaml.md. The linter (baton workflow lint) is the authority; this mirrors it for editors and the designer.",
+  "type": "object",
+  "required": ["workflow", "steps"],
+  "additionalProperties": false,
+  "properties": {
+    "workflow": { "type": "string", "minLength": 1 },
+    "key": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "version": { "type": ["string", "number"] },
+    "description": { "type": "string" },
+    "inputs": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "string" }, { "type": "object", "additionalProperties": false, "properties": {
+      "type": { "type": "string" }, "kind": { "type": "string" }, "label": { "type": "string" }, "description": { "type": "string" }, "required": { "type": "boolean" } } } ] } },
+    "steps": { "type": "object", "minProperties": 1, "propertyNames": { "pattern": "^[A-Za-z][A-Za-z0-9_-]*$" }, "additionalProperties": { "$ref": "#/definitions/step" } },
+    "outputs": { "type": "array", "items": { "type": "string" } }
+  },
+  "definitions": {
+    "kinds": { "type": "string", "enum": ["user_story", "task_spec", "design_spec", "api_contract", "service_contract", "pr", "build", "test_report", "review", "migration", "doc", "other", "db_schema", "config", "handoff", "purchase_order", "delivery_note", "invoice", "goods_receipt", "invoice_match", "payment"] },
+    "stringOrList": { "oneOf": [ { "type": "string" }, { "type": "array", "items": { "type": "string" } } ] },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "oneOf": [ { "required": ["role", "produces"] }, { "required": ["human"] }, { "required": ["script", "produces"] } ],
+      "properties": {
+        "role": { "type": "string", "description": "A Baton role name; any agent of that role may claim the task." },
+        "human": { "type": "string", "description": "An approval task for the operator role; the value labels who decides." },
+        "script": { "type": "string", "description": "A role served by a script worker instead of a model." },
+        "title": { "type": "string" },
+        "do": { "type": "string", "description": "What the step must do; becomes the task spec." },
+        "after": { "$ref": "#/definitions/stringOrList" },
+        "reads": { "type": "array", "items": { "$ref": "#/definitions/kinds" } },
+        "produces": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/kinds" } },
+        "when": { "type": "string", "pattern": "^\\s*[A-Za-z][A-Za-z0-9_-]*\\s*(=|is)\\s*[A-Za-z0-9_-]+\\s*$", "description": "<step> = <outcome> of a step that has a decide block; that step must also be in after." },
+        "decide": { "type": "object", "additionalProperties": false, "required": ["field", "outcomes"], "properties": {
+          "field": { "type": "string", "pattern": "^[a-z_]+\\.[A-Za-z0-9_.]+$", "description": "<kind>.<field> of an artefact this step produces." },
+          "outcomes": { "type": "object", "minProperties": 2, "additionalProperties": { "type": ["string", "number", "boolean"] } },
+          "label": { "type": "string" } } },
+        "deadline": { "oneOf": [ { "type": "number" }, { "type": "string", "pattern": "^\\d+(\\.\\d+)?\\s*(m|min|h|d)?$" } ] },
+        "budget_usd": { "type": "number", "exclusiveMinimum": 0 },
+        "max_attempts": { "type": "integer", "minimum": 1 },
+        "scope": { "type": "array", "items": { "type": "string" } },
+        "affinity": { "type": "string" },
+        "acceptance": { "type": "string" },
+        "idempotent_by": { "type": "string" }
+      }
+    }
+  }
+}

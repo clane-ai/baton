@@ -1,0 +1,111 @@
+# Procure to pay, the YAML form (docs/workflow-yaml.md). Compile: baton workflow compile docs/examples/workflows/p2p/workflow.yaml --run p2p-121 --input PR-2026-101
+# Lint only: baton workflow lint docs/examples/workflows/p2p/workflow.yaml
+workflow: Procure to pay
+version: 0.3.0
+description: >-
+  Requisition to payment: the buyer raises a purchase order, a person approves it, the supplier ERP
+  (a script) acknowledges, ships and invoices, goods-in books the receipt, AP performs the three-way
+  match, and the bank gateway (a script) schedules the payment. A rejected order becomes a rework note;
+  a mismatched invoice becomes a dispute.
+
+inputs:
+  requisition: { type: text, label: Requisition number (PR-2026-nnn), required: true }
+
+steps:
+  po:
+    role: buyer
+    title: Raise purchase order
+    do: >-
+      Raise a purchase order for the requisition named in the workflow input. Read
+      inbox/requisitions/<PR>.pdf (or its .txt extract), masterdata/vendors.csv, masterdata/catalogue.csv
+      and masterdata/policy.md. Register one purchase_order artefact with an honest policy_check.
+    produces: [purchase_order]
+    budget_usd: 1.5
+
+  approve:
+    human: purchasing manager
+    title: Approve purchase order
+    do: A person with purchasing authority approves or rejects the purchase order, using its policy_check and the purchasing policy.
+    after: po
+    reads: [purchase_order]
+    decide:
+      field: review.verdict
+      outcomes: { yes: approve, no: request_changes }
+    deadline: 3m
+
+  send_po:
+    script: supplier-erp
+    title: Send PO to supplier (ERP integration)
+    do: >-
+      Email the purchase order to the vendor, receive the acknowledgement, ship, and file the delivery
+      note and the invoice under inbox/. Registers delivery_note and invoice.
+    after: [approve, po]
+    when: approve = yes
+    reads: [purchase_order]
+    produces: [delivery_note, invoice]
+    idempotent_by: purchase_order.po_number
+    max_attempts: 3
+
+  rework:
+    role: buyer
+    title: Rework note to requester
+    do: >-
+      The approver rejected the purchase order. Read the purchase_order and the review (its summary holds
+      the reason) and register one handoff artefact: what was rejected, why, and what must change before
+      the requisition can be resubmitted.
+    after: approve
+    when: approve = no
+    reads: [purchase_order, review]
+    produces: [handoff]
+    budget_usd: 1
+
+  receive:
+    role: receiving
+    title: Book goods receipt
+    do: >-
+      Book the goods receipt for the delivered purchase order: compare the delivery_note, the warehouse
+      count sheet inbox/deliveries/count-<PO>.txt and the purchase_order. Register one goods_receipt
+      artefact that records what was actually received.
+    after: [send_po, po]
+    reads: [delivery_note, purchase_order]
+    produces: [goods_receipt]
+    budget_usd: 1.5
+
+  match:
+    role: ap-clerk
+    title: Three-way match
+    do: >-
+      Perform the three-way match of purchase_order, goods_receipt and invoice using the tolerances in
+      masterdata/policy.md. Register one invoice_match artefact whose status is matched or mismatched.
+    after: [receive, po, send_po]
+    reads: [purchase_order, goods_receipt, invoice]
+    produces: [invoice_match]
+    decide:
+      field: invoice_match.status
+      outcomes: { ok: matched, bad: mismatched }
+    budget_usd: 1.5
+
+  pay:
+    script: bank
+    title: Schedule payment (bank integration)
+    do: Create the payment instruction for the matched invoice and file the remittance advice. Registers payment.
+    after: [match, send_po]
+    when: match = ok
+    reads: [invoice_match, invoice]
+    produces: [payment]
+    idempotent_by: invoice.invoice_number
+    max_attempts: 3
+
+  dispute:
+    role: ap-clerk
+    title: Dispute the invoice
+    do: >-
+      The three-way match failed. Read the invoice_match and the invoice and register one handoff artefact
+      that is the dispute email to the supplier: which lines, which numbers, what we expect.
+    after: [match, send_po]
+    when: match = bad
+    reads: [invoice_match, invoice]
+    produces: [handoff]
+    budget_usd: 1
+
+outputs: [payment, handoff]

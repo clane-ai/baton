@@ -21,7 +21,8 @@ import { Api, must } from './api.mjs';
 
 export const KNOWN_KINDS = ['user_story', 'task_spec', 'design_spec', 'api_contract', 'service_contract', 'pr', 'build', 'test_report', 'review', 'migration', 'doc', 'other', 'db_schema', 'config', 'handoff', 'purchase_order', 'delivery_note', 'invoice', 'goods_receipt', 'invoice_match', 'payment'];
 
-export function loadManifest(path) {
+export async function loadManifest(path) {
+  if (/\.ya?ml$/i.test(path)) { const { fromYaml } = await import('./workflow-yaml.mjs'); return fromYaml(readFileSync(path, 'utf8'), { source: path }); }
   const m = JSON.parse(readFileSync(path, 'utf8'));
   if (!m.definition?.nodes) throw new Error(`${path}: not a Clane node-graph manifest (no definition.nodes). The steps-based bundle format is not compiled yet.`);
   return m;

@@ -27,7 +27,7 @@ const HELP = `baton <command> [options]
   tasks ls [--state s] [--role r] [--run k] | show <key> | create --title .. --spec .. --acceptance .. --role .. [--run k] [--affinity machine|agent] [--deadline iso]
         | prioritise <key> <n> | cancel <key> [--reason ..] | approve <key> | reject <key> --reason ..   (operator approval tasks)
   webhooks list | add --url .. [--events a,b*] | remove <id> | flush     event subscriptions for orchestrators
-  workflow compile <workflow.json> --run <key> [--input ..] [--affinity m] [--dry-run] | status --run <key> | runs | list
+  workflow compile <workflow.yaml|json> --run <key> [--input ..] [--affinity m] [--dry-run] | lint <file> | export <json> | status --run <key> | runs | list
   answer <message-id> "<text>"
   agents add --name qa-01 --role qa [--machine m] [--store] | list | revoke <name>
   invite --roles qa,frontend-dev --name-prefix pilot-1 [--machine m] [--ttl-hours 24] | invite list
@@ -134,7 +134,7 @@ export async function run(argv) {
       const sub = rest[0] ?? 'compile';
       if (sub === 'compile') {
         const path = rest[1]; if (!path) throw new Error('usage: baton workflow compile <workflow.json> --run <key> [--input "text"] [--dry-run]');
-        const manifest = loadManifest(path);
+        const manifest = await loadManifest(path);
         const run = flags.run ? String(flags.run) : `${String(manifest.name).toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now().toString(36)}`;
         const r = await compile(cfg, manifest, { input: flags.input ? String(flags.input) : '', run, dryRun: !!flags['dry-run'], affinity: flags.affinity ? String(flags.affinity) : undefined });
         console.log(`workflow "${manifest.name}" ${manifest.version ?? ''} -> run ${run}${flags['dry-run'] ? ' (dry run)' : ''}`);
@@ -142,6 +142,21 @@ export async function run(argv) {
         for (const g of r.gateways ?? []) console.log(`gateway ${g.id} ("${g.label}") decides on ${g.from}: ${g.outcomes.join(' | ')}`);
         for (const k of r.skipped) console.log(`skipped ${k.id} (${k.type}): ${k.reason}`);
         if (!flags['dry-run']) console.log(`watch: baton workflow status --run ${run}`);
+        return 0;
+      }
+      if (sub === 'lint') {
+        const path = rest[1]; if (!path) throw new Error('usage: baton workflow lint <workflow.yaml|json>');
+        const manifest = await loadManifest(path);
+        const { plan } = await import('./workflow.mjs');
+        const p = plan(manifest, { input: '(lint)', run: 'lint' });
+        console.log(`${path}: ok. "${manifest.name}" ${manifest.version ?? ''}: ${p.steps.length} steps, ${p.gateways.length} gateway(s), roles ${[...new Set(p.steps.map((s) => s.role))].join(', ')}`);
+        return 0;
+      }
+      if (sub === 'export') {
+        const path = rest[1]; if (!path) throw new Error('usage: baton workflow export <workflow.json> (prints the YAML form)');
+        const manifest = await loadManifest(path);
+        const { toYaml } = await import('./workflow-yaml.mjs');
+        process.stdout.write(toYaml(manifest));
         return 0;
       }
       if (sub === 'status') {
@@ -162,7 +177,7 @@ export async function run(argv) {
         table(r.workflows.map((w) => ({ key: w.key, name: w.name, version: w.version, runs: w.runs, updated: String(w.updated_at).slice(0, 16) })), ['key', 'name', 'version', 'runs', 'updated']);
         return 0;
       }
-      throw new Error('usage: baton workflow compile|status|runs|list');
+      throw new Error('usage: baton workflow compile|lint|export|status|runs|list');
     }
 
     case 'webhooks': {
