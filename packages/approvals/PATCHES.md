@@ -11,7 +11,17 @@ and matched before the workflow `<id>` segment. There is no separate build, so
 there is no entry HTML, Vite config, build script, dev mount, area-switcher
 entry, static mount or deep-link fallback. The mount segment lives in one
 constant, `SECTION_MOUNT` in `src/components/workflows/operations/paths.ts`;
-the gateway agent picks its final value.
+the gateway agent recommended `operations` (2026-09-24), which is the current value.
+
+**Owners.** The server side (proxy, gate, `/api/config`) belongs to the gateway
+agent and is done. The edits below to `WorkflowsPage.jsx`, `lib/api.ts` and
+`lib/spaRoute.js` belong to the clane-client owner, not the gateway agent.
+
+**Gate facts (from the gateway agent).** Only the authenticated `/api/config`
+response carries `modules: string[]`; it is absent, not `[]`, before sign-in.
+The value is `"workflow-ops"`. It gates the operational screens only; the
+authoring studio stays ungated. Dev boxes run `CLANE_MODULES=*`, so the off
+path needs an explicit module list to test.
 
 ## `clane-client/src/i18n/catalog.js` — merge the area's copy
 
