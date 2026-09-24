@@ -14,17 +14,14 @@ import {
   searchItems,
 } from '../api';
 
-vi.mock('../../../lib/api', async () => {
-  const real = await vi.importActual<typeof import('../../../lib/api')>('../../../lib/api');
-  return {
-    ...real,
-    api: { get: vi.fn(), post: vi.fn(), blob: vi.fn() },
-  };
-});
+jest.mock('../../../lib/api', () => ({
+  ...jest.requireActual('../../../lib/api'),
+  api: { get: jest.fn(), post: jest.fn(), blob: jest.fn() },
+}));
 
-const get = api.get as unknown as ReturnType<typeof vi.fn>;
-const post = api.post as unknown as ReturnType<typeof vi.fn>;
-const blob = (api as unknown as { blob: ReturnType<typeof vi.fn> }).blob;
+const get = api.get as unknown as jest.Mock;
+const post = api.post as unknown as jest.Mock;
+const blob = (api as unknown as { blob: jest.Mock }).blob;
 
 beforeEach(() => {
   get.mockReset();

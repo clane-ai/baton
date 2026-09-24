@@ -2,7 +2,7 @@
 // (authenticated fetch wrapper: bearer from the auth store, one refresh on 401, deployment base
 // from lib/base, JSON bodies parsed and any other content type returned as text).
 // `blob` is the one addition this area asks for (PATCHES.md). Specs replace `api` with
-// vi.mock('…/lib/api'); outside specs every call rejects with 404.
+// jest.mock('…/lib/api'); outside specs every call rejects with 404.
 
 export class ApiError extends Error {
   status: number;

@@ -35,7 +35,7 @@ Edits to files that already exist on the platform are in `PATCHES.md`.
 
 ```
 pnpm --filter @clane-ai/baton-approvals typecheck
-pnpm --filter @clane-ai/baton-approvals test
+pnpm --filter @clane-ai/baton-approvals test      # Jest 30 + babel-jest, same config as clane-client
 pnpm --filter @clane-ai/baton-approvals move -- <path to clane.ai checkout>
 ```
 

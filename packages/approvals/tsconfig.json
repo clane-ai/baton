@@ -18,8 +18,8 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": "./clane-client/src",
     "paths": { "~/*": ["*"] },
-    "types": ["vitest/globals", "@testing-library/jest-dom"]
+    "types": ["jest", "@testing-library/jest-dom"]
   },
-  "include": ["clane-client/src", "vitest.setup.ts"],
+  "include": ["clane-client/src"],
   "exclude": ["clane-client/src/**/*.spec.ts", "clane-client/src/**/*.spec.tsx", "clane-client/src/**/__tests__/**"]
 }

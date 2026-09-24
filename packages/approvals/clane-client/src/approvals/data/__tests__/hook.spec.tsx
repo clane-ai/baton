@@ -3,7 +3,7 @@ import { useAsync, usePaged, usePoll } from '../hook';
 
 describe('useAsync', () => {
   it('loads once and exposes the data', async () => {
-    const load = vi.fn().mockResolvedValue(7);
+    const load = jest.fn().mockResolvedValue(7);
     const { result } = renderHook(() => useAsync(load, []));
     expect(result.current.loading).toBe(true);
     await waitFor(() => expect(result.current.data).toBe(7));
@@ -22,7 +22,7 @@ describe('usePaged', () => {
     c2: { items: [{ key: 'B' }, { key: 'C' }], nextCursor: null },
   };
   it('appends pages without duplicates and stops at the end', async () => {
-    const loadPage = vi.fn((c: string | null) => Promise.resolve(pages[c ?? 'first']));
+    const loadPage = jest.fn((c: string | null) => Promise.resolve(pages[c ?? 'first']));
     const { result } = renderHook(() => usePaged(loadPage, []));
     await waitFor(() => expect(result.current.items.map((i) => i.key)).toEqual(['A', 'B']));
     expect(result.current.hasMore).toBe(true);
@@ -32,7 +32,7 @@ describe('usePaged', () => {
     expect(loadPage).toHaveBeenLastCalledWith('c2');
   });
   it('reload starts again from the first page', async () => {
-    const loadPage = vi.fn((c: string | null) => Promise.resolve(pages[c ?? 'first']));
+    const loadPage = jest.fn((c: string | null) => Promise.resolve(pages[c ?? 'first']));
     const { result } = renderHook(() => usePaged(loadPage, []));
     await waitFor(() => expect(result.current.items).toHaveLength(2));
     act(() => result.current.loadMore());
@@ -44,11 +44,11 @@ describe('usePaged', () => {
 });
 
 describe('usePoll', () => {
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => jest.useRealTimers());
   it('reloads on the interval and keeps the last good data across an error', async () => {
-    vi.useFakeTimers();
+    jest.useFakeTimers();
     let n = 0;
-    const load = vi.fn(() => {
+    const load = jest.fn(() => {
       n += 1;
       return n === 2 ? Promise.reject(new Error('blip')) : Promise.resolve(n);
     });
@@ -59,14 +59,14 @@ describe('usePoll', () => {
     expect(result.current.data).toBe(1);
     expect(result.current.updatedAt).not.toBeNull();
     await act(async () => {
-      vi.advanceTimersByTime(5000);
+      jest.advanceTimersByTime(5000);
       await Promise.resolve();
     });
     expect(load).toHaveBeenCalledTimes(2);
     expect(result.current.data).toBe(1);
     expect(result.current.error?.message).toBe('blip');
     await act(async () => {
-      vi.advanceTimersByTime(5000);
+      jest.advanceTimersByTime(5000);
       await Promise.resolve();
     });
     expect(result.current.data).toBe(3);
