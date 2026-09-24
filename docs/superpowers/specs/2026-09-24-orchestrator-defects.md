@@ -24,8 +24,16 @@ holds an error string or nothing. Downstream nodes then do the wrong thing with 
 anything that sends, pays or files, this is the difference between a run that failed and a run that did
 damage.
 
-**Smallest honest fix:** stop on failure by default, and make continuing an explicit property of the
-node or the edge for the cases that genuinely want it.
+**Smallest honest fix:** stop on failure by default, with continuing an explicit property **of the
+node**. Not of the edge: "this step is allowed to fail" is how a person describes it, it is one property
+rather than a routing concept, and failure routing in the graph is a design worth deciding on its own
+rather than arriving as the side effect of a bug fix. Nothing in the real definitions wants failure
+routing; the closest thing, a validator's pass and fail outcomes, is a decision rather than a failure.
+
+**Measured, 24 September 2026:** seven parent runs in the history reported success while a child run
+had failed, the most recent in June. That proves the behaviour occurs in practice. It does not prove
+anything depends on it, and the per-node property means anyone who was relying on it has a one-line
+fix rather than a rollback.
 
 ## 2. The checkpoint has no lease, and the pending node re-runs at least once
 
@@ -59,10 +67,17 @@ the last output; an output node with no explicit source does the same. After a r
 to the workflow's user text or to nothing, so a run that paused for an approval and resumed can
 validate or deliver something other than what the previous node produced, with no error anywhere.
 
-**Why it matters.** This is the failure mode that is hardest to see: the run completes, reports success,
-and the content is wrong. It bites precisely the workflows that pause, which are the ones with a human
-in them, which are the ones where someone has just given an approval on the understanding that they
-were approving the thing in front of them.
+**Why it matters.** The record ends up saying that a named person approved a particular thing at a
+particular time, and the thing that went out is not that thing. So the audit trail becomes evidence of
+something that did not happen, which is worse than having no approval step at all: an approval that does
+not bind to the artefact it approved manufactures a false record rather than merely failing to create a
+true one. (That framing is the gateway owner's, and it is better than the one this note originally had.)
+
+It is also the failure mode hardest to see: the run completes, reports success, and the content is
+wrong. It bites precisely the workflows that pause, which are the ones with a person in them.
+
+**Measured, 24 September 2026:** no run is currently paused awaiting approval with a checkpoint, so
+there is nothing in flight for this fix to disturb.
 
 **Smallest honest fix:** put both in the checkpoint. They are two strings.
 
