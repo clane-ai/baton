@@ -117,6 +117,14 @@ so nothing outside the engine ever learns where the bytes actually sit.
 **The tenant.** Every row carries one and every stored file sits under a tenant prefix, with row-level
 security. Ruled today, and cheapest while the data is being moved anyway.
 
+**An artefact table is an append log, not a list.** Verified in the schema, not assumed: every write is
+a plain insert, there is no unique constraint on task and kind and no upsert anywhere. So one task and
+one kind does not mean one row. A retried step leaves both, and the newest wins. That is correct for a
+retry — losing the earlier attempt would destroy the evidence of what went wrong — but it means any
+screen, query or migration that treats a task's artefacts as a list rather than a history will be
+wrong, and wrong in the way that reports success. Whatever moves this data into Clane keeps the
+ordering, and whatever reads it selects the latest explicitly rather than assuming there is only one.
+
 ### The hazard the environment split creates
 
 Clane's two environments hold **the same five workflows under the same identifiers**. If artefacts are
