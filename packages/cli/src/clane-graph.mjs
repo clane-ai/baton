@@ -24,6 +24,25 @@ import { proposeKind, loadKinds } from './kind-match.mjs';
 const STRUCTURAL = new Set(['trigger', 'output', 'note']);
 const DIRECT = { role: 'role', human: 'approval', router: 'control', validator: 'control' };
 const NEEDS_A_WORKER = new Set(['code', 'action']);
+/** The role that claims a node the engine cannot run itself: a worker inside Clane. */
+export const CLANE_WORKER = 'clane-worker';
+/** The three the platform compiles to and the worker can execute. Anything else is refused at
+ *  conversion rather than discovered when a task is claimed. */
+const LANGUAGES = new Set(['python', 'node', 'bash']);
+/** A heuristic, and named as one. Version one supports code that returns a value: a worker has no
+ *  workspace, so a node that writes a file fails in a way that looks like broken code. */
+function writesFiles(language, code) {
+  if (language === 'python') {
+    return /\bopen\s*\([^)]*['"][wax]/.test(code) || /\b(pathlib|shutil)\b/.test(code);
+  }
+  if (language === 'node') {
+    return /\b(writeFileSync|appendFileSync|createWriteStream|writeFile|appendFile)\b/.test(code);
+  }
+  // Word boundaries matter: without them "tee" matches "committee" and "cp" matches "cpu",
+  // so the heuristic would refuse code that does nothing of the kind.
+  return /(^|\s)(>>?|\btee\b|\bcp\b|\bmv\b|\bmkdir\b)/m.test(code);
+}
+
 const NO_EQUIVALENT = new Set(['loop', 'foreach', 'subworkflow']);
 
 const slug = (s) => String(s ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -73,7 +92,7 @@ export function fromClaneGraph(claneManifest, opts = {}) {
     }
 
     if (NEEDS_A_WORKER.has(type)) {
-      const worker = first(workers[n.id], workers[label]);
+      const worker = first(workers[n.id], workers[label]) ?? (type === 'code' ? CLANE_WORKER : null);
       if (!worker) {
         dropped.add(n.id);
         note('blocker', n.id, type,
@@ -81,9 +100,53 @@ export function fromClaneGraph(claneManifest, opts = {}) {
           'engine');
         continue;
       }
-      out.push({ id: n.id, type: 'role', data: { label, config: { role_ref: worker, prompt: cfg.prompt ?? cfg.code ?? label, baton: { produces: [kindFor(n, kinds, note, schemas)] } }, outcomes: n.data?.outcomes ?? [] } });
-      note('compromise', n.id, type,
-        `mapped to the Baton role "${worker}", which must be served by a worker that actually runs it.`,
+      // The task must be self-contained. Whoever claims it is a machine holding an agent token and no
+      // session, so it cannot go back and ask the platform what it is meant to run: the language, the
+      // source and the resolved inputs travel with the task. Nothing in here is an identifier that
+      // only means something inside the platform's database, because the first time a worker has to
+      // resolve one of those, the property that makes this work is gone.
+      if (type === 'code' && !LANGUAGES.has(String(cfg.language ?? 'python'))) {
+        dropped.add(n.id);
+        note('blocker', n.id, type,
+          `language "${cfg.language}" is not one a worker can execute; only ${[...LANGUAGES].join(', ')} are. Refused here rather than discovered when the task is claimed.`,
+          'converter');
+        continue;
+      }
+      if (type === 'code' && !opts.allowFileWrites && writesFiles(String(cfg.language ?? 'python'), String(cfg.code ?? ''))) {
+        dropped.add(n.id);
+        note('blocker', n.id, type,
+          `this code looks like it writes files. A Clane code node gets a workspace tied to its run; a worker claiming an engine task has no run and no workspace, so it would fail in a way that looks like broken code. Version one supports code that returns a value.`,
+          'engine');
+        continue;
+      }
+      const payload = type === 'code'
+        ? {
+            kind: 'clane_code',
+            language: String(cfg.language ?? 'python'),
+            source: String(cfg.code ?? ''),
+            inputs: resolvedInputs(n, opts),
+            node: n.id,
+            // Stable across a retry of the same step in the same run, and deliberately NOT including
+            // the attempt: a key that changes per retry makes a receiving system see a second distinct
+            // request, which is the harm this exists to prevent. The cost is that a node deliberately
+            // running twice in one run cannot be told apart from a retry.
+            //
+            // Be precise about what this buys, because the stronger claim is easy to make and false.
+            // Passed to the ENGINE it dedupes bookkeeping, so a submission cannot be applied twice. It
+            // does NOTHING about the node's own side effects: a worker that calls a bank and dies
+            // before submitting loses its lease, and the next worker calls the bank again. Double
+            // EXECUTION is prevented by the lease, and only while the lease holds. The key is carried
+            // here so the node's code can pass it to whatever it calls — a bank's idempotency header, a
+            // mail provider's message id — which is the only way the guarantee becomes real, and is
+            // honestly absent for anything that does not honour one.
+            idempotency_key: `${opts.run ?? 'run'}:${n.id}`,
+          }
+        : undefined;
+      out.push({ id: n.id, type: 'role', data: { label, config: { role_ref: worker, prompt: cfg.prompt ?? cfg.code ?? label, baton: { produces: [kindFor(n, kinds, note, schemas)], ...(payload ? { payload, idempotent_by: payload.idempotency_key } : {}) } }, outcomes: n.data?.outcomes ?? [] } });
+      note(payload ? 'converted' : 'compromise', n.id, type,
+        payload
+          ? `becomes a task for the "${worker}" role carrying its language, source and resolved inputs, with an idempotency key of run and node for the engine and for whatever the code calls.`
+          : `mapped to the Baton role "${worker}", which must be served by a worker that actually runs it.`,
         'converter');
       continue;
     }
@@ -231,4 +294,18 @@ function kindFor(n, kinds, note, schemas) {
             : `no output declared; recorded as "other", so the completion gate cannot check anything.`,
     'engine');
   return 'other';
+}
+
+/** The channel values a node consumes, resolved at conversion time so the worker needs no access to
+ *  the run's state. Only explicit bindings are resolved: a template buried in prose is not an input
+ *  contract, and pretending otherwise would hand a worker something it cannot rely on. */
+function resolvedInputs(n, opts) {
+  const cfg = n?.data?.config ?? {};
+  const given = opts?.inputs?.[n.id] ?? {};
+  const out = { ...given };
+  for (const b of Array.isArray(cfg.inputs) ? cfg.inputs : []) {
+    const name = b?.name ?? b?.as ?? b?.from;
+    if (name && out[name] === undefined) out[name] = b?.value ?? b?.from ?? null;
+  }
+  return out;
 }

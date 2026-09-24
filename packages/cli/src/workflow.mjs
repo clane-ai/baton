@@ -132,7 +132,7 @@ export function plan(manifest, { input = '', run }) {
       `# Workflow`, `${manifest.name} ${manifest.version ?? ''} run ${run}, step "${label}" (${id}). Register exactly these artefact kinds: ${produces.join(', ') || 'none'}.`].join('\n');
     const acceptance = c.baton?.acceptance ?? `Given the inputs of step ${id}, when the ${role} finishes, then ${produces.length ? `a valid ${produces.join(' and ')} artefact exists` : 'the step is submitted'} and it satisfies: ${label}.`;
     steps.push({ id, label, role, produces, spec, acceptance, upstream: [...upstream], scope: (c.baton?.scope ?? []).map(String), budget: c.baton?.budget_usd, maxAttempts: c.baton?.max_attempts,
-      affinity: c.baton?.affinity, deadline: c.baton?.deadline ?? (c.baton?.deadline_in_minutes ? new Date(Date.now() + Number(c.baton.deadline_in_minutes) * 60000).toISOString() : undefined), condition });
+      affinity: c.baton?.affinity, payload: c.baton?.payload, idempotentBy: c.baton?.idempotent_by, deadline: c.baton?.deadline ?? (c.baton?.deadline_in_minutes ? new Date(Date.now() + Number(c.baton.deadline_in_minutes) * 60000).toISOString() : undefined), condition });
   }
   return { steps, skipped, gateways };
 }
@@ -155,7 +155,7 @@ export async function compile(cfg, manifest, { input, run, dryRun = false, affin
       priority: 300 - i, produces: s.produces.map((kind) => ({ kind })),
       consumes: deps.flatMap((d) => d.produces.map((kind) => ({ kind, from_task: d.id }))),
       depends_on: deps.map((d) => d.id), scope: s.scope, budget_usd: s.budget, max_attempts: s.maxAttempts, workflow_run: run,
-      affinity: s.affinity ?? affinity, deadline: s.deadline,
+      affinity: s.affinity ?? affinity, deadline: s.deadline, payload: s.payload,
       condition: s.condition && created.get(s.condition.fromStep) ? { task: created.get(s.condition.fromStep).id, kind: s.condition.kind, field: s.condition.field, equals: s.condition.equals, outcome: s.condition.outcome, gateway: s.condition.gateway } : undefined,
     };
     if (dryRun) { out.push({ node: s.id, role: s.role, produces: s.produces, depends_on: s.upstream, scope: s.scope, when: s.condition ? `${s.condition.gateway}=${s.condition.outcome}` : '' }); created.set(s.id, { id: `<${s.id}>`, key: `<${s.id}>`, produces: s.produces }); continue; }
