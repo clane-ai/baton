@@ -33,7 +33,7 @@ a { color: var(--accent); text-decoration: none; }
 button, input, select, textarea { font: inherit; color: inherit; }
 
 .mono { font-family: var(--mono); font-size: 12.5px; }
-.muted { color: var(--ink-3); }
+.muted { color: var(--ink-2); }
 .dim { color: var(--ink-2); }
 .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .nowrap { white-space: nowrap; }
@@ -308,7 +308,7 @@ table.grid.lines tr.flag td { background: #fdecea; }
 /* ---- theme components (new app surface) ---- */
 .surface { background: var(--surface); border-radius: var(--r-panel); box-shadow: var(--shadow); }
 .pill { display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: 11px; font-size: 12px; font-weight: 600; color: #fff; white-space: nowrap; line-height: 1; }
-.pill.tone-done { background: var(--done); } .pill.tone-working { background: var(--working); } .pill.tone-stuck { background: var(--stuck); }
+.pill.tone-done { background: var(--done-soft); color: var(--done-ink); } .pill.tone-working { background: var(--working-soft); color: var(--working-ink); } .pill.tone-stuck { background: var(--stuck); }
 .pill.tone-waiting { background: var(--waiting); } .pill.tone-info { background: var(--info); } .pill.tone-neutral { background: var(--neutral); color: var(--ink); }
 .chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 12px; font-size: 12px; font-weight: 500; background: var(--neutral-soft); color: var(--ink-2); white-space: nowrap; }
 .chip.tone-done { background: var(--done-soft); color: var(--done-ink); } .chip.tone-working { background: var(--working-soft); color: var(--working-ink); }
@@ -369,7 +369,7 @@ a.row:hover { background: var(--surface-2); }
 a.row.selected { background: var(--accent-soft); }
 .cell { padding: 6px 8px 6px 0; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 1px; }
 .cell .key { font-weight: 600; }
-.cell .sub { color: var(--ink-3); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cell .sub { color: var(--ink-2); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .c-amt { text-align: right; align-items: flex-end; }
 .c-flags { flex-direction: row; flex-wrap: wrap; gap: 4px; }
 .c-wait { flex-direction: row; gap: 6px; align-items: center; }

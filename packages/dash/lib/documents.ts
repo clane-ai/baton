@@ -8,6 +8,11 @@ type Obj = Record<string, unknown>;
 const o = (v: unknown): Obj => (v && typeof v === "object" && !Array.isArray(v) ? (v as Obj) : {});
 const str = (v: unknown): string => (v === null || v === undefined ? "" : String(v));
 
+/** Header names as mail readers show them: "content-type" -> "Content-Type", "subject" -> "Subject". */
+function canonical(name: string): string {
+  return name.toLowerCase().replace(/(^|-)([a-z])/g, (_, d, c) => d + c.toUpperCase());
+}
+
 function splitHeaders(block: string): { headers: Record<string, string>; rest: string } {
   const norm = block.replace(/\r\n/g, "\n");
   const i = norm.indexOf("\n\n");
@@ -22,45 +27,91 @@ function splitHeaders(block: string): { headers: Record<string, string>; rest: s
     }
     const m = line.match(/^([\w-]+):\s*(.*)$/);
     if (m) {
-      last = m[1];
+      last = canonical(m[1]);
       headers[last] = m[2].trim();
     }
   }
   return { headers, rest };
 }
 
-function decodeQuotedPrintable(s: string): string {
-  return s
-    .replace(/=\r?\n/g, "")
-    .replace(/=([0-9A-Fa-f]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+function charsetOf(contentType: string): string {
+  const m = contentType.match(/charset="?([^";\s]+)"?/i);
+  return (m?.[1] ?? "utf-8").toLowerCase();
+}
+
+function decodeBytes(bytes: Uint8Array, charset: string): string {
+  try { return new TextDecoder(charset).decode(bytes); } catch { return new TextDecoder("utf-8").decode(bytes); }
+}
+
+function decodeQuotedPrintable(s: string, charset: string): string {
+  const joined = s.replace(/=\r?\n/g, "");
+  const bytes: number[] = [];
+  for (let i = 0; i < joined.length; i++) {
+    const c = joined[i];
+    if (c === "=" && /^[0-9A-Fa-f]{2}$/.test(joined.slice(i + 1, i + 3))) {
+      bytes.push(parseInt(joined.slice(i + 1, i + 3), 16));
+      i += 2;
+    } else {
+      // Plain characters in a QP body are ASCII; encode any stray non-ASCII as UTF-8.
+      const enc = new TextEncoder().encode(c);
+      for (const b of enc) bytes.push(b);
+    }
+  }
+  return decodeBytes(new Uint8Array(bytes), charset);
+}
+
+function decodeBase64(s: string, charset: string): string {
+  const clean = s.replace(/[^A-Za-z0-9+/=]/g, "");
+  try {
+    const bin = atob(clean);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return decodeBytes(bytes, charset);
+  } catch { return ""; }
+}
+
+function decodeBody(body: string, headers: Record<string, string>): string {
+  const enc = (headers["Content-Transfer-Encoding"] ?? "").toLowerCase();
+  const cs = charsetOf(headers["Content-Type"] ?? "");
+  if (enc === "quoted-printable") return decodeQuotedPrintable(body, cs);
+  if (enc === "base64") return decodeBase64(body, cs);
+  return body;
+}
+
+function boundaryOf(contentType: string): string | null {
+  const m = contentType.match(/boundary="?([^";]+)"?/i);
+  return m ? m[1] : null;
+}
+
+function splitParts(body: string, boundary: string): string[] {
+  const re = new RegExp(`^--${boundary.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:--)?\\s*$`, "m");
+  return body.split(re).slice(1).map((p) => p.replace(/^\n/, ""));
+}
+
+/** Walks a MIME tree: the first text/plain part becomes the text; attachment file names are collected. */
+function walk(headers: Record<string, string>, body: string, out: { text: string; attachments: string[] }): void {
+  const ctype = (headers["Content-Type"] ?? "").toLowerCase();
+  const disp = headers["Content-Disposition"] ?? "";
+  const fn = disp.match(/filename="?([^";]+)"?/i);
+  if (fn) { out.attachments.push(fn[1]); return; }
+  const boundary = boundaryOf(headers["Content-Type"] ?? "");
+  if (ctype.startsWith("multipart/") && boundary) {
+    for (const part of splitParts(body, boundary)) {
+      const p = splitHeaders(part);
+      walk(p.headers, p.rest, out);
+    }
+    return;
+  }
+  if ((ctype.startsWith("text/plain") || !ctype) && !out.text) out.text = decodeBody(body, headers).trim();
 }
 
 /** Headers, the text/plain part (decoded), and attachment file names. Never the base64 blobs. */
 export function parseEml(raw: string): ParsedEmail {
   if (!raw || !raw.trim()) return { headers: {}, text: "", attachments: [] };
   const { headers, rest } = splitHeaders(raw);
-  const ctype = headers["Content-Type"] ?? headers["Content-type"] ?? "";
-  const bm = ctype.match(/boundary="?([^";]+)"?/i);
-  if (!bm) {
-    const enc = (headers["Content-Transfer-Encoding"] ?? "").toLowerCase();
-    return { headers, text: (enc === "quoted-printable" ? decodeQuotedPrintable(rest) : rest).trim(), attachments: [] };
-  }
-  const boundary = bm[1];
-  const parts = rest.split(new RegExp(`^--${boundary.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:--)?\\s*$`, "m")).slice(1);
-  let text = "";
-  const attachments: string[] = [];
-  for (const part of parts) {
-    const p = splitHeaders(part.replace(/^\n/, ""));
-    const pt = (p.headers["Content-Type"] ?? "").toLowerCase();
-    const disp = p.headers["Content-Disposition"] ?? "";
-    const fn = disp.match(/filename="?([^";]+)"?/i);
-    if (fn) attachments.push(fn[1]);
-    else if (pt.startsWith("text/plain") && !text) {
-      const enc = (p.headers["Content-Transfer-Encoding"] ?? "").toLowerCase();
-      text = (enc === "quoted-printable" ? decodeQuotedPrintable(p.rest) : p.rest).trim();
-    }
-  }
-  return { headers, text, attachments };
+  const out = { text: "", attachments: [] as string[] };
+  walk(headers, rest, out);
+  return { headers, text: out.text, attachments: out.attachments };
 }
 
 export function docType(path: string): DocumentRef["type"] {

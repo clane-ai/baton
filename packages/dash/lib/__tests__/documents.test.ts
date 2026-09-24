@@ -65,3 +65,25 @@ describe("mergeDocuments", () => {
     expect(m[0].label).toBe("Email");
   });
 });
+
+describe("parseEml, real-world encodings", () => {
+  it("decodes UTF-8 quoted-printable bytes into characters", () => {
+    const m = parseEml("Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\nM=C3=BCller GmbH, 5 =E2=82=AC");
+    expect(m.text).toBe("Müller GmbH, 5 €");
+  });
+  it("decodes a base64 text body", () => {
+    const m = parseEml("Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: base64\r\n\r\nSGVsbG8gd29ybGQ=");
+    expect(m.text).toBe("Hello world");
+  });
+  it("reads lower-case header names", () => {
+    const m = parseEml("subject: hi\r\ncontent-type: text/plain\r\ncontent-transfer-encoding: quoted-printable\r\n\r\na=3Db");
+    expect(m.headers.Subject).toBe("hi");
+    expect(m.text).toBe("a=b");
+  });
+  it("finds the text part inside a nested multipart/alternative", () => {
+    const eml = 'Content-Type: multipart/mixed; boundary="outer"\r\n\r\n--outer\r\nContent-Type: multipart/alternative; boundary="inner"\r\n\r\n--inner\r\nContent-Type: text/plain\r\n\r\nplain body\r\n--inner\r\nContent-Type: text/html\r\n\r\n<p>html</p>\r\n--inner--\r\n--outer\r\nContent-Type: application/pdf\r\nContent-Disposition: attachment; filename="a.pdf"\r\n\r\nJVBERi0=\r\n--outer--\r\n';
+    const m = parseEml(eml);
+    expect(m.text).toBe("plain body");
+    expect(m.attachments).toEqual(["a.pdf"]);
+  });
+});

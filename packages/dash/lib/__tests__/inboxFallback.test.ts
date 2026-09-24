@@ -36,3 +36,16 @@ describe("itemFromTask", () => {
     expect(item.summary?.flags).toEqual(["mismatched"]);
   });
 });
+
+describe("shouldFallback", () => {
+  it("falls back only when the engine has no inbox route or is broken, never on an auth or config error", async () => {
+    const { shouldFallback } = await import("../inboxFallback");
+    expect(shouldFallback(404)).toBe(true);
+    expect(shouldFallback(500)).toBe(true);
+    expect(shouldFallback(502)).toBe(true);
+    expect(shouldFallback(401)).toBe(false);
+    expect(shouldFallback(403)).toBe(false);
+    expect(shouldFallback(400)).toBe(false);
+    expect(shouldFallback(200)).toBe(false);
+  });
+});

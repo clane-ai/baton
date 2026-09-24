@@ -54,3 +54,9 @@ export function itemFromTask(t: Task, artifacts: Artifact[], now: number): Inbox
     budget_usd: t.budget_usd,
   };
 }
+
+/** The dashboard builds its own rows only when the engine has no inbox route (404) or is broken (5xx).
+ *  An auth or config error (401, 403, 400) must reach the screen as an error, never as an empty queue. */
+export function shouldFallback(status: number): boolean {
+  return status === 404 || status >= 500;
+}
