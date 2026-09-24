@@ -100,6 +100,31 @@ most expensive thing in this plan to retrofit.
 stays on an environment-held operator token and one deployment per customer. The ruling is about the
 converged runtime's schema, not about work already underway.
 
+## Where the section lives (ruled)
+
+The operational screens join the workflow studio **inside the main client application**, not in a
+separate Vite build. This overrules the earlier separate-build pick, which was correct only while this
+was a standalone area; the premise changed when the user asked for one Workflow section rather than two
+neighbours, and a separate build cannot share routes or state with a studio that lives in the main
+application.
+
+The graph authoring surface is already a lazy route in the main application
+(`clane-client/src/components/workflows/`). The separate `studio` build in that repository is a
+different surface, the skills and tools area, and must not be confused with it. So nothing in the
+authoring surface moves: the operational screens join it.
+
+**Consequences, all of them simplifications.** The static mount and the deep-link fallback built for a
+separate area are no longer needed, because a route in the main application needs neither. The
+entitlement predicate, the gate on the platform interface and the module list reported to the client
+all stay, because they still decide whether the interface answers and whether the section is offered.
+
+**Naming.** The area key, the entitlement and the surface are named `workflow`. One constraint applies:
+a workflow registry interface and a workflows component directory already exist, so the operational
+interface must not collide with them, and a singular surface sitting beside a plural twin is a split
+that confuses people permanently. The operational surface is therefore nested under the existing
+workflows path rather than placed next to it, declared ahead of the identifier route. The gateway owner
+picks the final path within that rule.
+
 ## Fit conditions
 
 ### (a) Per-node task overhead
