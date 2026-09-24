@@ -62,14 +62,33 @@ Two consequences follow, and both are defects regardless of anything to do with 
 ## Two defects found on the way
 
 **Moving a box changes what the workflow means.** Dragging a node thirty pixels above another turns an
-ordinary edge into a backtrack. Nothing in the editor says so, and the meaning of a workflow should not
-be a function of its layout.
+ordinary edge into a backtrack, and the meaning of a workflow should not be a function of its layout.
+
+**Corrected from the live editor.** I wrote that the editor says nothing about this. That was wrong even
+before today's change: every non-forward edge was already rendered distinctly, with its own colour, line
+style and a pill naming the kind, each pill carrying the kind's description as a tooltip. Loop, End and
+Escalate were confirmed on a real canvas; Backtrack was read from the same rendering path rather than
+seen, because no real workflow contains one. So the editor labelled the kind. **What it never said is
+that a backward edge cannot run.** That is the half that was genuinely missing, and it is the half worth
+claiming in the change that has since landed.
 
 **Every human approval is an escalation.** Because the rule keys on the target's type, an edge into a
 Human node is an escalate edge whether or not anybody is escalating. This is why the engine refused a
 real workflow earlier today: the only link between its decision and its human review was an escalate
 edge, and a forward-only task graph cannot express one. The workflow was drawn correctly; the editor
 labelled it in a way that cannot be executed.
+
+**A loop edge cannot be drawn at all.** The inference returns a loop only when the source and target are
+the same object, and the caller passes two freshly built values, so that comparison is never true. Yet
+real loop edges exist on a real workflow, so they were authored outside the editor — seeded data or the
+interface. A kind that is reachable in data and unreachable by drawing is worth knowing before offering
+it in a picker.
+
+**The code editor promises a type system it does not have.** It tells a person that every upstream node
+is a typed object in scope, with autocomplete and type checking, and the declarations it generates type
+every leaf as a string. A count and a file reference are both strings. That is the same gap as the rest
+of this document wearing a friendlier face: the product already describes the thing this plan would
+build.
 
 ## What to add
 
@@ -81,6 +100,15 @@ The smallest change with the largest effect. A person drawing an approval step s
 edge; someone genuinely building an escalation should say so. Keep the current rule as a default, show
 the kind on the edge, and let it be changed. Until this exists, no amount of contract work makes a real
 workflow runnable, because the graph will keep declaring escalations nobody meant.
+
+### 0. First, a scope limit that applies to items 2 and 4
+
+**Only two node types can declare an output at all.** Role and Code have an output name and output
+fields. Validator, Router, Loop, Human and Action all write channels — they appear in the variables list
+— but none of their inspectors offers a name or a field, so their channel is the raw node id and cannot
+be edited. Items 2 and 4 therefore reach two node types out of eleven unless declaring an output becomes
+something every producing node can do. Decide that deliberately rather than discovering it when a graph
+is half typed.
 
 ### 2. Promote the output declaration from a slot to a kind
 
@@ -98,7 +126,12 @@ into the published workflow, so a kind changing never disturbs a run in flight.
 ### 4. Turn input bindings into declared inputs
 
 Bindings pull a channel path into a local name today, which is a read of the walk's memory. Add the kind
-alongside: this node consumes an `invoice`, produced by that node. That is what lets a step run outside
+alongside: this node consumes an `invoice`, produced by that node.
+
+**Smaller than it looks, from the live editor.** Every consumption point in the product is hand-typed
+free text with nothing checking it — reads channels, from channels, review channel, list channel — while
+the same inspector panel displays the complete list of real variable paths two groups further down. The
+data to populate a picker is already on the screen; nobody has connected the two. That is what lets a step run outside
 the walk, and it is what lets the editor catch a node consuming something nobody produces, before it
 runs rather than at three in the morning.
 
@@ -109,6 +142,10 @@ the edge is followed. Keep the Validator for what it is genuinely good at, which
 other than shape.
 
 ### 6. Say what cannot run, in the editor
+
+**There is no graph validation of any kind today, and Publish and Run are never disabled.** An incomplete
+graph autosaves and publishes. So this is not an enhancement to existing validation; it is the first
+validation there will be, which makes it larger than written and more valuable.
 
 The compiler now refuses a graph it cannot express. The editor should say the same thing at the point of
 drawing: this node type has nobody to run it, this edge cannot be expressed, this kind is not produced by
