@@ -262,6 +262,7 @@ export const WORKFLOW = {
     'workflow.doc.notUploadedHint': '{{path}} is not in the workspace yet',
     'workflow.doc.openNewTab': 'Open in a new tab',
     'workflow.doc.cannotShow': 'Cannot show {{name}}: {{error}}',
+    'workflow.doc.notPdf': '{{name}} is not a PDF, so it is not shown here. Ask whoever uploaded it to check the file.',
     'workflow.doc.none.title': 'No source documents for this step',
     'workflow.doc.none.hint': 'Documents appear here when an artefact names them or the workspace holds them.',
     'workflow.doc.noneAvailable.title': 'None of these documents are in the workspace yet',

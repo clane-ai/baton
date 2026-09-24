@@ -14,22 +14,25 @@ import { TabBar } from './TabBar';
 // the bearer); text shows as is. A document the workspace does not hold
 // (`available: false`) is a disabled tab that says so.
 
-type Load = { text: string | null; url: string | null; error: string | null };
+type Load = { text: string | null; url: string | null; error: string | null; notPdf?: boolean };
+
+const PDF = 'application/pdf';
+/** A stable identity for a document across reloads and re-sorting. */
+const idOf = (d: DocumentRef): string => d.id || d.path;
 
 const isAvailable = (d: DocumentRef): boolean => d.available !== false && !!d.id;
 
-function readStored(key: string): number {
+function readStored(key: string): string | null {
   try {
-    const n = Number(window.sessionStorage.getItem(key) ?? NaN);
-    return Number.isFinite(n) ? n : -1;
+    return window.sessionStorage.getItem(key);
   } catch {
-    return -1;
+    return null;
   }
 }
 
-function writeStored(key: string, i: number): void {
+function writeStored(key: string, id: string): void {
   try {
-    window.sessionStorage.setItem(key, String(i));
+    window.sessionStorage.setItem(key, id);
   } catch {
     /* per-viewer convenience only */
   }
@@ -50,7 +53,14 @@ function useDocument(
       blobOf(doc).then(
         (b) => {
           if (!live) return;
-          url = URL.createObjectURL(b);
+          // The content type is whatever the uploader declared. Only a file
+          // declared as PDF is shown, and its object URL is typed as PDF, so
+          // an HTML file named .pdf can never run in this origin.
+          if (b.type.split(';')[0].trim().toLowerCase() !== PDF) {
+            setState({ text: null, url: null, error: null, notPdf: true });
+            return;
+          }
+          url = URL.createObjectURL(new Blob([b], { type: PDF }));
           setState({ text: null, url, error: null });
         },
         (e: unknown) => live && setState({ text: null, url: null, error: errorText(e) }),
@@ -133,6 +143,13 @@ function Body({ doc, load }: { doc: DocumentRef; load: Load }): JSX.Element {
       </p>
     );
   }
+  if (load.notPdf) {
+    return (
+      <p role="alert" style={{ color: 'var(--red-500)', fontSize: 13, margin: 0 }}>
+        {t('workflow.doc.notPdf', { name: doc.label })}
+      </p>
+    );
+  }
   if (doc.type === 'pdf') {
     if (!load.url) return <p style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>{t('workflow.state.loading')}</p>;
     return (
@@ -175,11 +192,9 @@ export function DocumentViewer({
   const { t } = useT();
   const storeKey = `workflow.source.${itemKey}`;
   const firstAvailable = useMemo(() => docs.findIndex(isAvailable), [docs]);
-  const [picked, setPicked] = useState<number>(() => {
-    const saved = readStored(storeKey);
-    return saved >= 0 && saved < docs.length && isAvailable(docs[saved]) ? saved : firstAvailable;
-  });
-  const index = picked >= 0 && picked < docs.length && isAvailable(docs[picked]) ? picked : firstAvailable;
+  const [picked, setPicked] = useState<string | null>(() => readStored(storeKey));
+  const pickedIndex = picked ? docs.findIndex((d) => idOf(d) === picked && isAvailable(d)) : -1;
+  const index = pickedIndex >= 0 ? pickedIndex : firstAvailable;
   const current = index >= 0 ? docs[index] : null;
   const load = useDocument(current, textOf, blobOf);
 
@@ -189,8 +204,8 @@ export function DocumentViewer({
 
   const pick = (i: number): void => {
     if (!isAvailable(docs[i])) return;
-    setPicked(i);
-    writeStored(storeKey, i);
+    setPicked(idOf(docs[i]));
+    writeStored(storeKey, idOf(docs[i]));
   };
 
   return (

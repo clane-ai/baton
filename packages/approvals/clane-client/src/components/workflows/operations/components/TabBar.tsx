@@ -31,6 +31,9 @@ export function TabBar({
 }): JSX.Element {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const enabled = items.map((t, i) => (t.disabled ? -1 : i)).filter((i) => i >= 0);
+  // The tab that takes focus: the selected one, or the first usable one when
+  // nothing is selected, so the list is always reachable by keyboard.
+  const focusable = items.some((t) => t.value === value && !t.disabled) ? value : items[enabled[0]]?.value;
 
   const onKey = (e: React.KeyboardEvent, i: number): void => {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
@@ -64,7 +67,7 @@ export function TabBar({
               type="button"
               role="tab"
               aria-selected={on}
-              tabIndex={on ? 0 : -1}
+              tabIndex={t.value === focusable ? 0 : -1}
               disabled={t.disabled}
               title={t.title}
               onClick={() => !t.disabled && onChange(t.value)}

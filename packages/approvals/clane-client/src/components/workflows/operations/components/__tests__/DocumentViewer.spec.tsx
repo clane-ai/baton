@@ -67,9 +67,38 @@ describe('DocumentViewer', () => {
 
   it('shows a PDF from an authenticated blob, never a bare URL', async () => {
     const blobOf = jest.fn(() => Promise.resolve(new Blob(['%PDF'], { type: 'application/pdf' })));
-    render(<DocumentViewer itemKey="TSK-1" docs={[pdf]} textOf={jest.fn()} blobOf={blobOf} />);
+    render(<DocumentViewer itemKey="TSK-2" docs={[pdf]} textOf={jest.fn()} blobOf={blobOf} />);
     await waitFor(() => expect(screen.getByTitle('Requisition')).toHaveAttribute('src', 'blob:pdf-1'));
     expect(blobOf).toHaveBeenCalledWith(pdf);
+  });
+
+  it('never renders a file the engine did not type as PDF, so uploaded HTML cannot run here', async () => {
+    const blobOf = jest.fn(() => Promise.resolve(new Blob(['<script>steal()</script>'], { type: 'text/html' })));
+    render(<DocumentViewer itemKey="TSK-1" docs={[pdf]} textOf={jest.fn()} blobOf={blobOf} />);
+    expect(await screen.findByText(/is not a PDF/)).toBeInTheDocument();
+    expect(screen.queryByTitle('Requisition')).not.toBeInTheDocument();
+    expect(URL.createObjectURL).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'text/html' }));
+  });
+
+  it('shows a real PDF from a blob typed as PDF', async () => {
+    (URL.createObjectURL as jest.Mock).mockClear();
+    const blobOf = jest.fn(() => Promise.resolve(new Blob(['%PDF'], { type: 'application/pdf' })));
+    render(<DocumentViewer itemKey="TSK-1" docs={[pdf]} textOf={jest.fn()} blobOf={blobOf} />);
+    await waitFor(() => expect(screen.getByTitle('Requisition')).toHaveAttribute('src', 'blob:pdf-1'));
+    const made = (URL.createObjectURL as jest.Mock).mock.calls[0][0] as Blob;
+    expect(made.type).toBe('application/pdf');
+  });
+
+  it('remembers the chosen document by identity, not by its position in the list', async () => {
+    const text: DocumentRef = { ...email, id: 't1', label: 'Notes', type: 'text', path: 'notes.txt' };
+    const textOf = jest.fn((d: DocumentRef) => Promise.resolve(d.id === 't1' ? 'plain notes' : EML));
+    const { unmount } = render(<DocumentViewer itemKey="TSK-9" docs={[email, text]} textOf={textOf} blobOf={jest.fn()} />);
+    fireEvent.click(screen.getByRole('tab', { name: /Notes/ }));
+    expect(await screen.findByText('plain notes')).toBeInTheDocument();
+    unmount();
+    // the list comes back in another order: the same document stays chosen
+    render(<DocumentViewer itemKey="TSK-9" docs={[text, email]} textOf={textOf} blobOf={jest.fn()} />);
+    expect(await screen.findByText('plain notes')).toBeInTheDocument();
   });
 
   it('says so when none of the documents are in the workspace', () => {
