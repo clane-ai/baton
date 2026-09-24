@@ -19,6 +19,8 @@
 // Edge kinds: `terminate` the compiler already ignores; `backtrack` and `escalate` have no meaning in
 // an acyclic task graph and are dropped here, loudly.
 
+import { proposeKind, loadKinds } from './kind-match.mjs';
+
 const STRUCTURAL = new Set(['trigger', 'output', 'note']);
 const DIRECT = { role: 'role', human: 'approval', router: 'control', validator: 'control' };
 const NEEDS_A_WORKER = new Set(['code', 'action']);
@@ -47,6 +49,7 @@ export function fromClaneGraph(claneManifest, opts = {}) {
   const edges = Array.isArray(def.edges) ? def.edges : [];
   const { roles = {}, workers = {}, kinds = {} } = opts;
   const findings = [];
+  const schemas = opts.schemas ?? loadKinds();
   const note = (severity, nodeId, type, message, fix) => findings.push({ severity, node: nodeId, type, message, fix });
 
   const out = [];
@@ -76,7 +79,7 @@ export function fromClaneGraph(claneManifest, opts = {}) {
           'engine');
         continue;
       }
-      out.push({ id: n.id, type: 'role', data: { label, config: { role_ref: worker, prompt: cfg.prompt ?? cfg.code ?? label, baton: { produces: [kindFor(n, kinds, note)] } }, outcomes: n.data?.outcomes ?? [] } });
+      out.push({ id: n.id, type: 'role', data: { label, config: { role_ref: worker, prompt: cfg.prompt ?? cfg.code ?? label, baton: { produces: [kindFor(n, kinds, note, schemas)] } }, outcomes: n.data?.outcomes ?? [] } });
       note('compromise', n.id, type,
         `mapped to the Baton role "${worker}", which must be served by a worker that actually runs it.`,
         'converter');
@@ -116,7 +119,7 @@ export function fromClaneGraph(claneManifest, opts = {}) {
         'converter');
       continue;
     }
-    out.push({ id: n.id, type: 'role', data: { label, config: { role_ref: role, prompt: cfg.prompt ?? label, baton: { produces: [kindFor(n, kinds, note)] } }, outcomes: n.data?.outcomes ?? [] } });
+    out.push({ id: n.id, type: 'role', data: { label, config: { role_ref: role, prompt: cfg.prompt ?? label, baton: { produces: [kindFor(n, kinds, note, schemas)] } }, outcomes: n.data?.outcomes ?? [] } });
   }
 
   // Edges: keep forward ones between surviving nodes; drop control-flow kinds the engine cannot honour.
@@ -156,13 +159,29 @@ export function fromClaneGraph(claneManifest, opts = {}) {
 }
 
 // Baton artefact kinds are a closed set; a Clane output_key is a free string naming a channel.
-function kindFor(n, kinds, note) {
+// Before falling back to the untyped kind, use the weaker typing Clane already carries: a node's
+// declared output fields. A kind is taken only when the node declares every field that kind requires,
+// because a wrong kind makes the completion gate reject every run of the step, which is worse than no
+// kind at all. An untyped output stays legal by design; it simply cannot feed a typed input.
+function kindFor(n, kinds, note, schemas) {
   const explicit = first(kinds[n.id], n.data?.config?.baton?.produces?.[0]);
   if (explicit) return String(explicit);
+
+  const m = proposeKind(n, schemas);
+  if (m.kind && m.confidence === 'firm') {
+    note('typed', n.id, n.type, `declared fields match the "${m.kind}" kind (${m.reason}), so the completion gate can validate it.`, 'converter');
+    return m.kind;
+  }
+  if (m.kind && m.confidence === 'ambiguous') {
+    note('compromise', n.id, n.type, `${m.reason}; a person should confirm the kind rather than accept the guess.`, 'converter');
+    return m.kind;
+  }
   const key = n.data?.config?.output_key;
-  note('compromise', n.id, n.type,
-    key ? `output channel "${key}" is not a Baton artefact kind; recorded as "other", so no schema validates it.`
-        : `no output declared; recorded as "other", so the completion gate cannot check anything.`,
+  note('untyped', n.id, n.type,
+    m.declared.length
+      ? `${m.reason}; recorded as "other", so the gate can only check that something was submitted.`
+      : key ? `output channel "${key}" is untyped and declares no fields; recorded as "other".`
+            : `no output declared; recorded as "other", so the completion gate cannot check anything.`,
     'engine');
   return 'other';
 }
