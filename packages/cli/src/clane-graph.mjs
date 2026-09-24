@@ -37,6 +37,8 @@ const first = (...vals) => { for (const v of vals) { const t = typeof v === 'str
  * @param opts.workers   map of node id -> Baton role name for a code/action node, when a worker exists
  * @param opts.kinds     map of node id -> Baton artefact kind, when the node's output_key is not one
  * @param opts.name      workflow name; defaults to the platform slug
+ * @param opts.lossy     convert anyway when something cannot be expressed; off by default, because a
+ *                       lossy conversion plans successfully and is not the workflow that was drawn
  * @returns { manifest, findings } where findings lists every compromise and every refusal.
  */
 export function fromClaneGraph(claneManifest, opts = {}) {
@@ -134,6 +136,16 @@ export function fromClaneGraph(claneManifest, opts = {}) {
       continue;
     }
     keptEdges.push(e);
+  }
+
+  // Refusing by default is the point of this converter. A lossy conversion plans successfully and is
+  // not the workflow that was drawn, which is the worst outcome available; the caller must ask for it.
+  const blockers = findings.filter((f) => f.severity === 'blocker');
+  if (blockers.length && !opts.lossy) {
+    const lines = blockers.map((b) => `  ${b.node} (${b.type}): ${b.message}`).join('\n');
+    const err = new Error(`this graph cannot be expressed as Baton tasks:\n${lines}`);
+    err.findings = findings;
+    throw err;
   }
 
   const name = opts.name ?? claneManifest?.slug ?? claneManifest?.name ?? 'clane-workflow';

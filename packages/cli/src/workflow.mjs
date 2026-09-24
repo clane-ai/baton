@@ -48,9 +48,24 @@ function taskOf(node) {
 /** Plan without touching the server: [{node, role, produces, spec, acceptance, upstream: [nodeId], scope, budget}] plus skipped nodes. */
 export function plan(manifest, { input = '', run }) {
   const nodes = manifest.definition.nodes;
-  // A terminate edge ends the run on that outcome; it is control flow, never a data dependency.
-  const edges = (manifest.definition.edges ?? []).filter((e) => e.kind !== 'terminate');
   const byId = new Map(nodes.map((n) => [n.id, n]));
+  const allEdges = manifest.definition.edges ?? [];
+  // Every edge must be one the engine can honour. `terminate` ends the run on that outcome and is
+  // control flow rather than a data dependency, so it is dropped deliberately. Anything else that
+  // sends a run backwards or sideways (backtrack, escalate) has no meaning in an acyclic task graph,
+  // and dropping it quietly is how a graph compiles into a run that is not the one that was drawn:
+  // in a real definition the only edge joining a gateway to its human review was an escalate edge, so
+  // losing it left an approval waiting for nothing. Refuse instead.
+  for (const e of allEdges) {
+    if (!byId.has(e.source) || !byId.has(e.target)) {
+      throw new Error(`edge ${e.source} -> ${e.target} names a node that is not in the graph`);
+    }
+    const kind = String(e.kind ?? 'forward');
+    if (kind !== 'forward' && kind !== 'terminate') {
+      throw new Error(`edge ${e.source} -> ${e.target} is a "${kind}" edge; Baton's task graph only goes forwards, so this cannot be honoured. Remove it, or express the intent as a branch.`);
+    }
+  }
+  const edges = allEdges.filter((e) => e.kind !== 'terminate');
   const order = topo(nodes, edges);
   const steps = []; const skipped = []; const gateways = [];
   const typeOf = (n) => n?.type ?? n?.node_type ?? '';
@@ -68,7 +83,16 @@ export function plan(manifest, { input = '', run }) {
       gateways.push({ id, label: n.data?.label ?? id, from, outcomes: (n.data?.outcomes ?? []).map((o) => o.id) });
       continue;
     }
-    if (type !== 'role' && type !== 'approval') { skipped.push({ id, type, reason: `${type} nodes stay in the orchestrator` }); continue; }
+    if (type !== 'role' && type !== 'approval') {
+      // A node the engine cannot express is only harmless when nothing depends on it. The moment it
+      // carries an edge, skipping it omits a step from the run while the run still reports success,
+      // which is discovered later by whatever did not happen downstream. Refuse at compile time.
+      if (allEdges.some((e) => e.source === id || e.target === id)) {
+        throw new Error(`node ${id} is a "${type}" node, which Baton cannot express as a task, and it carries an edge. Compiling it would silently omit the step. Give it a role served by a worker that runs it, or take it out of the graph.`);
+      }
+      skipped.push({ id, type, reason: `${type} nodes stay in the orchestrator` });
+      continue;
+    }
     const c = n.data?.config ?? {};
     // An approval node is a task for the operator role: it waits in needs_human until baton tasks approve|reject.
     const role = type === 'approval' ? 'operator' : (c.role_ref ?? c.role);
