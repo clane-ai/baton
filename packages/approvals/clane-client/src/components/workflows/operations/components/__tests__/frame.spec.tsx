@@ -12,7 +12,6 @@ const render = (ui: ReactElement) => rtlRender(ui, { wrapper: I18nProvider });
 
 describe('paths', () => {
   it('builds every screen path relative to the section root, encoding keys', () => {
-    expect(paths.approvals()).toBe('/');
     expect(paths.item('TSK-0919')).toBe('/items/TSK-0919');
     expect(paths.item('A/B')).toBe('/items/A%2FB');
     expect(paths.runs()).toBe('/runs');
@@ -20,6 +19,7 @@ describe('paths', () => {
     expect(paths.documents()).toBe('/documents');
     expect(paths.activity()).toBe('/activity');
     expect(paths.spend()).toBe('/spend');
+    expect(paths.definitions()).toBe('/definitions');
   });
 });
 

@@ -40,7 +40,7 @@ const next = [
 ];
 
 function renderBar(props: Partial<React.ComponentProps<typeof DecisionBar>> = {}) {
-  const onDone = jest.fn();
+  const onActed = jest.fn();
   render(
     <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <DecisionBar
@@ -48,13 +48,12 @@ function renderBar(props: Partial<React.ComponentProps<typeof DecisionBar>> = {}
         decision={null}
         questions={[]}
         next={next}
-        nextWaiting="TSK-9"
-        onDone={onDone}
+        onActed={onActed}
         {...props}
       />
     </MemoryRouter>,
   );
-  return { onDone };
+  return { onActed };
 }
 
 beforeEach(() => {
@@ -73,26 +72,32 @@ describe('DecisionBar: approval', () => {
     expect(reject).toBeEnabled();
   });
 
-  it('approves once however often it is clicked, then shows what happens next', async () => {
-    const { onDone } = renderBar();
+  it('approves once however often it is clicked, and reports what happens next', async () => {
+    const { onActed } = renderBar();
     const approve = screen.getByRole('button', { name: 'Approve' });
     fireEvent.click(approve);
     fireEvent.click(approve);
-    await screen.findByText(/Approved\./);
+    await waitFor(() => expect(onActed).toHaveBeenCalledTimes(1));
     expect(decide).toHaveBeenCalledTimes(1);
     expect(decide).toHaveBeenCalledWith('TSK-1', 'approve', null);
-    expect(screen.getByText(/Send purchase order is ready/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Next waiting: TSK-9' })).toHaveAttribute('href', '/items/TSK-9');
-    expect(onDone).toHaveBeenCalledTimes(1);
+    expect(onActed).toHaveBeenCalledWith('approval', 'Approved TSK-1. Send purchase order is ready.');
   });
 
   it('rejects with the reason and names the rejection branch', async () => {
-    renderBar();
+    const { onActed } = renderBar();
     fireEvent.change(screen.getByLabelText('Reason'), { target: { value: 'escalate' } });
     fireEvent.click(screen.getByRole('button', { name: 'Reject' }));
-    await screen.findByText(/Rejected\./);
+    await waitFor(() => expect(onActed).toHaveBeenCalled());
     expect(decide).toHaveBeenCalledWith('TSK-1', 'reject', 'escalate');
-    expect(screen.getByText(/Escalate to director is ready/)).toBeInTheDocument();
+    expect(onActed).toHaveBeenCalledWith('approval', 'Rejected TSK-1. Escalate to director is ready.');
+  });
+
+  it('reports nothing when the engine refuses, and says why', async () => {
+    mocked(decide).mockRejectedValueOnce(new Error('task is already done'));
+    const { onActed } = renderBar();
+    fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
+    expect(await screen.findByText('task is already done')).toBeInTheDocument();
+    expect(onActed).not.toHaveBeenCalled();
   });
 
   it('keeps a draft reason across a reload of the screen', () => {
@@ -113,9 +118,9 @@ describe('DecisionBar: approval', () => {
 
 describe('DecisionBar: other modes', () => {
   it('offers Retry for a parked step', async () => {
-    renderBar({ task: task({ role: 'buyer', state: 'failed', attempts: 3 }) });
+    const { onActed } = renderBar({ task: task({ role: 'buyer', state: 'failed', attempts: 3 }) });
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
-    await screen.findByText(/Back in the queue/);
+    await waitFor(() => expect(onActed).toHaveBeenCalledWith('parked', 'TSK-1 is back in the queue (ready).'));
     expect(retry).toHaveBeenCalledWith('TSK-1', { reason: null, reset_attempts: true });
   });
 
@@ -130,13 +135,14 @@ describe('DecisionBar: other modes', () => {
       created_at: '2026-09-24T10:00:00Z',
       answered_at: null,
     };
-    renderBar({ task: task({ role: 'buyer', state: 'blocked' }), questions: [q] });
+    const { onActed } = renderBar({ task: task({ role: 'buyer', state: 'blocked' }), questions: [q] });
     expect(screen.getByText('Which approval band applies?')).toBeInTheDocument();
     const send = screen.getByRole('button', { name: 'Send answer' });
     expect(send).toBeDisabled();
     fireEvent.change(screen.getByLabelText('Your answer'), { target: { value: 'Director' } });
     fireEvent.click(send);
     await waitFor(() => expect(answer).toHaveBeenCalledWith('TSK-1', 'Director'));
+    await waitFor(() => expect(onActed).toHaveBeenCalledWith('question', 'Answer sent. TSK-1 is back in the queue.'));
   });
 
   it('shows who decided, by name', () => {

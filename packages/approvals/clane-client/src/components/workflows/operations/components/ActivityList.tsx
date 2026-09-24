@@ -30,20 +30,23 @@ export type ActivityEvent = {
 /** Event types that are machinery rather than progress. */
 export const NOISE = new Set(['tool', 'heartbeat', 'prompt', 'turn_end', 'progress', 'tool_batch', 'tool_failure']);
 
-/** The decider as a person: platform label or operator owner, never a raw user id. */
-const byName = (t: T, e: ActivityEvent): string =>
-  personName(s(o(e.payload).by), null, [e]) ?? t('workflow.decide.aColleague');
+export type Viewer = { id: string; name?: string; username?: string; email?: string } | null;
+
+/** A person named in an event: the viewer, a platform label or an operator owner; never a raw user id. */
+const nameOf = (t: T, e: ActivityEvent, who: unknown, me: Viewer): string =>
+  personName(s(who), me, [e]) ?? t('workflow.decide.aColleague');
+const byName = (t: T, e: ActivityEvent, me: Viewer): string => nameOf(t, e, o(e.payload).by, me);
 
 /** ": <reason>" when there is one. */
 const why = (t: T, p: Obj): string => (p.reason ? t('workflow.event.because', { reason: s(p.reason) }) : '');
 
 /** One event as a sentence. Unknown types read as their name in words. */
-export function sentence(e: ActivityEvent, t: T): string {
+export function sentence(e: ActivityEvent, t: T, me: Viewer = null): string {
   const p = o(e.payload);
   const who = e.agent || '';
   switch (e.type) {
     case 'task_created':
-      return p.actor ? t('workflow.event.createdBy', { actor: s(p.actor) }) : t('workflow.event.created');
+      return p.actor ? t('workflow.event.createdBy', { actor: nameOf(t, e, p.actor, me) }) : t('workflow.event.created');
     case 'task_state_changed':
       return t('workflow.event.stateChanged', { from: words(p.from), to: words(p.to) });
     case 'task_claimed':
@@ -66,13 +69,13 @@ export function sentence(e: ActivityEvent, t: T): string {
     case 'approval_overdue':
       return t('workflow.event.approvalOverdue', { minutes: s(p.waiting_minutes) });
     case 'approved':
-      return t('workflow.event.approved', { by: byName(t, e) }) + why(t, p);
+      return t('workflow.event.approved', { by: byName(t, e, me) }) + why(t, p);
     case 'rejected':
-      return t('workflow.event.rejected', { by: byName(t, e) }) + why(t, p);
+      return t('workflow.event.rejected', { by: byName(t, e, me) }) + why(t, p);
     case 'task_retried':
-      return t('workflow.event.retried', { by: byName(t, e) }) + why(t, p);
+      return t('workflow.event.retried', { by: byName(t, e, me) }) + why(t, p);
     case 'task_cancelled':
-      return t('workflow.event.cancelled', { by: byName(t, e) }) + why(t, p);
+      return t('workflow.event.cancelled', { by: byName(t, e, me) }) + why(t, p);
     case 'branch_not_taken':
       return t('workflow.event.branchNotTaken', { decidedBy: s(p.decided_by), outcome: s(p.outcome_required) });
     case 'cancelled_upstream':
@@ -88,7 +91,7 @@ export function sentence(e: ActivityEvent, t: T): string {
     case 'task_asked':
       return t('workflow.event.asked', { to: p.to_role ? s(p.to_role) : t('workflow.event.aPerson'), question: s(p.question) });
     case 'question_answered':
-      return t('workflow.event.answered', { by: byName(t, e) });
+      return t('workflow.event.answered', { by: byName(t, e, me) });
     case 'task_delegated':
       return t('workflow.event.delegated', { child: s(p.child_key), role: s(p.role) });
     case 'delegation_returned':
@@ -137,7 +140,16 @@ const dayOf = (iso: string): string => {
   return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
 };
 
-export function ActivityList({ events, showKeys }: { events: ActivityEvent[]; showKeys?: boolean }): JSX.Element {
+export function ActivityList({
+  events,
+  showKeys,
+  me = null,
+}: {
+  events: ActivityEvent[];
+  showKeys?: boolean;
+  /** The signed-in person, so their own actions read with their name. */
+  me?: Viewer;
+}): JSX.Element {
   const { t } = useT();
   const [all, setAll] = useState(false);
   if (!events.length) {
@@ -169,7 +181,7 @@ export function ActivityList({ events, showKeys }: { events: ActivityEvent[]; sh
                       </span>{' '}
                     </>
                   ) : null}
-                  {sentence(e, t)}
+                  {sentence(e, t, me)}
                 </span>
               ),
               meta: [hhmmss(e.ts), e.agent].filter(Boolean).join(' · '),

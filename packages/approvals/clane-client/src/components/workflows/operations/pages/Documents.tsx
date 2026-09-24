@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 
 import { Button, Card, StatusChip } from '../../../../ds';
 import { useT } from '../../../../i18n';
+import { kindLabel as kindLabelOf } from '../lib/labels';
 import { getArtifacts } from '../data/api';
 import { useAsync } from '../data/hook';
 import type { Artifact } from '../data/types';
@@ -41,11 +42,7 @@ export function Documents(): JSX.Element {
   const [openId, setOpenId] = useState<string | null>(null);
   const list = useAsync(() => getArtifacts({ kind }) as Promise<Art[]>, [kind]);
 
-  const kindLabel = (k: string): string => {
-    const key = `workflow.kind.${k}`;
-    const v = t(key);
-    return v === key ? k.replace(/_/g, ' ') : v;
-  };
+  const kindLabel = (k: string): string => kindLabelOf(t, k);
   const plural = (k: string): string => {
     const key = `workflow.kindPlural.${k}`;
     const v = t(key);

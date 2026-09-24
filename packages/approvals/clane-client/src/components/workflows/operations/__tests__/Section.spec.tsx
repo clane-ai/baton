@@ -1,77 +1,97 @@
-import { act, render as rtlRender, screen, waitFor, fireEvent } from '@testing-library/react';
+import { act, render as rtlRender, screen, fireEvent } from '@testing-library/react';
 import type { ReactElement } from 'react';
 
 import { I18nProvider } from '../../../../i18n';
-
-import { WorkflowOperations } from '../Section';
+import { WorkflowSection } from '../Section';
 import { SECTION_MOUNT } from '../paths';
-
-// Render inside the platform's i18n provider, as the section is in the app.
-const render = (ui: ReactElement) => rtlRender(ui, { wrapper: I18nProvider });
+import { resetInboxStore } from '../data/inboxStore';
 
 /**
- * Smoke coverage for the Workflow operational screens: the section mounts its
- * own router under SECTION_MOUNT, the tab row navigates between screens, the
- * waiting count comes from the status poll, and the router follows the
- * deployment base path. The data facade is mocked onto the engine captures.
+ * The Workflow section as the shell mounts it: its own router under
+ * SECTION_MOUNT, a tab row for the screens, Definitions hosting the studio the
+ * shell passes in, the workflow-ops gate, and the deployment base path. The
+ * data facade is mocked onto the engine captures.
  */
 jest.mock('../data/api', () =>
   jest.requireActual('../data/__fixtures__/mockFacade').mockFacade(jest.requireActual('../data/api'), jest.fn),
 );
 
+// Render inside the platform's i18n provider, as the section is in the app.
+const render = (ui: ReactElement) => rtlRender(ui, { wrapper: I18nProvider });
+
 type BaseWindow = typeof window & { __CLANE_BASE__?: string };
 
-// Screens keep loading (documents, the inbox, polls) after a test's last
-// assertion; let those settle inside act before the test ends.
+// Screens keep loading after a test's last assertion; let that settle inside act.
 afterEach(async () => {
-  // A few ticks: navigations render as transitions, a little after the click.
   for (let i = 0; i < 5; i += 1) {
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
   }
-});
-
-
-afterEach(() => {
   delete (window as BaseWindow).__CLANE_BASE__;
+  resetInboxStore();
 });
 
-describe('Workflow operations section', () => {
-  it('mounts under the workflows path, ahead of a workflow id', () => {
-    expect(SECTION_MOUNT.startsWith('/app/build/workflows/')).toBe(true);
-    expect(SECTION_MOUNT.split('/').length).toBe(5);
+const studio = <div>Workflow studio</div>;
+
+describe('Workflow section', () => {
+  it('is a top-level section of the main client', () => {
+    expect(SECTION_MOUNT).toBe('/app/workflow');
   });
 
-  it('opens on Approvals with the section tabs and the waiting count', async () => {
+  it('opens on Runs, with a tab for every screen and none for an inbox', async () => {
     window.history.pushState({}, '', SECTION_MOUNT);
-    render(<WorkflowOperations />);
-    expect(screen.getByRole('heading', { name: 'Approvals' })).toBeInTheDocument();
-    for (const tab of ['Runs', 'Documents', 'Activity', 'Spend']) {
+    render(<WorkflowSection definitions={studio} />);
+    expect(await screen.findByRole('heading', { name: 'Runs' })).toBeInTheDocument();
+    expect(window.location.pathname).toBe(`${SECTION_MOUNT}/runs`);
+    for (const tab of ['Runs', 'Documents', 'Activity', 'Spend', 'Definitions']) {
       expect(screen.getByRole('link', { name: tab })).toBeInTheDocument();
     }
-    await waitFor(() => expect(screen.getByLabelText('3 waiting')).toBeInTheDocument());
+    expect(screen.queryByRole('link', { name: 'Approvals' })).not.toBeInTheDocument();
   });
 
   it('moves between screens from the tab row and writes the URL', async () => {
-    window.history.pushState({}, '', SECTION_MOUNT);
-    render(<WorkflowOperations />);
-    fireEvent.click(screen.getByRole('link', { name: 'Runs' }));
-    expect(await screen.findByRole('heading', { name: 'Runs' })).toBeInTheDocument();
-    expect(window.location.pathname).toBe(`${SECTION_MOUNT}/runs`);
-    expect(screen.getByRole('link', { name: 'Runs' })).toHaveAttribute('aria-current', 'page');
+    window.history.pushState({}, '', `${SECTION_MOUNT}/runs`);
+    render(<WorkflowSection definitions={studio} />);
+    fireEvent.click(screen.getByRole('link', { name: 'Spend' }));
+    expect(await screen.findByRole('heading', { name: 'Spend' })).toBeInTheDocument();
+    expect(window.location.pathname).toBe(`${SECTION_MOUNT}/spend`);
+    expect(screen.getByRole('link', { name: 'Spend' })).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('hosts the studio under Definitions, including a workflow of its own', async () => {
+    window.history.pushState({}, '', `${SECTION_MOUNT}/definitions/wf-1`);
+    render(<WorkflowSection definitions={studio} />);
+    expect(await screen.findByText('Workflow studio')).toBeInTheDocument();
+  });
+
+  it('keeps the studio when the workflow-ops module is off, and only the studio', async () => {
+    window.history.pushState({}, '', `${SECTION_MOUNT}/runs`);
+    render(<WorkflowSection opsEnabled={false} definitions={studio} />);
+    expect(await screen.findByText('Workflow studio')).toBeInTheDocument();
+    expect(window.location.pathname).toBe(`${SECTION_MOUNT}/definitions`);
+    for (const tab of ['Runs', 'Documents', 'Activity', 'Spend']) {
+      expect(screen.queryByRole('link', { name: tab })).not.toBeInTheDocument();
+    }
+  });
+
+  it('never opens a work item when the module is off', async () => {
+    window.history.pushState({}, '', `${SECTION_MOUNT}/items/TSK-0927`);
+    render(<WorkflowSection opsEnabled={false} definitions={studio} />);
+    expect(await screen.findByText('Workflow studio')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /Purchase order/ })).not.toBeInTheDocument();
   });
 
   it('follows the deployment base path', async () => {
     (window as BaseWindow).__CLANE_BASE__ = '/clane';
     window.history.pushState({}, '', `/clane${SECTION_MOUNT}/spend`);
-    render(<WorkflowOperations />);
+    render(<WorkflowSection definitions={studio} />);
     expect(await screen.findByRole('heading', { name: 'Spend' })).toBeInTheDocument();
   });
 
-  it('sends an unknown path back to Approvals', async () => {
+  it('sends an unknown path to Runs', async () => {
     window.history.pushState({}, '', `${SECTION_MOUNT}/nowhere`);
-    render(<WorkflowOperations />);
-    expect(await screen.findByRole('heading', { name: 'Approvals' })).toBeInTheDocument();
+    render(<WorkflowSection definitions={studio} />);
+    expect(await screen.findByRole('heading', { name: 'Runs' })).toBeInTheDocument();
   });
 });

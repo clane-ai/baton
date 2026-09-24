@@ -15,7 +15,9 @@ export const WORKFLOW = {
     'workflow.nav.documents': 'Documents',
     'workflow.nav.activity': 'Activity',
     'workflow.nav.spend': 'Spend',
-    'workflow.nav.waiting': '{{n}} waiting',
+    'workflow.nav.definitions': 'Definitions',
+    'workflow.definitions.missing.title': 'The workflow studio is not available here',
+    'workflow.definitions.missing.hint': 'Open Workflow from the main navigation to build and edit workflows.',
 
     // Approvals screen
     'workflow.approvals.updated': 'Updated {{time}}',
@@ -54,6 +56,11 @@ export const WORKFLOW = {
     'workflow.approvals.shown': '{{shown}} of {{all}} items',
     'workflow.approvals.more': 'Show more',
     'workflow.approvals.keys': 'j / k to move · Enter to open',
+    'workflow.approvals.title': 'Waiting for you',
+    'workflow.approvals.waitingCount': '{{n}} waiting',
+    'workflow.approvals.overdueCount': '{{n}} past deadline',
+    'workflow.approvals.showAll': 'Show all {{n}}',
+    'workflow.approvals.showSummary': 'Show less',
 
     // Work item screen
     'workflow.item.missing.title': 'This work item does not exist',
@@ -67,7 +74,8 @@ export const WORKFLOW = {
     'workflow.item.tab.activity': 'Activity',
     'workflow.item.noArtefacts.title': 'No document to show',
     'workflow.item.noArtefacts.hint': 'This step has no artefacts yet.',
-    'workflow.item.lastFailure': '{{what}} at {{when}}',
+    'workflow.item.lastFailure': 'Last failure, {{when}}',
+    'workflow.item.backHome': 'Home',
     'workflow.item.asked': 'What this step was asked to do',
     'workflow.item.acceptance': 'Acceptance',
 
@@ -312,6 +320,10 @@ export const WORKFLOW = {
     'workflow.decide.rejectedBy': 'Rejected by {{who}}, {{when}}',
     'workflow.decide.aColleague': 'a colleague',
     'workflow.decide.nothing': 'Nothing to decide here. This step is {{state}}.',
+    'workflow.decide.approvedItem': 'Approved {{key}}.',
+    'workflow.decide.rejectedItem': 'Rejected {{key}}.',
+    'workflow.decide.retriedItem': '{{key}} is back in the queue ({{state}}).',
+    'workflow.decide.answeredItem': 'Answer sent. {{key}} is back in the queue.',
 
     // Activity sentences
     'workflow.activity.empty': 'Nothing has happened yet.',

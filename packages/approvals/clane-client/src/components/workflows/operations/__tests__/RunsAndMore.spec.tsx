@@ -2,7 +2,7 @@ import { act, render as rtlRender, screen, fireEvent, within, waitFor } from '@t
 import type { ReactElement } from 'react';
 
 import { I18nProvider } from '../../../../i18n';
-import { WorkflowOperations } from '../Section';
+import { WorkflowSection } from '../Section';
 import { SECTION_MOUNT } from '../paths';
 import { getEvents } from '../data/api';
 import { setOverrides } from '../data/__fixtures__/mockFacade';
@@ -19,7 +19,7 @@ const runArtifacts = require('../data/__fixtures__/run-artifacts.json');
 
 const open = (path: string): void => {
   window.history.pushState({}, '', `${SECTION_MOUNT}${path}`);
-  render(<WorkflowOperations />);
+  render(<WorkflowSection />);
 };
 
 afterEach(() => setOverrides({}));

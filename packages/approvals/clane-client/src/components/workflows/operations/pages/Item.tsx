@@ -1,11 +1,15 @@
 import React, { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
-import { Banner, Card, StatusChip } from '../../../../ds';
+import { Banner, Button, Card, StatusChip } from '../../../../ds';
 import { useAuthOptional } from '../../../../lib/auth';
 import { useT } from '../../../../i18n';
-import { getDocumentBlob, getDocumentText, getInbox, getItem, getItemDocuments } from '../data/api';
+import { getDocumentBlob, getDocumentText, getItem, getItemDocuments } from '../data/api';
+import { markActed } from '../data/inboxStore';
+import { useInbox } from '../data/useInbox';
 import { useAsync, usePoll } from '../data/hook';
+import { useSectionShell } from '../context';
+import { kindLabel as kindLabelOf } from '../lib/labels';
 import type { Artifact, DocumentRef, TaskDetailResponse } from '../data/types';
 import { documentsFor, mergeDocuments } from '../lib/documents';
 import { nextText, stripProcess, summaryLine, waitingText } from '../lib/inbox';
@@ -15,11 +19,10 @@ import { documentNumber } from '../lib/summary';
 import { dsStatus, stateLabel, type Tone } from '../lib/theme';
 import { dateTime } from '../format';
 import { paths } from '../paths';
-import { ActivityList } from '../components/ActivityList';
+import { ActivityList, sentence } from '../components/ActivityList';
 import { ArtefactDocument } from '../components/ArtefactDocument';
 import { DecisionBar } from '../components/DecisionBar';
 import { DocumentViewer } from '../components/DocumentViewer';
-import { LinkButton } from '../components/LinkButton';
 import { Meta, Page } from '../components/page';
 import { ErrorBanner, Loading, NothingHere } from '../components/States';
 import { TabBar } from '../components/TabBar';
@@ -44,12 +47,29 @@ const FAILURES = ['gate_failed', 'artifact_rejected', 'deadline_passed', 'budget
 
 const numberOf = (a: Artifact | undefined): string => (a ? documentNumber(a.kind, a.content) : '');
 
+/** "Home" as a way back, when the shell provides one; the inbox lives there. */
+function BackHome(): JSX.Element {
+  const { t } = useT();
+  const { onHome } = useSectionShell();
+  if (!onHome) return <span>{t('workflow.breadcrumb')}</span>;
+  return (
+    <button
+      type="button"
+      onClick={onHome}
+      style={{ background: 'none', border: 0, padding: 0, font: 'inherit', color: 'inherit', cursor: 'pointer', letterSpacing: 'inherit', textTransform: 'inherit' }}
+    >
+      {t('workflow.item.backHome')}
+    </button>
+  );
+}
+
 export function Item(): JSX.Element {
   const { t } = useT();
+  const { onHome } = useSectionShell();
   const { key = '' } = useParams();
   const detail = usePoll(() => getItem(key), [key], ITEM_POLL_MS);
   const d = detail.data;
-  const back = <Link to={paths.approvals()} style={{ color: 'inherit', textDecoration: 'none' }}>{t('workflow.nav.approvals')}</Link>;
+  const back = <BackHome />;
 
   if (detail.error && !d) {
     return (
@@ -71,12 +91,19 @@ export function Item(): JSX.Element {
         <NothingHere
           title={t('workflow.item.missing.title')}
           hint={t('workflow.item.missing.hint', { key })}
-          action={<LinkButton to={paths.approvals()}>{t('workflow.decide.backToApprovals')}</LinkButton>}
+          action={
+            onHome ? (
+              <Button variant="secondary" onClick={onHome}>
+                {t('workflow.item.backHome')}
+              </Button>
+            ) : undefined
+          }
         />
       </Page>
     );
   }
-  return <ItemBody itemKey={key} detail={d} back={back} onChanged={detail.reload} />;
+  // Keyed by item: nothing typed or chosen on one item survives onto another.
+  return <ItemBody key={key} itemKey={key} detail={d} back={back} onChanged={detail.reload} />;
 }
 
 /** The item once it is known to exist: only then are its documents and the inbox loaded. */
@@ -93,17 +120,15 @@ function ItemBody({
 }): JSX.Element {
   const { t } = useT();
   const user = useAuthOptional()?.user ?? null;
+  const { onHome } = useSectionShell();
   const files = useAsync(() => getItemDocuments(key), [key]);
-  const inbox = usePoll(() => getInbox(null, 50), [], INBOX_POLL_MS);
+  const inbox = useInbox(INBOX_POLL_MS);
   const [tab, setTab] = useState<'doc' | 'policy' | 'activity'>('doc');
+  const [notice, setNotice] = useState<string | null>(null);
 
   const task = d.task;
   const approval = task?.role === 'operator';
-  const kindLabel = (kind: string): string => {
-    const k = `workflow.kind.${kind}`;
-    const v = t(k);
-    return v === k ? kind.replace(/_/g, ' ') : v;
-  };
+  const kindLabel = (kind: string): string => kindLabelOf(t, kind);
 
   const consumed = useMemo(() => {
     const seen = new Set<string>();
@@ -115,19 +140,28 @@ function ItemBody({
     : own[0] ?? consumed[0];
   const shown: Artifact[] = approval ? consumed : own.length ? [own[0], ...consumed] : consumed;
 
+  // The engine lists every document a step refers to, each with `available`.
+  // Paths guessed from artefact conventions are used only when that list could
+  // not be loaded, so "Not uploaded" is never claimed for a guess.
   const docs: DocumentRef[] = useMemo(() => {
     const fromApi = [...(files.data?.documents ?? []), ...(d.documents ?? [])];
+    if (files.data) return mergeDocuments(fromApi, []);
     const conventions = [...consumed, ...own].flatMap((a) => documentsFor(a.kind, a.content));
     return mergeDocuments(fromApi, conventions);
   }, [files.data, d, consumed, own]);
 
   const item = inbox.data?.items.find((i) => i.key === key) ?? null;
-  const nextWaiting = useMemo(() => {
-    const others = (inbox.data?.items ?? [])
-      .filter((i) => i.kind === 'approval' && i.key !== key)
-      .sort((a, b) => a.waiting_since.localeCompare(b.waiting_since));
-    return others[0]?.key ?? null;
-  }, [inbox.data, key]);
+
+  /** After an action: hide the item from the queue, then go back to it on Home. */
+  const acted = (kind: 'approval' | 'parked' | 'question', confirmation: string): void => {
+    markActed(key, kind, onHome ? confirmation : null);
+    if (onHome) {
+      onHome();
+      return;
+    }
+    setNotice(confirmation);
+    onChanged();
+  };
 
   const summary = primary ? policySummary(primary.kind, primary.content) : null;
   const title = primary ? `${kindLabel(primary.kind)} ${numberOf(primary)}`.trim() : stripProcess(task.title);
@@ -135,6 +169,7 @@ function ItemBody({
   const lastFailure = !approval ? events.find((e) => FAILURES.includes(e.type)) : undefined;
   const decidedByName = d.decision ? personName(d.decision.by, user, events) ?? undefined : undefined;
   const producer = d.claims?.find((c) => c.outcome === 'completed')?.agent ?? null;
+  const me = user ? { id: user.id, name: user.name, username: user.username, email: user.email } : null;
 
   const actions = (
     <>
@@ -146,6 +181,7 @@ function ItemBody({
   return (
     <Page breadcrumb={back} title={title} actions={actions}>
       <div style={{ display: 'grid', gap: 18 }}>
+        {notice ? <Banner tone="success" title={notice} onClose={() => setNotice(null)} /> : null}
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px 16px' }}>
           <Meta
             parts={[
@@ -213,10 +249,8 @@ function ItemBody({
                     <NothingHere title={t('workflow.item.noArtefacts.title')} hint={t('workflow.item.noArtefacts.hint')} />
                   )}
                   {lastFailure ? (
-                    <Banner tone="danger" title={t('workflow.item.lastFailure', { what: lastFailure.type.replace(/_/g, ' '), when: dateTime(lastFailure.ts) })}>
-                      <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
-                        {JSON.stringify(lastFailure.payload, null, 2)}
-                      </pre>
+                    <Banner tone="danger" title={t('workflow.item.lastFailure', { when: dateTime(lastFailure.ts) })}>
+                      {sentence(lastFailure, t, me)}
                     </Banner>
                   ) : null}
                 </div>
@@ -240,20 +274,17 @@ function ItemBody({
                   ) : null}
                 </div>
               ) : (
-                <ActivityList events={events} />
+                <ActivityList events={events} me={me} />
               )}
             </div>
             <DecisionBar
+              key={task.key}
               task={task}
               decision={d.decision}
               questions={d.questions ?? d.messages ?? []}
               next={item?.next ?? []}
-              nextWaiting={nextWaiting}
               decidedByName={decidedByName}
-              onDone={() => {
-                onChanged();
-                inbox.reload();
-              }}
+              onActed={acted}
             />
           </Card>
         </div>

@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 
 import { Card, StatusChip, StatusDot } from '../../../../ds';
 import { useT } from '../../../../i18n';
+import { kindLabel as kindLabelOf } from '../lib/labels';
 import { getEvents, getRun, getRunArtifacts } from '../data/api';
 import { useAsync, usePoll } from '../data/hook';
 import type { RunArtifact, WorkflowRunStep } from '../data/types';
@@ -95,11 +96,7 @@ function Artefacts({ artefacts }: { artefacts: RunArtifact[] }): JSX.Element {
   const { t } = useT();
   const [open, setOpen] = useState<string | null>(null);
   if (!artefacts.length) return <NothingHere title={t('workflow.run.noArtefacts')} />;
-  const kindLabel = (kind: string): string => {
-    const k = `workflow.kind.${kind}`;
-    const v = t(k);
-    return v === k ? kind.replace(/_/g, ' ') : v;
-  };
+  const kindLabel = (k: string): string => kindLabelOf(t, k);
   return (
     <div style={{ display: 'grid' }}>
       {artefacts.map((a) => {

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 
 import { AuditLogRow, Button } from '../../../../ds';
 import { useT } from '../../../../i18n';
+import { useAuthOptional } from '../../../../lib/auth';
 import { getEvents } from '../data/api';
 import { usePaged } from '../data/hook';
 import type { StreamEvent } from '../data/types';
@@ -52,6 +53,7 @@ function useDebounced<T>(v: T, ms: number): T {
 
 export function Activity(): JSX.Element {
   const { t } = useT();
+  const user = useAuthOptional()?.user ?? null;
   const [run, setRun] = useState('');
   const [task, setTask] = useState('');
   const [agent, setAgent] = useState('');
@@ -92,7 +94,7 @@ export function Activity(): JSX.Element {
             key={String(e.id)}
             actor={e.agent ?? t('workflow.activityScreen.system')}
             agent={!!e.agent}
-            action={<span>{sentence(e, t)}</span>}
+            action={<span>{sentence(e, t, user)}</span>}
             target={
               e.task_key ? (
                 <Link to={paths.item(e.task_key)} style={{ color: 'inherit' }}>

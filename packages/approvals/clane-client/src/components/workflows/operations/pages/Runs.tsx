@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 
 import { Button, ProgressBar, StatCard, StatusChip } from '../../../../ds';
 import { useT } from '../../../../i18n';
+import { runStatusLabel } from '../lib/labels';
 import { getRuns } from '../data/api';
 import { usePaged } from '../data/hook';
 import type { WorkflowRun } from '../data/types';
@@ -33,11 +34,7 @@ export function progressOf(counts: Record<string, number>): { done: number; tota
 /** "Done", "Needs you", … from the catalogue, or the status in words. */
 export function useRunStatusLabel(): (status: string) => string {
   const { t } = useT();
-  return (status: string) => {
-    const key = `workflow.runStatus.${status}`;
-    const v = t(key);
-    return v === key ? status.replace(/_/g, ' ') : v;
-  };
+  return (status: string) => runStatusLabel(t, status);
 }
 
 const COLS = 'minmax(150px, 1.4fr) minmax(140px, 1.4fr) 120px minmax(150px, 1.4fr) 110px 150px 150px';

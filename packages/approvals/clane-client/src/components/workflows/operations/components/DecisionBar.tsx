@@ -6,8 +6,6 @@ import type { Decision, InboxNext, Message, Task } from '../data/types';
 import { clearDraft, loadDraft, saveDraft, type DraftStore } from '../lib/drafts';
 import { outcomeSide } from '../lib/inbox';
 import { dateTime } from '../format';
-import { paths } from '../paths';
-import { LinkButton } from './LinkButton';
 import { ReasonField } from './ReasonField';
 import { TextField } from './TextField';
 
@@ -101,29 +99,26 @@ const Actions = ({ children }: { children: React.ReactNode }): JSX.Element => (
 function Approval({
   task,
   next,
-  nextWaiting,
-  onDone,
+  onActed,
 }: {
   task: Task;
   next: InboxNext[];
-  nextWaiting: string | null;
-  onDone: () => void;
+  onActed: (notice: string) => void;
 }): JSX.Element {
   const { t } = useT();
   const [reason, setReason] = useState('');
   const [draft, setDraft] = useState<'' | 'saved' | 'draft'>('');
   const [busy, setBusy] = useState<'approve' | 'reject' | null>(null);
   const [outcome, setOutcome] = useState<Outcome>(null);
-  const [done, setDone] = useState(false);
   // A ref, not state: a second click in the same frame sees it at once.
   const inFlight = useRef(false);
 
   useEffect(() => {
+    // Always set, so a reason typed on another item never carries over.
     const d = loadDraft(storage(), task.key);
-    if (d) {
-      setReason(d);
-      setDraft('draft');
-    }
+    setReason(d);
+    setDraft(d ? 'draft' : '');
+    setOutcome(null);
   }, [task.key]);
 
   const save = (): void => {
@@ -132,7 +127,7 @@ function Approval({
   };
 
   const act = async (verdict: 'approve' | 'reject'): Promise<void> => {
-    if (inFlight.current || done) return;
+    if (inFlight.current) return;
     const why = reason.trim();
     if (verdict === 'reject' && !why) {
       setOutcome({ kind: 'bad', text: t('workflow.decide.reasonNeeded') });
@@ -146,10 +141,10 @@ function Approval({
       clearDraft(storage(), task.key);
       const side = next.filter((n) => (outcomeSide(n.when) === 'reject') === (verdict === 'reject'));
       const ready = side.map((n) => n.title).join(', ');
-      const head = verdict === 'approve' ? t('workflow.decide.approved') : t('workflow.decide.rejected');
-      setOutcome({ kind: 'ok', text: ready ? `${head} ${t('workflow.decide.nextReady', { steps: ready })}` : head });
-      setDone(true);
-      onDone();
+      const head = t(verdict === 'approve' ? 'workflow.decide.approvedItem' : 'workflow.decide.rejectedItem', {
+        key: task.key,
+      });
+      onActed(ready ? `${head} ${t('workflow.decide.nextReady', { steps: ready })}` : head);
     } catch (e) {
       setOutcome({ kind: 'bad', text: errorText(e) });
     } finally {
@@ -157,23 +152,6 @@ function Approval({
       setBusy(null);
     }
   };
-
-  if (done) {
-    return (
-      <Frame tone="plain">
-        <OutcomeLine outcome={outcome} />
-        <Actions>
-          {nextWaiting ? (
-            <LinkButton to={paths.item(nextWaiting)} variant="primary">
-              {t('workflow.decide.nextWaiting', { key: nextWaiting })}
-            </LinkButton>
-          ) : (
-            <LinkButton to={paths.approvals()}>{t('workflow.decide.backToApprovals')}</LinkButton>
-          )}
-        </Actions>
-      </Frame>
-    );
-  }
 
   return (
     <Frame heading={t('workflow.decide.needsYou')}>
@@ -216,7 +194,7 @@ function Approval({
   );
 }
 
-function Retry({ task, onDone }: { task: Task; onDone: () => void }): JSX.Element {
+function Retry({ task, onActed }: { task: Task; onActed: (notice: string) => void }): JSX.Element {
   const { t } = useT();
   const [reason, setReason] = useState('');
   const [budget, setBudget] = useState('');
@@ -240,8 +218,7 @@ function Retry({ task, onDone }: { task: Task; onDone: () => void }): JSX.Elemen
       if (budgetUsd !== undefined) body.budget_usd = budgetUsd;
       if (deadline) body.deadline = new Date(deadline).toISOString();
       const r = (await retry(task.key, body)) as { state?: string };
-      setOutcome({ kind: 'ok', text: t('workflow.decide.retried', { state: (r?.state ?? 'ready').replace(/_/g, ' ') }) });
-      onDone();
+      onActed(t('workflow.decide.retriedItem', { key: task.key, state: (r?.state ?? 'ready').replace(/_/g, ' ') }));
     } catch (e) {
       setOutcome({ kind: 'bad', text: errorText(e) });
     } finally {
@@ -291,7 +268,15 @@ function Retry({ task, onDone }: { task: Task; onDone: () => void }): JSX.Elemen
   );
 }
 
-function Answer({ task, question, onDone }: { task: Task; question: Message; onDone: () => void }): JSX.Element {
+function Answer({
+  task,
+  question,
+  onActed,
+}: {
+  task: Task;
+  question: Message;
+  onActed: (notice: string) => void;
+}): JSX.Element {
   const { t } = useT();
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
@@ -306,9 +291,8 @@ function Answer({ task, question, onDone }: { task: Task; question: Message; onD
     setOutcome(null);
     try {
       await answer(task.key, text);
-      setOutcome({ kind: 'ok', text: t('workflow.decide.answered') });
       setBody('');
-      onDone();
+      onActed(t('workflow.decide.answeredItem', { key: task.key }));
     } catch (e) {
       setOutcome({ kind: 'bad', text: errorText(e) });
     } finally {
@@ -350,26 +334,32 @@ export function DecisionBar({
   decision,
   questions,
   next,
-  nextWaiting,
-  onDone,
+  onActed,
   decidedByName,
 }: {
   task: Task;
   decision: Decision | null | undefined;
   questions: Message[];
   next: InboxNext[];
-  nextWaiting: string | null;
-  onDone: () => void;
+  /**
+   * The action was recorded. `kind` is which inbox list the item was in;
+   * `notice` is the confirmation to show wherever the person goes next.
+   */
+  onActed: (kind: 'approval' | 'parked' | 'question', notice: string) => void;
   /** The decider as a person's name; the page resolves it, never a raw id. */
   decidedByName?: string;
 }): JSX.Element {
   const { t } = useT();
   const open = questions.filter((q) => q.kind === 'question' && !q.answered_at);
-  if (open.length) return <Answer task={task} question={open[open.length - 1]} onDone={onDone} />;
-  if (task.role === 'operator' && task.state === 'needs_human') {
-    return <Approval task={task} next={next} nextWaiting={nextWaiting} onDone={onDone} />;
+  if (open.length) {
+    return <Answer task={task} question={open[open.length - 1]} onActed={(n) => onActed('question', n)} />;
   }
-  if (task.state === 'needs_human' || task.state === 'failed') return <Retry task={task} onDone={onDone} />;
+  if (task.role === 'operator' && task.state === 'needs_human') {
+    return <Approval task={task} next={next} onActed={(n) => onActed('approval', n)} />;
+  }
+  if (task.state === 'needs_human' || task.state === 'failed') {
+    return <Retry task={task} onActed={(n) => onActed('parked', n)} />;
+  }
   if (decision) {
     const approved = decision.verdict === 'approve';
     return (

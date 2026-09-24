@@ -1,23 +1,21 @@
-// Every link inside the Workflow operational screens goes through here. Paths
-// are relative to the section's router basename (SECTION_MOUNT), so where the
-// section sits under /app/build/workflows is decided in one place.
+// Every link inside the Workflow section goes through here. Paths are
+// relative to the section's router basename (SECTION_MOUNT).
 
 /**
- * Mount of the operational screens below the app base. Nested under the
- * existing workflows path and matched before its `<id>` segment (ruling
- * 2026-09-24). The final segment is the gateway agent's call; change it here
- * and nowhere else.
+ * Workflow is a top-level section of the main client (a sibling of Build,
+ * Settings and Admin; ruling 2026-09-24). The main client's spaRoute owns
+ * `/app/workflow/<section>/<sub>`; this section's own router owns the rest.
  */
-export const SECTION_MOUNT = '/app/build/workflows/operations';
+export const SECTION_MOUNT = '/app/workflow';
 
 const seg = (s: string): string => encodeURIComponent(s);
 
 export const paths = {
-  approvals: (): string => '/',
-  item: (key: string): string => `/items/${seg(key)}`,
   runs: (): string => '/runs',
   run: (key: string): string => `/runs/${seg(key)}`,
+  item: (key: string): string => `/items/${seg(key)}`,
   documents: (): string => '/documents',
   activity: (): string => '/activity',
   spend: (): string => '/spend',
+  definitions: (): string => '/definitions',
 };
