@@ -13,20 +13,20 @@ const MAP: Record<string, Tone> = {
   cancelled: "neutral",
 };
 
-export function stateTone(state: string): Tone {
-  return MAP[state] ?? "neutral";
+export function stateTone(state: string | null | undefined): Tone {
+  return (state && MAP[state]) || "neutral";
 }
 
 export function toneClass(t: Tone): string {
   return `tone-${t}`;
 }
 
-export function stateLabel(state: string): string {
-  return state.replace(/_/g, " ");
+export function stateLabel(state: string | null | undefined): string {
+  return (state ?? "").replace(/_/g, " ");
 }
 
 /** Workflow run status (engine: pending, running, blocked, needs_human, failed, cancelled, done, empty). */
-export function runTone(status: string): Tone {
+export function runTone(status: string | null | undefined): Tone {
   switch (status) {
     case "done": return "done";
     case "running": return "working";
@@ -45,7 +45,7 @@ export function runTone(status: string): Tone {
  */
 export type DsStatus = "done" | "needsYou" | "running" | "failed" | "attention" | string;
 
-export function dsStatus(state: string): DsStatus {
+export function dsStatus(state: string | null | undefined): DsStatus {
   switch (stateTone(state)) {
     case "done": return "done";
     case "working": return "running";

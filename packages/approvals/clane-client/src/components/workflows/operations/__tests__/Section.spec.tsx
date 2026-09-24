@@ -82,6 +82,46 @@ describe('Workflow section', () => {
     expect(screen.queryByRole('heading', { name: /Purchase order/ })).not.toBeInTheDocument();
   });
 
+  it("speaks the app's own design language: its type, accent, surfaces and radii", async () => {
+    window.history.pushState({}, '', `${SECTION_MOUNT}/runs`);
+    const { container } = render(<WorkflowSection definitions={studio} />);
+    await screen.findByRole('heading', { name: 'Runs' });
+    const root = container.querySelector('.cl-ds') as HTMLElement;
+    expect(root.style.getPropertyValue('--font-body')).toBe('var(--font-sans)');
+    expect(root.style.getPropertyValue('--font-display')).toBe('var(--font-heading)');
+    expect(root.style.getPropertyValue('--blue-500')).toBe('var(--accent)');
+    expect(root.style.getPropertyValue('--cta')).toBe('var(--accent)');
+    expect(root.style.getPropertyValue('--surface-card')).toBe('var(--ink-1)');
+    expect(root.style.getPropertyValue('--radius-btn')).toBe('var(--r-md)');
+  });
+
+  it('gives an open workflow the whole height: no tab row above the studio', async () => {
+    window.history.pushState({}, '', `${SECTION_MOUNT}/definitions/wf-1`);
+    render(<WorkflowSection definitions={studio} />);
+    await screen.findByText('Workflow studio');
+    expect(screen.queryByRole('navigation', { name: 'Workflow operations' })).not.toBeInTheDocument();
+  });
+
+  it('keeps the tab row on the list of definitions', async () => {
+    window.history.pushState({}, '', `${SECTION_MOUNT}/definitions`);
+    render(<WorkflowSection definitions={studio} />);
+    await screen.findByText('Workflow studio');
+    expect(screen.getByRole('navigation', { name: 'Workflow operations' })).toBeInTheDocument();
+  });
+
+  it('keeps the section standing when one screen fails, with a way to try again', async () => {
+    const Boom = (): JSX.Element => {
+      throw new Error('boom');
+    };
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    window.history.pushState({}, '', `${SECTION_MOUNT}/definitions`);
+    render(<WorkflowSection definitions={<Boom />} />);
+    expect(await screen.findByText('This screen could not be shown')).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Workflow operations' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+    spy.mockRestore();
+  });
+
   it('follows the deployment base path', async () => {
     (window as BaseWindow).__CLANE_BASE__ = '/clane';
     window.history.pushState({}, '', `/clane${SECTION_MOUNT}/spend`);

@@ -52,7 +52,10 @@ afterEach(async () => {
 describe('Inbox panel: summary (Home)', () => {
   it('carries the design-system scope itself, since Home is outside the Workflow section', async () => {
     render(<ApprovalsPanel onOpenItem={jest.fn()} />);
-    expect(await screen.findByRole('region', { name: 'Waiting for you' })).toHaveClass('cl-ds');
+    const region = await screen.findByRole('region', { name: 'Waiting for you' });
+    expect(region).toHaveClass('cl-ds');
+    expect(region.style.getPropertyValue('--font-body')).toBe('var(--font-sans)');
+    expect(region.style.getPropertyValue('--blue-500')).toBe('var(--accent)');
   });
 
   it('shows how much is waiting and the oldest few, each linking to its work item', async () => {

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Banner, EmptyState, Skeleton } from '../../../../ds';
+import { Banner, Button, EmptyState, Skeleton } from '../../../../ds';
 import { ApiError } from '../../../../lib/api';
 import { useT } from '../../../../i18n';
 import { errorText } from '../data/api';
@@ -33,14 +33,17 @@ export function ErrorBanner({ error, onRetry }: { error: unknown; onRetry?: () =
     );
   }
   return (
-    <Banner
-      tone="danger"
-      title={t('workflow.state.error.title')}
-      action={onRetry ? t('workflow.state.error.retry') : undefined}
-      onAction={onRetry}
-    >
-      {errorText(error)}
-    </Banner>
+    <div style={{ display: 'grid', gap: 10, justifyItems: 'start' }}>
+      <Banner tone="danger" title={t('workflow.state.error.title')}>
+        {errorText(error)}
+      </Banner>
+      {/* A real button: the shared Banner's action is not keyboard-operable. */}
+      {onRetry ? (
+        <Button variant="secondary" size="sm" onClick={onRetry}>
+          {t('workflow.state.error.retry')}
+        </Button>
+      ) : null}
+    </div>
   );
 }
 

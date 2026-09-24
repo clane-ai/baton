@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
-import { BrowserRouter, Navigate, NavLink, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 
 import { withBase } from '../../../lib/base';
 import { useT } from '../../../i18n';
+import { APP_THEME } from './appTheme';
 import { SectionContext, type SectionShell } from './context';
 import { SECTION_MOUNT, paths } from './paths';
 import { Item } from './pages/Item';
@@ -12,6 +13,7 @@ import { Documents } from './pages/Documents';
 import { Activity } from './pages/Activity';
 import { Spend } from './pages/Spend';
 import { NothingHere } from './components/States';
+import { ScreenBoundary } from './components/ScreenBoundary';
 
 /** Opt in to react-router v7 behaviour now (the platform runs 6.30, which warns otherwise). */
 export const ROUTER_FUTURE = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
@@ -30,20 +32,31 @@ export type WorkflowSectionProps = {
 
 type Tab = { to: string; label: string };
 
+/** Each screen behind a boundary that resets when the address changes. */
+function Guarded({ children }: { children: React.ReactNode }): JSX.Element {
+  const { pathname } = useLocation();
+  return <ScreenBoundary key={pathname}>{children}</ScreenBoundary>;
+}
+
 /**
  * The section's own navigation: one underlined tab per screen, the design
  * system's Tabs look, built on NavLink so each tab is a real link with
  * aria-current and a URL.
  */
-function SectionNav({ tabs }: { tabs: Tab[] }): JSX.Element {
+function SectionNav({ tabs }: { tabs: Tab[] }): JSX.Element | null {
   const { t } = useT();
+  const { pathname } = useLocation();
+  // An open workflow is the full-bleed studio with its own header and back
+  // arrow; a second bar above it would only take height from the canvas.
+  if (/^\/definitions\/[^/]+/.test(pathname)) return null;
   return (
     <nav
       aria-label={t('workflow.nav.label')}
       style={{
         display: 'flex',
         gap: 4,
-        padding: '0 22px',
+        // Aligned with the page gutter: tab text starts where headings do.
+        padding: '0 18px',
         borderBottom: '1px solid var(--border-app)',
         background: 'var(--surface-card)',
         flexShrink: 0,
@@ -118,11 +131,13 @@ export function WorkflowSection({ opsEnabled = true, definitions, onHome }: Work
           background: 'var(--bg-app)',
           color: 'var(--ink)',
           fontFamily: 'var(--font-body)',
+          ...APP_THEME,
         }}
       >
         <BrowserRouter basename={withBase(SECTION_MOUNT)} future={ROUTER_FUTURE}>
           <SectionNav tabs={tabs} />
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+            <Guarded>
             <Routes>
               <Route path="/definitions/*" element={studio} />
               {opsEnabled ? (
@@ -137,6 +152,7 @@ export function WorkflowSection({ opsEnabled = true, definitions, onHome }: Work
               ) : null}
               <Route path="*" element={<Navigate to={home} replace />} />
             </Routes>
+            </Guarded>
           </div>
         </BrowserRouter>
       </div>

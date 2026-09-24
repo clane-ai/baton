@@ -177,6 +177,23 @@ describe('Spend screen', () => {
     expect(screen.getByRole('img', { name: 'Spend per day' })).toBeInTheDocument();
   });
 
+  it('survives engine rows with missing fields instead of taking the page down', async () => {
+    setOverrides({
+      getSpend: () =>
+        Promise.resolve({
+          ok: true,
+          total_usd: 1,
+          by_task: [{ id: 't1', key: 'TSK-1', title: null, role: null, state: null, cost_usd: null, budget_usd: null }],
+          by_role: [{ role: null, cost_usd: null }],
+          by_day: [{ day: null, cost_usd: 1 }],
+        }),
+      getRuns: () => Promise.resolve({ runs: [{ key: 'r1', status: null, counts: null, cost_usd: 2, cost_credits: null }], nextCursor: null }),
+    });
+    open('/spend');
+    expect(await screen.findByText('Total spend')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /TSK-1/ })).toBeInTheDocument();
+  });
+
   it('says so when nothing has been spent', async () => {
     open('/spend');
     expect(await screen.findByText('No spend recorded yet')).toBeInTheDocument();

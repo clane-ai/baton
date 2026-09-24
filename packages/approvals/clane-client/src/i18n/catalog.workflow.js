@@ -381,6 +381,8 @@ export const WORKFLOW = {
     'workflow.state.loading': 'Loading',
     'workflow.state.error.title': "Couldn't load this",
     'workflow.state.error.retry': 'Try again',
+    'workflow.state.crash.title': 'This screen could not be shown',
+    'workflow.state.crash.body': 'Something in its data was not what the screen expected. Try again, or open another screen from the tabs above.',
     'workflow.state.unconfigured.title': 'Workflow is not connected on this server',
     'workflow.state.unconfigured.body':
       'An administrator needs to connect the workflow engine before approvals and runs can show here.',

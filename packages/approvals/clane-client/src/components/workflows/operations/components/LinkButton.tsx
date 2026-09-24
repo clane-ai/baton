@@ -19,7 +19,7 @@ export function LinkButton({
 }): JSX.Element {
   const look =
     variant === 'primary'
-      ? { background: 'var(--blue-500)', color: 'var(--text-on-dark)', border: '1px solid var(--blue-500)' }
+      ? { background: 'var(--blue-500)', color: 'var(--cta-text)', border: '1px solid var(--blue-500)' }
       : variant === 'ghost'
         ? { background: 'transparent', color: 'var(--text-secondary)', border: '1px solid transparent' }
         : { background: 'transparent', color: 'var(--blue-500)', border: '1px solid var(--blue-500)' };

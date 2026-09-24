@@ -101,6 +101,6 @@ export function nextText(next: InboxNext[]): string {
 }
 
 /** "Procure to pay: Approve purchase order" -> "Approve purchase order". */
-export function stripProcess(title: string): string {
-  return title.replace(/^[^:]+:\s*/, "");
+export function stripProcess(title: string | null | undefined): string {
+  return (title ?? "").replace(/^[^:]+:\s*/, "");
 }

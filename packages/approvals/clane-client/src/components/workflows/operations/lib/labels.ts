@@ -13,5 +13,5 @@ export function labelOr(t: T, key: string, fallback: string): string {
 export const kindLabel = (t: T, kind: string): string => labelOr(t, `workflow.kind.${kind}`, kind.replace(/_/g, ' '));
 
 /** "needs_human" → "Needs you" from the catalogue, else the status in words. */
-export const runStatusLabel = (t: T, status: string): string =>
-  labelOr(t, `workflow.runStatus.${status}`, status.replace(/_/g, ' '));
+export const runStatusLabel = (t: T, status: string | null | undefined): string =>
+  status ? labelOr(t, `workflow.runStatus.${status}`, status.replace(/_/g, ' ')) : '';

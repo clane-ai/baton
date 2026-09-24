@@ -61,7 +61,7 @@ export function Spend(): JSX.Element {
           {days.length ? (
             <div role="img" aria-label={t('workflow.spend.chart')}>
               <BarChart
-                data={days.map((d) => ({ label: d.day.slice(5), value: Number(d.cost_usd) }))}
+                data={days.map((d, i) => ({ label: d.day ? String(d.day).slice(5) : String(i + 1), value: Number(d.cost_usd) }))}
                 height={160}
                 formatValue={(v: number) => usd(v)}
               />
@@ -79,7 +79,7 @@ export function Spend(): JSX.Element {
               { key: 'credits', label: t('workflow.spend.col.credits'), align: 'right', mono: true },
             ]}
             rows={(s.by_role ?? []).map((r) => ({
-              role: r.role,
+              role: r.role ?? '',
               usd: usd(r.cost_usd),
               credits: r.credits ? Number(r.credits).toFixed(0) : '',
             }))}
@@ -124,7 +124,7 @@ export function Spend(): JSX.Element {
                 <span style={{ display: 'grid', gap: 2, minWidth: 0 }}>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 500 }}>{task.key}</span>
                   <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
-                    {stripProcess(task.title)} · {task.role}
+                    {[stripProcess(task.title), task.role].filter(Boolean).join(' · ')}
                   </span>
                 </span>
                 <StatusChip status={dsStatus(task.state)}>{stateLabel(task.state)}</StatusChip>
