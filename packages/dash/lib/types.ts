@@ -249,4 +249,4 @@ export type DocumentRef = { label: string; path: string; type: "pdf" | "text" | 
 export type DocumentsResponse = { ok: true; documents: DocumentRef[]; fallback?: boolean };
 
 export type Decision = { verdict: "approve" | "request_changes"; by: string; at: string; reason: string | null };
-export type Provenance = Record<string, { source: string; confidence: number | null; page?: number | null }>;
+export type Provenance = Record<string, { source: string; confidence?: number | null; page?: number | null; note?: string | null }>;
