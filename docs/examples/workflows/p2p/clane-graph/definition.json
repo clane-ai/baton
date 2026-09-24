@@ -1,0 +1,587 @@
+{
+  "slug": "procure-to-pay",
+  "version": "1.0.0",
+  "manifest": {
+    "name": "Procure to pay",
+    "description": "Requisition to payment: the buyer raises a purchase order, a person approves it, the supplier system ships and invoices, goods-in books the receipt, accounts payable performs the three-way match, and the bank schedules payment. A rejected order goes back for rework; a mismatched invoice becomes a dispute.",
+    "inputs": [
+      {
+        "name": "requisition",
+        "kind": "text",
+        "label": "Requisition number (PR-2026-nnn)",
+        "required": true
+      }
+    ],
+    "definition": {
+      "version": "1.0",
+      "nodes": [
+        {
+          "id": "trigger",
+          "type": "trigger",
+          "position": {
+            "x": 120,
+            "y": 140
+          },
+          "data": {
+            "label": "Requisition in",
+            "instructions": "",
+            "outcomes": [
+              {
+                "id": "next",
+                "label": "Next"
+              }
+            ],
+            "config": {
+              "output_key": "requisition",
+              "output_schema": "{\n  \"requisition\": \"string - the requisition number, e.g. PR-2026-103\"\n}"
+            }
+          }
+        },
+        {
+          "id": "po",
+          "type": "role",
+          "position": {
+            "x": 120,
+            "y": 280
+          },
+          "data": {
+            "label": "Raise purchase order",
+            "instructions": "",
+            "outcomes": [
+              {
+                "id": "next",
+                "label": "Next"
+              }
+            ],
+            "config": {
+              "role_ref": "buyer",
+              "prompt": "You are the buyer in the purchasing department. You turn an approved requisition into a\npurchase order, or explain why one cannot be raised. You never invent prices, vendors\nor quantities: everything comes from the documents in this folder.\n\nWhere things are (paths are relative to the working directory):\n- `inbox/requisitions/<PR number>.pdf` is the requisition form the requester sent; a plain\n  text extract sits next to it as `<PR number>.txt` (or run `pdftotext <pdf> -`).\n- `inbox/requisitions/<PR number>.eml` is the covering email.\n- `masterdata/vendors.csv` is the vendor master: id, name, email, approved (yes/no), payment terms.\n- `masterdata/catalogue.csv` lists contracted prices per vendor and SKU.\n- `masterdata/policy.md` is the purchasing policy: approval levels by amount, vendor rules, tolerances.\n\nWhen your task is \"raise a purchase order\":\n1. Read the requisition, the vendor master, the catalogue and the policy.\n2. Build the order: one line per requisition line, with the contracted unit price from the\n   catalogue (if the requisition quotes a different price, use the catalogue and say so in\n   `policy_check.notes`). line_total = quantity x unit_price, total = sum of line totals.\n3. Run the policy check honestly. `approval_required` means \"an approver must see this order\n   before it is released\": in this process that is always true, whatever the amount.\n   `approver_level` is the level the amount needs (none, manager, director, cfo). `vendor_approved` is\n   false when the vendor is missing from the master or marked approved=no; still raise the\n   order, but say so clearly in the notes so the approver can decide.\n4. Number the order `PO-2026-<the digits of the requisition number>`, for example\n   PR-2026-104 becomes PO-2026-104.\n5. Register exactly one `purchase_order` artefact through `task_submit` (the `artifacts`\n   argument). Use exactly these keys and no others: po_number, requisition, requester, vendor\n   {id, name, approved, email}, currency, lines [{line, sku, item, quantity, unit, unit_price,\n   line_total}], total, cost_center, delivery_address, needed_by, policy_check\n   {approval_required, approver_level, vendor_approved, within_budget, notes}. The schema\n   rejects unknown keys; if the gate rejects the artefact, fix the named field and submit again.\n\nProvenance: add a `_provenance` object to the artefact with one entry per header field you\ntook from a document: `{ \"<field>\": { \"source\": \"<workspace path>\", \"page\": 1, \"confidence\": 0.0-1.0,\n\"note\": \"...\" } }`. Use the file you read the value from (the requisition PDF or text, vendors.csv,\ncatalogue.csv, policy.md, the count sheet, the invoice). Confidence 1.0 when the value is printed as\nis, lower when you derived or interpreted it, and say why in note. Also list the files you used in\n`documents: [{ \"label\": \"...\", \"path\": \"<workspace path>\" }]`.\n\nWhen your task is a \"rework note\" (the approver rejected the order): read the\n`purchase_order` and the approver's `review` (its summary carries the reason) with\n`artifact_get`, then register one `handoff` artefact: `summary` says what was rejected and\nwhy, `details` says what the requester or buyer must change, `caveats` lists anything the\napprover should know. Then `task_submit`.\n\nDo not ask questions you can answer from the documents. If a document is genuinely missing,\nuse `task_ask` once, addressed to nobody, and exit.",
+              "output_key": "purchase_order",
+              "output_fields": [
+                {
+                  "name": "po_number",
+                  "description": ""
+                },
+                {
+                  "name": "requisition",
+                  "description": "The requisition number this PO fulfils, e.g. PR-2026-104."
+                },
+                {
+                  "name": "requester",
+                  "description": ""
+                },
+                {
+                  "name": "vendor",
+                  "description": ""
+                },
+                {
+                  "name": "currency",
+                  "description": ""
+                },
+                {
+                  "name": "lines",
+                  "description": ""
+                },
+                {
+                  "name": "total",
+                  "description": ""
+                },
+                {
+                  "name": "cost_center",
+                  "description": ""
+                },
+                {
+                  "name": "delivery_address",
+                  "description": ""
+                },
+                {
+                  "name": "policy_check",
+                  "description": ""
+                }
+              ],
+              "output_retries": 2,
+              "max_tool_rounds": 40
+            }
+          }
+        },
+        {
+          "id": "approve",
+          "type": "human",
+          "position": {
+            "x": 120,
+            "y": 420
+          },
+          "data": {
+            "label": "Approve purchase order",
+            "instructions": "",
+            "outcomes": [
+              {
+                "id": "approved",
+                "label": "Approved"
+              },
+              {
+                "id": "rejected",
+                "label": "Rejected"
+              }
+            ],
+            "config": {
+              "approver_role": "purchasing manager",
+              "review_key": "purchase_order",
+              "timeout_hours": 24
+            }
+          }
+        },
+        {
+          "id": "send_po",
+          "type": "code",
+          "position": {
+            "x": 120,
+            "y": 560
+          },
+          "data": {
+            "label": "Supplier ERP: send, acknowledge, ship, invoice",
+            "instructions": "",
+            "outcomes": [
+              {
+                "id": "next",
+                "label": "Next"
+              }
+            ],
+            "config": {
+              "language": "node",
+              "code": "// Supplier ERP, as a Clane code node.\n//\n// The original is a Baton agent: it claims a task, writes files into the workspace and registers a\n// delivery note and an invoice as artefacts. None of that has a meaning inside a walk, so this is a\n// faithful re-implementation of what the step DOES rather than a copy of the file: it takes the\n// purchase order from the previous channel and returns the two documents the supplier would send back.\n//\n// Deterministic on purpose. The numbers come from the order, not from a model, which is the whole\n// reason this step is code rather than a role.\n\nfunction main() {\n  const po = channels.purchase_order ?? {};\n  const order = typeof po === 'string' ? JSON.parse(po) : po;\n  const poNumber = order.po_number ?? 'PO-UNKNOWN';\n  const lines = Array.isArray(order.lines) ? order.lines : [];\n  const today = new Date().toISOString().slice(0, 10);\n  const due = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);\n\n  const delivery_note = {\n    delivery_note_number: `DN-${poNumber.replace(/^PO-/, '')}`,\n    po_number: poNumber,\n    vendor: order.vendor?.name ?? order.vendor ?? 'unknown',\n    shipped_at: today,\n    lines: lines.map((l) => ({ sku: l.sku, description: l.description, quantity: l.quantity })),\n  };\n\n  const subtotal = lines.reduce((s, l) => s + Number(l.quantity ?? 0) * Number(l.unit_price ?? 0), 0);\n  const invoice = {\n    invoice_number: `INV-${poNumber.replace(/^PO-/, '')}`,\n    po_number: poNumber,\n    vendor: order.vendor?.name ?? order.vendor ?? 'unknown',\n    issued_at: today,\n    due_at: due,\n    currency: order.currency ?? 'EUR',\n    lines: lines.map((l) => ({ sku: l.sku, quantity: l.quantity, unit_price: l.unit_price })),\n    subtotal: Number(subtotal.toFixed(2)),\n    total: Number(subtotal.toFixed(2)),\n  };\n\n  return {\n    acknowledged: true,\n    po_number: poNumber,\n    delivery_note,\n    invoice,\n    output: `Acknowledged ${poNumber}, shipped ${delivery_note.delivery_note_number}, invoiced ${invoice.invoice_number} for ${invoice.total} ${invoice.currency}.`,\n  };\n}\n",
+              "output_key": "supplier",
+              "output_fields": [
+                {
+                  "name": "delivery_note_number",
+                  "description": ""
+                },
+                {
+                  "name": "po_number",
+                  "description": ""
+                },
+                {
+                  "name": "vendor",
+                  "description": ""
+                },
+                {
+                  "name": "shipped_at",
+                  "description": ""
+                },
+                {
+                  "name": "lines",
+                  "description": ""
+                },
+                {
+                  "name": "invoice_number",
+                  "description": ""
+                },
+                {
+                  "name": "issued_at",
+                  "description": ""
+                },
+                {
+                  "name": "due_at",
+                  "description": ""
+                },
+                {
+                  "name": "currency",
+                  "description": ""
+                },
+                {
+                  "name": "total",
+                  "description": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "receive",
+          "type": "role",
+          "position": {
+            "x": 120,
+            "y": 700
+          },
+          "data": {
+            "label": "Book goods receipt",
+            "instructions": "",
+            "outcomes": [
+              {
+                "id": "next",
+                "label": "Next"
+              }
+            ],
+            "config": {
+              "role_ref": "receiving",
+              "prompt": "You are the goods-in clerk at the warehouse. You record what actually arrived, not what\nthe supplier says was shipped and not what was ordered.\n\nInputs (read the artefacts with `artifact_get`, the files from the working directory):\n- The `purchase_order` artefact: what was ordered, line by line.\n- The `delivery_note` artefact: what the supplier says was shipped. Its `document_path`\n  points at the PDF under `inbox/deliveries/`; a `.txt` extract sits next to it.\n- The warehouse count sheet `inbox/deliveries/count-<PO number>.txt`: the scanner output\n  of what the warehouse physically counted, with condition per line. This is the truth.\n\nDo this:\n1. For every purchase-order line, record quantity_ordered (from the PO), quantity_received\n   (from the count sheet) and condition (good, damaged or missing per the count sheet).\n2. `complete` is true only when every line was received in full and in good condition.\n3. List every discrepancy in plain words in `discrepancies` (short delivery, damage, an item\n   on the note that is not on the order, a count that differs from the note).\n4. Number the receipt `GRN-2026-<the last three digits of the PO number>` (PO-2026-104 becomes\n   GRN-2026-104), set `received_at` to the count sheet's date and time as an ISO date-time\n   (2026-09-27T09:40:00) and `received_by` to \"receiving (baton)\". Use only the schema's keys:\n   grn_number, po_number, delivery_note_number, received_at, received_by, lines [{line, sku, item,\n   quantity_ordered, quantity_received, condition, note}], complete, discrepancies.\n\nProvenance: add a `_provenance` object to the artefact with one entry per header field you\ntook from a document: `{ \"<field>\": { \"source\": \"<workspace path>\", \"page\": 1, \"confidence\": 0.0-1.0,\n\"note\": \"...\" } }`. Use the file you read the value from (the requisition PDF or text, vendors.csv,\ncatalogue.csv, policy.md, the count sheet, the invoice). Confidence 1.0 when the value is printed as\nis, lower when you derived or interpreted it, and say why in note. Also list the files you used in\n`documents: [{ \"label\": \"...\", \"path\": \"<workspace path>\" }]`.\n5. Register exactly one `goods_receipt` artefact through `task_submit`. If the gate rejects\n   it, fix the named field and submit again.\n\nNever round a short delivery up. Never mark damaged goods as good. Do not write files.",
+              "output_key": "goods_receipt",
+              "output_fields": [
+                {
+                  "name": "grn_number",
+                  "description": ""
+                },
+                {
+                  "name": "po_number",
+                  "description": ""
+                },
+                {
+                  "name": "received_at",
+                  "description": ""
+                },
+                {
+                  "name": "received_by",
+                  "description": ""
+                },
+                {
+                  "name": "lines",
+                  "description": ""
+                },
+                {
+                  "name": "complete",
+                  "description": "True when every line was received in full and in good condition."
+                }
+              ],
+              "output_retries": 2
+            }
+          }
+        },
+        {
+          "id": "match",
+          "type": "role",
+          "position": {
+            "x": 120,
+            "y": 840
+          },
+          "data": {
+            "label": "Three-way match",
+            "instructions": "",
+            "outcomes": [
+              {
+                "id": "next",
+                "label": "Next"
+              }
+            ],
+            "config": {
+              "role_ref": "ap-clerk",
+              "prompt": "You are the accounts-payable clerk. Nothing gets paid unless order, receipt and invoice\nagree. You are precise and you show your working.\n\nInputs (read artefacts with `artifact_get`; files live in the working directory):\n- `purchase_order`: ordered quantities and contracted unit prices.\n- `goods_receipt`: quantities actually received and their condition.\n- `invoice`: what the supplier billed. Its `document_path` points at the PDF under\n  `inbox/invoices/` (a `.txt` extract sits next to it).\n- `masterdata/policy.md` gives the matching tolerances (price and quantity).\n\nWhen your task is \"three-way match\":\n1. For every invoice line find the matching PO line (by line number or SKU). Compare\n   ordered_qty, received_qty (good condition only) and invoiced_qty, and po_unit_price\n   against invoice_unit_price.\n2. A line is ok only when invoiced_qty equals received_qty and the unit price is within the\n   policy tolerance of the PO price. Write the reason in `variance` when it is not ok.\n3. `status` is \"matched\" only when every line is ok and the invoice total equals the sum of\n   the matched lines. Otherwise it is \"mismatched\" and `variances` lists each problem in\n   plain words with the numbers.\n4. `amount_payable` is the invoice total when matched, otherwise 0.\n5. Register exactly one `invoice_match` artefact through `task_submit`, with only the schema's\n   keys: invoice_number, po_number, grn_number, status, tolerance {price_pct, quantity}, lines\n   [{line, item, ordered_qty, received_qty, invoiced_qty, po_unit_price, invoice_unit_price, ok,\n   variance}], amount_payable, variances, summary. Record the tolerance you applied.\n\nProvenance: add a `_provenance` object to the artefact with one entry per header field you\ntook from a document: `{ \"<field>\": { \"source\": \"<workspace path>\", \"page\": 1, \"confidence\": 0.0-1.0,\n\"note\": \"...\" } }`. Use the file you read the value from (the requisition PDF or text, vendors.csv,\ncatalogue.csv, policy.md, the count sheet, the invoice). Confidence 1.0 when the value is printed as\nis, lower when you derived or interpreted it, and say why in note. Also list the files you used in\n`documents: [{ \"label\": \"...\", \"path\": \"<workspace path>\" }]`.\n\nWhen your task is \"dispute the invoice\": read the `invoice_match` and the `invoice`, then\nregister one `handoff` artefact that is the dispute email to the supplier: `summary` is\nthe subject line, `details` is the email body (which lines, which numbers, what we expect:\na credit note, a corrected invoice, or the missing goods), `caveats` lists anything the\nbuyer must follow up. Then `task_submit`.\n\nDo not write files. Do not pay, and do not approve anything you cannot reconcile.",
+              "output_key": "invoice_match",
+              "output_fields": [
+                {
+                  "name": "invoice_number",
+                  "description": ""
+                },
+                {
+                  "name": "po_number",
+                  "description": ""
+                },
+                {
+                  "name": "grn_number",
+                  "description": ""
+                },
+                {
+                  "name": "status",
+                  "description": ""
+                },
+                {
+                  "name": "tolerance",
+                  "description": ""
+                },
+                {
+                  "name": "lines",
+                  "description": ""
+                },
+                {
+                  "name": "amount_payable",
+                  "description": ""
+                },
+                {
+                  "name": "summary",
+                  "description": ""
+                }
+              ],
+              "output_retries": 2
+            }
+          }
+        },
+        {
+          "id": "match_gate",
+          "type": "router",
+          "position": {
+            "x": 120,
+            "y": 980
+          },
+          "data": {
+            "label": "Matched?",
+            "instructions": "",
+            "outcomes": [
+              {
+                "id": "ok",
+                "label": "Matched"
+              },
+              {
+                "id": "bad",
+                "label": "Mismatched"
+              }
+            ],
+            "config": {
+              "reads": [
+                "invoice_match"
+              ],
+              "condition": "invoice_match.status is \"matched\" — take ok. Anything else, including missing, take bad."
+            }
+          }
+        },
+        {
+          "id": "pay",
+          "type": "code",
+          "position": {
+            "x": 120,
+            "y": 1120
+          },
+          "data": {
+            "label": "Bank: schedule payment",
+            "instructions": "",
+            "outcomes": [
+              {
+                "id": "next",
+                "label": "Next"
+              }
+            ],
+            "config": {
+              "language": "node",
+              "code": "// Bank payment, as a Clane code node.\n//\n// The original claims a task, writes a remittance advice into the workspace and registers a payment\n// artefact, and it is idempotent by invoice number so a retry cannot pay twice. That last property has\n// no equivalent here, which is recorded as a finding rather than pretended away: a Clane code node has\n// no idempotency key, and the runtime re-runs a pending node at least once after a resume.\n\nfunction main() {\n  const m = channels.invoice_match ?? {};\n  const match = typeof m === 'string' ? JSON.parse(m) : m;\n  const s = channels.supplier ?? {};\n  const supplier = typeof s === 'string' ? JSON.parse(s) : s;\n  const invoice = supplier.invoice ?? {};\n\n  const scheduled = new Date(Date.now() + 2 * 864e5).toISOString().slice(0, 10);\n  const payment = {\n    payment_ref: `PAY-${String(invoice.invoice_number ?? 'UNKNOWN').replace(/^INV-/, '')}`,\n    invoice_number: invoice.invoice_number,\n    beneficiary: { name: invoice.vendor },\n    amount: Number(match.amount_payable ?? invoice.total ?? 0),\n    currency: invoice.currency ?? 'EUR',\n    scheduled_for: scheduled,\n    status: 'scheduled',\n  };\n\n  return {\n    ...payment,\n    output: `Scheduled ${payment.payment_ref}: ${payment.amount} ${payment.currency} to ${payment.beneficiary.name} on ${payment.scheduled_for}.`,\n  };\n}\n",
+              "output_key": "payment",
+              "output_fields": [
+                {
+                  "name": "payment_ref",
+                  "description": ""
+                },
+                {
+                  "name": "invoice_number",
+                  "description": ""
+                },
+                {
+                  "name": "po_number",
+                  "description": ""
+                },
+                {
+                  "name": "amount",
+                  "description": ""
+                },
+                {
+                  "name": "currency",
+                  "description": ""
+                },
+                {
+                  "name": "status",
+                  "description": ""
+                },
+                {
+                  "name": "scheduled_for",
+                  "description": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "dispute",
+          "type": "role",
+          "position": {
+            "x": 440,
+            "y": 1260
+          },
+          "data": {
+            "label": "Dispute the invoice",
+            "instructions": "",
+            "outcomes": [
+              {
+                "id": "next",
+                "label": "Next"
+              }
+            ],
+            "config": {
+              "role_ref": "ap-clerk",
+              "prompt": "You are the accounts-payable clerk. Nothing gets paid unless order, receipt and invoice\nagree. You are precise and you show your working.\n\nInputs (read artefacts with `artifact_get`; files live in the working directory):\n- `purchase_order`: ordered quantities and contracted unit prices.\n- `goods_receipt`: quantities actually received and their condition.\n- `invoice`: what the supplier billed. Its `document_path` points at the PDF under\n  `inbox/invoices/` (a `.txt` extract sits next to it).\n- `masterdata/policy.md` gives the matching tolerances (price and quantity).\n\nWhen your task is \"three-way match\":\n1. For every invoice line find the matching PO line (by line number or SKU). Compare\n   ordered_qty, received_qty (good condition only) and invoiced_qty, and po_unit_price\n   against invoice_unit_price.\n2. A line is ok only when invoiced_qty equals received_qty and the unit price is within the\n   policy tolerance of the PO price. Write the reason in `variance` when it is not ok.\n3. `status` is \"matched\" only when every line is ok and the invoice total equals the sum of\n   the matched lines. Otherwise it is \"mismatched\" and `variances` lists each problem in\n   plain words with the numbers.\n4. `amount_payable` is the invoice total when matched, otherwise 0.\n5. Register exactly one `invoice_match` artefact through `task_submit`, with only the schema's\n   keys: invoice_number, po_number, grn_number, status, tolerance {price_pct, quantity}, lines\n   [{line, item, ordered_qty, received_qty, invoiced_qty, po_unit_price, invoice_unit_price, ok,\n   variance}], amount_payable, variances, summary. Record the tolerance you applied.\n\nProvenance: add a `_provenance` object to the artefact with one entry per header field you\ntook from a document: `{ \"<field>\": { \"source\": \"<workspace path>\", \"page\": 1, \"confidence\": 0.0-1.0,\n\"note\": \"...\" } }`. Use the file you read the value from (the requisition PDF or text, vendors.csv,\ncatalogue.csv, policy.md, the count sheet, the invoice). Confidence 1.0 when the value is printed as\nis, lower when you derived or interpreted it, and say why in note. Also list the files you used in\n`documents: [{ \"label\": \"...\", \"path\": \"<workspace path>\" }]`.\n\nWhen your task is \"dispute the invoice\": read the `invoice_match` and the `invoice`, then\nregister one `handoff` artefact that is the dispute email to the supplier: `summary` is\nthe subject line, `details` is the email body (which lines, which numbers, what we expect:\na credit note, a corrected invoice, or the missing goods), `caveats` lists anything the\nbuyer must follow up. Then `task_submit`.\n\nDo not write files. Do not pay, and do not approve anything you cannot reconcile.",
+              "output_key": "dispute",
+              "output_fields": [
+                {
+                  "name": "summary",
+                  "description": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "rework",
+          "type": "role",
+          "position": {
+            "x": 760,
+            "y": 1400
+          },
+          "data": {
+            "label": "Rework note to requester",
+            "instructions": "",
+            "outcomes": [
+              {
+                "id": "next",
+                "label": "Next"
+              }
+            ],
+            "config": {
+              "role_ref": "buyer",
+              "prompt": "You are the buyer in the purchasing department. You turn an approved requisition into a\npurchase order, or explain why one cannot be raised. You never invent prices, vendors\nor quantities: everything comes from the documents in this folder.\n\nWhere things are (paths are relative to the working directory):\n- `inbox/requisitions/<PR number>.pdf` is the requisition form the requester sent; a plain\n  text extract sits next to it as `<PR number>.txt` (or run `pdftotext <pdf> -`).\n- `inbox/requisitions/<PR number>.eml` is the covering email.\n- `masterdata/vendors.csv` is the vendor master: id, name, email, approved (yes/no), payment terms.\n- `masterdata/catalogue.csv` lists contracted prices per vendor and SKU.\n- `masterdata/policy.md` is the purchasing policy: approval levels by amount, vendor rules, tolerances.\n\nWhen your task is \"raise a purchase order\":\n1. Read the requisition, the vendor master, the catalogue and the policy.\n2. Build the order: one line per requisition line, with the contracted unit price from the\n   catalogue (if the requisition quotes a different price, use the catalogue and say so in\n   `policy_check.notes`). line_total = quantity x unit_price, total = sum of line totals.\n3. Run the policy check honestly. `approval_required` means \"an approver must see this order\n   before it is released\": in this process that is always true, whatever the amount.\n   `approver_level` is the level the amount needs (none, manager, director, cfo). `vendor_approved` is\n   false when the vendor is missing from the master or marked approved=no; still raise the\n   order, but say so clearly in the notes so the approver can decide.\n4. Number the order `PO-2026-<the digits of the requisition number>`, for example\n   PR-2026-104 becomes PO-2026-104.\n5. Register exactly one `purchase_order` artefact through `task_submit` (the `artifacts`\n   argument). Use exactly these keys and no others: po_number, requisition, requester, vendor\n   {id, name, approved, email}, currency, lines [{line, sku, item, quantity, unit, unit_price,\n   line_total}], total, cost_center, delivery_address, needed_by, policy_check\n   {approval_required, approver_level, vendor_approved, within_budget, notes}. The schema\n   rejects unknown keys; if the gate rejects the artefact, fix the named field and submit again.\n\nProvenance: add a `_provenance` object to the artefact with one entry per header field you\ntook from a document: `{ \"<field>\": { \"source\": \"<workspace path>\", \"page\": 1, \"confidence\": 0.0-1.0,\n\"note\": \"...\" } }`. Use the file you read the value from (the requisition PDF or text, vendors.csv,\ncatalogue.csv, policy.md, the count sheet, the invoice). Confidence 1.0 when the value is printed as\nis, lower when you derived or interpreted it, and say why in note. Also list the files you used in\n`documents: [{ \"label\": \"...\", \"path\": \"<workspace path>\" }]`.\n\nWhen your task is a \"rework note\" (the approver rejected the order): read the\n`purchase_order` and the approver's `review` (its summary carries the reason) with\n`artifact_get`, then register one `handoff` artefact: `summary` says what was rejected and\nwhy, `details` says what the requester or buyer must change, `caveats` lists anything the\napprover should know. Then `task_submit`.\n\nDo not ask questions you can answer from the documents. If a document is genuinely missing,\nuse `task_ask` once, addressed to nobody, and exit.",
+              "output_key": "rework",
+              "output_fields": [
+                {
+                  "name": "summary",
+                  "description": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "deliver_payment",
+          "type": "output",
+          "position": {
+            "x": 120,
+            "y": 1540
+          },
+          "data": {
+            "label": "Payment scheduled",
+            "instructions": "",
+            "outcomes": [],
+            "config": {
+              "deliver_as": "message",
+              "from": [
+                "payment.output"
+              ],
+              "format": "markdown"
+            }
+          }
+        },
+        {
+          "id": "deliver_dispute",
+          "type": "output",
+          "position": {
+            "x": 440,
+            "y": 1680
+          },
+          "data": {
+            "label": "Dispute raised",
+            "instructions": "",
+            "outcomes": [],
+            "config": {
+              "deliver_as": "message",
+              "from": [
+                "dispute.output"
+              ],
+              "format": "markdown"
+            }
+          }
+        },
+        {
+          "id": "deliver_rework",
+          "type": "output",
+          "position": {
+            "x": 760,
+            "y": 1820
+          },
+          "data": {
+            "label": "Sent back for rework",
+            "instructions": "",
+            "outcomes": [],
+            "config": {
+              "deliver_as": "message",
+              "from": [
+                "rework.output"
+              ],
+              "format": "markdown"
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e_trigger__po",
+          "source": "trigger",
+          "target": "po",
+          "kind": "forward"
+        },
+        {
+          "id": "e_po__approve",
+          "source": "po",
+          "target": "approve",
+          "kind": "forward"
+        },
+        {
+          "id": "e_approve__send_po",
+          "source": "approve",
+          "target": "send_po",
+          "sourceHandle": "approved",
+          "kind": "forward"
+        },
+        {
+          "id": "e_approve__rework",
+          "source": "approve",
+          "target": "rework",
+          "sourceHandle": "rejected",
+          "kind": "forward"
+        },
+        {
+          "id": "e_send_po__receive",
+          "source": "send_po",
+          "target": "receive",
+          "kind": "forward"
+        },
+        {
+          "id": "e_receive__match",
+          "source": "receive",
+          "target": "match",
+          "kind": "forward"
+        },
+        {
+          "id": "e_match__match_gate",
+          "source": "match",
+          "target": "match_gate",
+          "kind": "forward"
+        },
+        {
+          "id": "e_match_gate__pay",
+          "source": "match_gate",
+          "target": "pay",
+          "sourceHandle": "ok",
+          "kind": "forward"
+        },
+        {
+          "id": "e_match_gate__dispute",
+          "source": "match_gate",
+          "target": "dispute",
+          "sourceHandle": "bad",
+          "kind": "forward"
+        },
+        {
+          "id": "e_pay__deliver_payment",
+          "source": "pay",
+          "target": "deliver_payment",
+          "kind": "terminate"
+        },
+        {
+          "id": "e_dispute__deliver_dispute",
+          "source": "dispute",
+          "target": "deliver_dispute",
+          "kind": "terminate"
+        },
+        {
+          "id": "e_rework__deliver_rework",
+          "source": "rework",
+          "target": "deliver_rework",
+          "kind": "terminate"
+        }
+      ]
+    }
+  }
+}

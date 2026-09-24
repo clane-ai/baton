@@ -54,6 +54,8 @@ export function fromClaneGraph(claneManifest, opts = {}) {
 
   const out = [];
   const dropped = new Set();
+  // approval node id -> the gateway synthesised to carry its decision
+  const gatewayFor = new Map();
 
   for (const n of nodes) {
     const type = String(n.type ?? '');
@@ -108,7 +110,44 @@ export function fromClaneGraph(claneManifest, opts = {}) {
       continue;
     }
 
-    if (mapped === 'approval') { out.push({ id: n.id, type: 'approval', data: { label, config: {} } }); continue; }
+    if (mapped === 'approval') {
+      out.push({ id: n.id, type: 'approval', data: { label, config: {} } });
+      // A human node decides, and its outcomes are how the graph branches on that decision. The engine
+      // expresses a branch as a gateway reading a field of an artefact, so an approval with more than
+      // one outcome needs one synthesised, reading the verdict of the review the approval produces.
+      // Without it both branches become plain dependants and BOTH become ready: a rejected purchase
+      // order would still be sent to the supplier. Found by round-tripping a real workflow, not by
+      // reading.
+      const outcomes = Array.isArray(n.data?.outcomes) ? n.data.outcomes : [];
+      const branchEdges = edges.filter((e) => e.source === n.id && e.sourceHandle);
+      if (outcomes.length >= 2 && branchEdges.length >= 2) {
+        gatewayFor.set(n.id, `${n.id}__decision`);
+        out.push({
+          id: `${n.id}__decision`,
+          type: 'control',
+          data: {
+            label: `${label}: decision`,
+            outcomes,
+            config: {
+              decision: {
+                from: n.id,
+                kind: 'review',
+                field: 'verdict',
+                // The engine records an approval as a review whose verdict is approve or
+                // request_changes; the studio names the same two outcomes differently.
+                values: Object.fromEntries(
+                  outcomes.map((o) => [
+                    String(o.id),
+                    /reject|deny|no|fail/i.test(String(o.id)) ? 'request_changes' : 'approve',
+                  ]),
+                ),
+              },
+            },
+          },
+        });
+      }
+      continue;
+    }
 
     // role
     const role = first(cfg.role_ref, cfg.role, roles[n.id], roles[label]);
@@ -132,6 +171,10 @@ export function fromClaneGraph(claneManifest, opts = {}) {
         'engine');
       continue;
     }
+    if (gatewayFor.has(e.source) && e.sourceHandle) {
+      keptEdges.push({ ...e, source: gatewayFor.get(e.source) });
+      continue;
+    }
     if (dropped.has(e.source) || dropped.has(e.target)) {
       note('consequence', e.source, 'edge',
         `edge to ${e.target} dropped because one end could not be converted, so the path through it is broken.`,
@@ -149,6 +192,10 @@ export function fromClaneGraph(claneManifest, opts = {}) {
     const err = new Error(`this graph cannot be expressed as Baton tasks:\n${lines}`);
     err.findings = findings;
     throw err;
+  }
+
+  for (const [approval, gateway] of gatewayFor) {
+    keptEdges.push({ id: `e_${approval}__${gateway}`, source: approval, target: gateway, kind: 'forward' });
   }
 
   const name = opts.name ?? claneManifest?.slug ?? claneManifest?.name ?? 'clane-workflow';
