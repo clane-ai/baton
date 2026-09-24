@@ -164,6 +164,7 @@ export type TaskDetailResponse = {
   events: TaskEvent[];
   decision?: Decision | null;
   questions?: Message[];
+  documents?: DocumentRef[];
 };
 
 export type StreamEvent = {

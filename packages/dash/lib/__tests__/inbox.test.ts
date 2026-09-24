@@ -81,6 +81,23 @@ describe("nextText", () => {
     expect(nextText([{ key: "a", title: "Send PO to supplier", when: "once approved" }, { key: "b", title: "Rework note", when: "if rejected" }])).toBe("Next: Send PO to supplier once approved; Rework note if rejected");
     expect(nextText([])).toBe("");
   });
+  it("turns gateway outcome ids into words", () => {
+    expect(nextText([{ key: "a", title: "Send PO to supplier", when: "yes" }, { key: "b", title: "Rework note", when: "no" }])).toBe("Next: Send PO to supplier if approved; Rework note if rejected");
+    expect(nextText([{ key: "a", title: "Schedule payment", when: "ok" }, { key: "b", title: "Dispute the invoice", when: "bad" }])).toBe("Next: Schedule payment if ok; Dispute the invoice if bad");
+    expect(nextText([{ key: "a", title: "Book goods receipt", when: null }])).toBe("Next: Book goods receipt");
+  });
+});
+
+describe("outcomeSide", () => {
+  it("tells approval outcomes from rejection outcomes", async () => {
+    const { outcomeSide } = await import("../inbox");
+    expect(outcomeSide("yes")).toBe("approve");
+    expect(outcomeSide("approve")).toBe("approve");
+    expect(outcomeSide("no")).toBe("reject");
+    expect(outcomeSide("request_changes")).toBe("reject");
+    expect(outcomeSide("ok")).toBe(null);
+    expect(outcomeSide(null)).toBe(null);
+  });
 });
 
 describe("stripProcess", () => {

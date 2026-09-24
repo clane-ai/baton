@@ -79,9 +79,25 @@ export function flagLabel(flag: string): { text: string; tone: Tone } {
   return FLAGS[flag] ?? { text: flag.replace(/_/g, " "), tone: "neutral" };
 }
 
+/** Which side of a decision gateway an outcome id names, when it is one of the approval words. */
+export function outcomeSide(when: string | null | undefined): "approve" | "reject" | null {
+  const w = (when ?? "").toLowerCase();
+  if (["yes", "approve", "approved"].includes(w)) return "approve";
+  if (["no", "reject", "rejected", "request_changes", "changes"].includes(w)) return "reject";
+  return null;
+}
+
+const WHEN: Record<string, string> = { yes: "if approved", no: "if rejected", approve: "if approved", approved: "if approved", reject: "if rejected", rejected: "if rejected", request_changes: "if rejected" };
+
+function whenText(when: string | null): string {
+  if (!when) return "";
+  if (WHEN[when.toLowerCase()]) return WHEN[when.toLowerCase()];
+  return /^(once|if|when|after)\b/i.test(when) ? when : `if ${when}`;
+}
+
 export function nextText(next: InboxNext[]): string {
   if (!next.length) return "";
-  return "Next: " + next.map((n) => (n.when ? `${n.title} ${n.when}` : n.title)).join("; ");
+  return "Next: " + next.map((n) => { const w = whenText(n.when); return w ? `${n.title} ${w}` : n.title; }).join("; ");
 }
 
 /** "Procure to pay: Approve purchase order" -> "Approve purchase order". */
