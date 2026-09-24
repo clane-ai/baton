@@ -157,7 +157,7 @@ unchanged.
 +  if (opts.replace && window.location.pathname.startsWith(`${target}/`)) return;
 ```
 
-Spec for `src/lib/__tests__/spaRoute.spec.js`:
+Spec for `src/lib/__tests__/spaRoute.build.spec.js`:
 
 ```js
 it('keeps a deeper nested path on a replace', () => {
