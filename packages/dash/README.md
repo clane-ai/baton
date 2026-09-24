@@ -1,61 +1,56 @@
-# @clane-ai/baton-dash
+# Baton app
 
-Operator dashboard for Baton. One page, five views (Now, Board, Stream, Attention, Spend), polling every 5 seconds. Next.js 15 App Router, React 19, TypeScript, plain CSS. No Supabase client, no Supabase Auth, no Realtime.
+The human-facing app over Baton's data: what needs a person, the evidence to decide it, and where every
+run of a process stands. Next.js 15, React 19, no UI library. Design: `docs/superpowers/specs/2026-09-24-baton-app-m1-design.md`;
+build plan: `docs/superpowers/plans/2026-09-24-baton-app-m2.md`; contract with the engine: `docs/ui-brief.md`.
 
-## How it gets data
+## Screens
 
-The browser never talks to Baton directly and never sees the operator token. It calls route handlers under `/api/*`, which proxy to the edge function's operator API (`/admin/*`) with `Authorization: Bearer <BATON_OPERATOR_TOKEN>` from the server environment and return the upstream JSON and status unchanged.
-
-| Route handler | Upstream |
+| Route | Screen |
 |---|---|
-| `GET /api/status` | `GET /admin/status` |
-| `GET /api/tasks?state=&role=` | `GET /admin/tasks` |
-| `GET /api/tasks/:id` | `GET /admin/tasks/:id` |
-| `POST /api/tasks/:id/action` `{action: "prioritise", priority}` / `{action: "cancel", reason}` / `{action: "force-release"}` | `POST /admin/tasks/:id/{prioritise,cancel,force-release}` |
-| `POST /api/answer` `{message_id, body}` | `POST /admin/answer` |
-| `GET /api/events?agent=&task=&type=&limit=&since=` | `GET /admin/events` |
-| `GET /api/spend` | `GET /admin/spend` |
-| `GET /api/roles` | `GET /admin/roles` |
+| `/inbox` | Inbox: approvals, parked steps and agent questions, with tiles, filters and `j`/`k`/`Enter` |
+| `/inbox/[key]` | Item: source documents left, the artefact as a business document right, policy summary, activity, decision bar |
+| `/runs`, `/runs/[key]` | Runs and one run: steps, artefacts, activity, the swimlane graph |
+| `/documents` | Artefacts by kind with search and a detail sheet |
+| `/activity` | Events with run, step, agent and type filters |
+| `/spend` | Cost by run, role, day and step |
+| `/ops/now`, `/ops/board`, `/ops/flow`, `/ops/attention` | The operator console, unchanged |
 
-Polling pauses while the browser tab is hidden and resumes on return. The top bar shows how old the data is.
-
-## Environment
-
-| Variable | Purpose |
-|---|---|
-| `BATON_URL` | Base URL of the `baton` edge function, e.g. `https://<project>.supabase.co/functions/v1/baton` |
-| `BATON_OPERATOR_TOKEN` | An operator token (`btn_...`). Server-side only. |
-
-For local development both are read from the repo-root `../../.env` (the same file the CLI and server tests use). The `dev` and `start` scripts pass `--env-file=../../.env` to Node, so nothing needs to be copied into this package and no `.env.local` should be committed. In deployment, set the two variables in the host's environment.
-
-## Run
-
-From the repo root:
+## Running
 
 ```
 pnpm install
-pnpm --filter @clane-ai/baton-dash dev      # http://localhost:3210
+pnpm --filter @clane-ai/baton-dash dev     # http://localhost:3210
+pnpm --filter @clane-ai/baton-dash test    # vitest over lib/
+pnpm --filter @clane-ai/baton-dash exec tsc --noEmit
 ```
 
-Production:
+Environment (from the repo-root `.env` in development, the host in deployment):
 
-```
-pnpm --filter @clane-ai/baton-dash build
-pnpm --filter @clane-ai/baton-dash start    # also port 3210, also reads ../../.env
-```
+- `BATON_URL`: the edge function, `…/functions/v1/baton`
+- `BATON_OPERATOR_TOKEN`: the operator token the proxy uses; the app itself has no login
+- `BATON_WORKSPACE`: the folder whose documents `/api/workspace` serves (the P2P run workspace in development)
 
-Quick check that the proxy and token work:
+## How it talks to the engine
 
-```
-curl http://localhost:3210/api/status
-```
+Every screen reads the operator API through the route handlers under `app/api/*`, which proxy with the server-side
+token (`lib/baton.ts`). Decisions post to `/api/tasks/[id]/action` (approve, reject, retry, cancel, prioritise,
+force-release) and `/api/answer`. Workspace documents come from `/api/workspace?path=`.
 
-## Views and actions
+Engine endpoints the app relies on (edge function v15): `GET /admin/inbox`, `GET /admin/tasks/:key/documents`,
+`decision` and `questions` on `GET /admin/tasks/:key`, `GET /admin/events?workflow_run=`, `GET /admin/tasks?q=`,
+`next[]` on run steps, `POST /admin/answer {task_key}`, and optional `_provenance` on artefacts (rendered as source
+markers when present). `/api/inbox` builds its own rows from task details if `/admin/inbox` is unavailable.
 
-- **Now**: every agent with role, machine, status, last seen, current task and a live lease countdown (red under five minutes).
-- **Board**: tasks by state, filterable by role. Click a card for the detail drawer: spec, acceptance, dependency chain, artefacts (with pretty JSON for stored content), claims, messages, events, and the actions.
-- **Stream**: the last 200 events, newest first, filterable by agent, task key and type. Click a row to expand the payload. `transcript_path` is shown as text; it is a path on the agent's machine.
-- **Attention**: tasks in `needs_human` or `blocked`, unanswered questions first, with an answer box.
-- **Spend**: total, by task, by role, by day.
+## Layout
 
-The only supervisor actions are **reprioritise**, **cancel**, **force-release** (in the task drawer) and **answer** (on the Attention view). There is no create-task UI.
+- `lib/` pure helpers, unit-tested: `theme` (state to colour tone), `money`, `inbox` (grouping, tiles, summaries),
+  `documents` (email parsing, workspace conventions), `policy` (one-sentence verdicts), `drafts` (browser-local reasons)
+- `components/shell` rail and app shell; `components/inbox`, `components/item`, `components/runs`, `components/documents`,
+  `components/activity`, `components/spend` one folder per screen; the operator views stay at `components/*View.tsx`
+- `app/globals.css` the theme tokens and every component style; the old operator classes are mapped onto the tokens
+
+## Not in this build
+
+Editing artefact fields before approval, server-side drafts, approver authority and identity, AutoPilot, escalation,
+notifications, a phone layout, dark theme, export. Provenance markers render only when the engine sends `_provenance`.

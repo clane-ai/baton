@@ -66,3 +66,8 @@ Events worth surfacing: `approval_required`, `approval_overdue`, `gate_failed`, 
 - Keep the operator console (Now, Board, Flow, Runs, Stream, Attention, Spend) working; the human-facing
   surface (Inbox and what follows it) is the new product face.
 - Real data only: the P2P runs p2p-101 to p2p-122 and the workspace documents are the test fixtures.
+
+## M2 build log
+
+The app's build follows `docs/superpowers/plans/2026-09-24-baton-app-m2.md`; weekly status under `docs/status/`;
+how it runs and what it relies on in `packages/dash/README.md`.
