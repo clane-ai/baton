@@ -67,6 +67,17 @@ Last run, 2026-09-24:
 writing anything if a target file exists with different content, and it never
 runs git. Stage and commit by explicit path afterwards.
 
+## Source of truth
+
+The platform tree (`C:\git\clane.ai\clane-client`) is the source of truth for
+the section (ruling of 2026-09-24). This package is the build and verification
+environment only, used while this session does not write to the platform.
+Every change starts here, is verified with `platform-check`, and is applied to
+the platform with `move.mjs --update`. After each landing `platform-check` must
+report `0 new and 0 changed files`; any other difference not made here is a
+defect in staging, to be resolved from the platform copy. The end state is that
+this package goes away and the section is edited in the platform directly.
+
 ## Status
 
 - Landed in the platform on 2026-09-24 in three groups (see `PATCHES.md`),
