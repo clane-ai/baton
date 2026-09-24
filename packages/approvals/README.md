@@ -1,8 +1,8 @@
 # Workflow operational screens — staging
 
 The operational screens of Clane's **Workflow** section (Approvals, Runs,
-Documents, Activity, Spend over the Baton engine), built here and moved into
-the platform client when the platform worktree is available. They join the
+Documents, Activity, Spend over the Baton engine), built here and handed to the
+platform client's owner to move in. They join the
 workflow studio inside the main client under `/app/build/workflows`
 (architect ruling, 2026-09-24).
 
@@ -66,8 +66,11 @@ runs git. Stage and commit by explicit path afterwards.
 
 ## Waiting on others
 
-- **Platform worktree.** Creating `C:\git\clane-workflow` on
-  `feat/clane-workflow-module` needs the user's approval in this session.
+- **No platform work from this session.** The user ruled on 2026-09-24 that
+  this work stays out of `C:\git\clane.ai` entirely, worktrees included. The
+  platform's client owner moves it with `scripts/move.mjs` and applies
+  `PATCHES.md`; `platform-check` only reads the checkout and writes to a
+  temporary folder.
 - **Gateway agent (clane-ai-f5).** The final `SECTION_MOUNT` segment; the
   WorkflowsPage mount and `/api/config` `modules` check; `api.blob()` in
   `lib/api.ts`; the `spaRoute` replace guard for deep links. All in
