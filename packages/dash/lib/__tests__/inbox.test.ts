@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { groupItems, tilesOf, waitingText, summaryLine, flagLabel, nextText, stripProcess } from "../inbox";
 import type { InboxItem, InboxKind, InboxSummary } from "../types";
 
-const base = { id: "", state: "needs_human", role: "operator", title: "", workflow_run: null, run_name: null, deadline: null, overdue: false, next: [], attempts: 0, max_attempts: 3, cost_usd: 0, budget_usd: null } as const;
+const base: Omit<InboxItem, "key" | "kind" | "waiting_since" | "summary"> = { id: "", state: "needs_human", role: "operator", title: "", workflow_run: null, run_name: null, deadline: null, overdue: false, next: [], attempts: 0, max_attempts: 3, cost_usd: 0, budget_usd: null };
 const sum = (p: Partial<InboxSummary>): InboxSummary => ({ document: null, counterparty: null, amount: null, currency: null, flags: [], produced_by: null, produced_at: null, ...p });
 const item = (k: InboxKind, extra: Partial<InboxItem> = {}): InboxItem => ({ ...base, key: "K", kind: k, waiting_since: "2026-09-24T09:00:00Z", summary: null, ...extra });
 
@@ -63,6 +63,16 @@ describe("flagLabel", () => {
     expect(flagLabel("level_director")).toEqual({ text: "director level", tone: "stuck" });
     expect(flagLabel("short_delivery")).toEqual({ text: "short delivery", tone: "working" });
     expect(flagLabel("odd_thing")).toEqual({ text: "odd thing", tone: "neutral" });
+  });
+  it("names the engine v15 codes", () => {
+    expect(flagLabel("over_budget")).toEqual({ text: "over budget", tone: "stuck" });
+    expect(flagLabel("missing")).toEqual({ text: "items missing", tone: "stuck" });
+    expect(flagLabel("incomplete")).toEqual({ text: "incomplete delivery", tone: "working" });
+    expect(flagLabel("payment_rejected")).toEqual({ text: "payment rejected", tone: "stuck" });
+    expect(flagLabel("changes_requested")).toEqual({ text: "changes requested", tone: "working" });
+    expect(flagLabel("blocker")).toEqual({ text: "blocker found", tone: "stuck" });
+    expect(flagLabel("major")).toEqual({ text: "major finding", tone: "working" });
+    expect(flagLabel("tests_failed")).toEqual({ text: "tests failed", tone: "stuck" });
   });
 });
 

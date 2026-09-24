@@ -213,6 +213,8 @@ export type InboxSummary = {
   amount: number | null;
   currency: string | null;
   flags: string[];
+  notes?: string[];
+  kind?: string | null;
   produced_by: string | null;
   produced_at: string | null;
 };
@@ -233,13 +235,15 @@ export type InboxItem = {
   summary: InboxSummary | null;
   next: InboxNext[];
   question?: InboxQuestion | null;
+  last_failure?: { type: string; ts: string; payload: unknown } | null;
+  assignee?: string | null;
   attempts: number;
   max_attempts: number;
   cost_usd: number | null;
   budget_usd: number | null;
 };
-export type InboxTiles = { approvals: number; parked: number; questions: number; overdue: number };
-export type InboxResponse = { ok: true; tiles: InboxTiles; items: InboxItem[]; fallback?: boolean };
+export type InboxTiles = { approvals: number; parked: number; questions: number; overdue: number; total?: number };
+export type InboxResponse = { ok: true; tiles: InboxTiles; items: InboxItem[]; fallback?: boolean; upstream_status?: number; upstream_error?: string | null };
 
 export type DocumentRef = { label: string; path: string; type: "pdf" | "text" | "email" | "data"; from: "artefact" | "convention"; kind: string | null };
 export type DocumentsResponse = { ok: true; documents: DocumentRef[]; fallback?: boolean };

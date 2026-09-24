@@ -65,6 +65,14 @@ const FLAGS: Record<string, { text: string; tone: Tone }> = {
   mismatched: { text: "mismatched", tone: "stuck" },
   short_delivery: { text: "short delivery", tone: "working" },
   damaged: { text: "damaged goods", tone: "working" },
+  over_budget: { text: "over budget", tone: "stuck" },
+  missing: { text: "items missing", tone: "stuck" },
+  incomplete: { text: "incomplete delivery", tone: "working" },
+  payment_rejected: { text: "payment rejected", tone: "stuck" },
+  changes_requested: { text: "changes requested", tone: "working" },
+  blocker: { text: "blocker found", tone: "stuck" },
+  major: { text: "major finding", tone: "working" },
+  tests_failed: { text: "tests failed", tone: "stuck" },
 };
 
 export function flagLabel(flag: string): { text: string; tone: Tone } {
