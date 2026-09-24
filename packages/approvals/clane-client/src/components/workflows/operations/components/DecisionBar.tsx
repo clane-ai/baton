@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Button, Input } from '../../../../ds';
+import { Button } from '../../../../ds';
 import { useT } from '../../../../i18n';
 import { answer, decide, errorText, retry } from '../data/api';
 import type { Decision, InboxNext, Message, Task } from '../data/types';
@@ -9,6 +9,7 @@ import { dateTime } from '../format';
 import { paths } from '../paths';
 import { LinkButton } from './LinkButton';
 import { ReasonField } from './ReasonField';
+import { TextField } from './TextField';
 
 // The decision area at the foot of a work item. One mode per situation:
 // answer an agent's question, approve or reject a gate, retry a parked step,
@@ -255,14 +256,16 @@ function Retry({ task, onDone }: { task: Task; onDone: () => void }): JSX.Elemen
         {t('workflow.decide.parkedAfter', { attempts: task.attempts, max: task.max_attempts })}
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
-        <Input
+        <TextField
+          id={`budget-${task.key}`}
           label={t('workflow.decide.newBudget')}
           inputMode="decimal"
           value={budget}
           onChange={(e) => setBudget(e.target.value)}
           disabled={busy}
         />
-        <Input
+        <TextField
+          id={`deadline-${task.key}`}
           label={t('workflow.decide.newDeadline')}
           type="datetime-local"
           value={deadline}

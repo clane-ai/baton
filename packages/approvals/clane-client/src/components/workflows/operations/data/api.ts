@@ -1,6 +1,6 @@
-// The Approvals area's only door to the server: every call goes through the
-// platform's authenticated wrapper to the /api/approvals proxy
-// (docs/api/approvals-proxy.md). The client never holds Baton's operator token
+// The Workflow ops screens' only door to the server: every call goes through the
+// platform's authenticated wrapper to the /api/workflow-ops proxy
+// (docs/api/workflow-ops-proxy.md). The client never holds Baton's operator token
 // and never calls Baton directly. The proxy relays Baton's `{ ok, … }` bodies
 // unchanged; this module unwraps them and maps `next_cursor` to `nextCursor`.
 //
@@ -20,7 +20,7 @@ import type {
   WorkflowRun,
 } from './types';
 
-export const BASE = '/api/approvals';
+export const BASE = '/api/workflow-ops';
 
 type Query = Record<string, string | number | boolean | null | undefined>;
 

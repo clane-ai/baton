@@ -6,6 +6,7 @@ import { errorText } from '../data/api';
 import type { DocumentRef } from '../data/types';
 import { parseEml, type ParsedEmail } from '../lib/documents';
 import { ExternalLink, Paperclip } from '../icons';
+import { TabBar } from './TabBar';
 
 // The source documents of a step, one tab each. Emails show their headers,
 // decoded text and attachment names; PDFs come through the authenticated
@@ -194,68 +195,35 @@ export function DocumentViewer({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-      <div
-        role="tablist"
-        aria-label={t('workflow.doc.tabs')}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-          borderBottom: '1px solid var(--border-default)',
-          overflowX: 'auto',
-        }}
-      >
-        {docs.map((d, i) => {
-          const on = i === index;
+      <TabBar
+        label={t('workflow.doc.tabs')}
+        value={index >= 0 ? String(index) : ''}
+        onChange={(v) => pick(Number(v))}
+        items={docs.map((d, i) => {
           const off = !isAvailable(d);
-          return (
-            <button
-              key={d.id ?? d.path}
-              type="button"
-              role="tab"
-              aria-selected={on}
-              disabled={off}
-              title={off ? t('workflow.doc.notUploadedHint', { path: d.path }) : d.path}
-              onClick={() => pick(i)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'baseline',
-                gap: 6,
-                background: 'none',
-                border: 0,
-                borderBottom: `2px solid ${on ? 'var(--blue-500)' : 'transparent'}`,
-                padding: '9px 12px',
-                font: 'inherit',
-                fontSize: 13,
-                fontWeight: on ? 600 : 500,
-                color: off ? 'var(--text-faint)' : on ? 'var(--ink)' : 'var(--text-secondary)',
-                cursor: off ? 'not-allowed' : 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {d.label}
-              {off ? (
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--text-faint)' }}>
-                  {t('workflow.doc.notUploaded')}
-                </span>
-              ) : null}
-            </button>
-          );
+          return {
+            value: String(i),
+            label: d.label,
+            disabled: off,
+            note: off ? t('workflow.doc.notUploaded') : undefined,
+            title: off ? t('workflow.doc.notUploadedHint', { path: d.path }) : d.path,
+          };
         })}
-        <span style={{ flex: 1 }} />
-        {current?.type === 'pdf' && load.url ? (
-          <a
-            href={load.url}
-            target="_blank"
-            rel="noreferrer"
-            aria-label={t('workflow.doc.openNewTab')}
-            title={t('workflow.doc.openNewTab')}
-            style={{ display: 'inline-flex', padding: 8, color: 'var(--text-tertiary)' }}
-          >
-            <ExternalLink size={14} />
-          </a>
-        ) : null}
-      </div>
+        trailing={
+          current?.type === 'pdf' && load.url ? (
+            <a
+              href={load.url}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={t('workflow.doc.openNewTab')}
+              title={t('workflow.doc.openNewTab')}
+              style={{ display: 'inline-flex', padding: 8, color: 'var(--text-tertiary)' }}
+            >
+              <ExternalLink size={14} />
+            </a>
+          ) : null
+        }
+      />
       <div style={{ padding: '16px 2px 4px', minHeight: 0 }}>
         {current ? (
           <Body doc={current} load={load} />

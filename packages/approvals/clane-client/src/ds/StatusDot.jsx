@@ -1,4 +1,4 @@
-// STAGING STUB — not copied to the platform: a verbatim copy of clane-client/src/ds/StatusDot.jsx so the promoted components' './StatusDot.jsx' import resolves here.
+// STAGING STUB — not copied to the platform: verbatim copy of clane-client/src/ds/StatusDot.jsx (2026-09-24) so specs run against the real markup.
 import React from 'react';
 
 const C = {

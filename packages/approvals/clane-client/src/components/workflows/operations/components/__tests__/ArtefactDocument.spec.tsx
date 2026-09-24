@@ -1,6 +1,12 @@
-import { render, screen } from '@testing-library/react';
+import { render as rtlRender, screen } from '@testing-library/react';
+import type { ReactElement } from 'react';
+
+import { I18nProvider } from '../../../../../i18n';
 
 import { ArtefactDocument } from '../ArtefactDocument';
+
+// Render inside the platform's i18n provider, as the section is in the app.
+const render = (ui: ReactElement) => rtlRender(ui, { wrapper: I18nProvider });
 
 const po = {
   po_number: 'PO-2026-101',

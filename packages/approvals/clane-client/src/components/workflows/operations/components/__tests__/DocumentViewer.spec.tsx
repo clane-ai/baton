@@ -1,7 +1,13 @@
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render as rtlRender, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import type { ReactElement } from 'react';
+
+import { I18nProvider } from '../../../../../i18n';
 
 import { DocumentViewer } from '../DocumentViewer';
 import type { DocumentRef } from '../../data/types';
+
+// Render inside the platform's i18n provider, as the section is in the app.
+const render = (ui: ReactElement) => rtlRender(ui, { wrapper: I18nProvider });
 
 const email: DocumentRef = {
   id: 'd1',

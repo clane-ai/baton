@@ -25,7 +25,9 @@ here. The platform has the real ones at the same relative paths.
 
 - `clane-client/src/lib/api.ts`, `lib/base.ts`, `lib/auth.tsx`
 - `clane-client/src/i18n/index.tsx`
-- `clane-client/src/ds/index.js`, `ds/index.d.ts`, `ds/StatusDot.jsx` (the promoted component files
+- `clane-client/src/ds/index.js`, `ds/index.d.ts` and the shared components already on the platform
+  (Avatar, BadgeTile, Button, Card, EmptyState, Eyebrow, FileRow, Footer, Header, Input, Logo, Menu,
+  Modal, StatCard, StatusChip, StatusDot, Stepper, Tabs, TreeView: verbatim copies; the promoted files
   next to them **are** copied)
 
 Edits to files that already exist on the platform are in `PATCHES.md`.

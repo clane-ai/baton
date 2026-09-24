@@ -1,9 +1,15 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react';
+import type { ReactElement } from 'react';
+
+import { I18nProvider } from '../../../../../i18n';
 import { MemoryRouter } from 'react-router-dom';
 
 import { DecisionBar } from '../DecisionBar';
 import { decide, retry, answer } from '../../data/api';
 import type { Message, Task } from '../../data/types';
+
+// Render inside the platform's i18n provider, as the section is in the app.
+const render = (ui: ReactElement) => rtlRender(ui, { wrapper: I18nProvider });
 
 jest.mock('../../data/api', () => ({
   ...jest.requireActual('../../data/api'),

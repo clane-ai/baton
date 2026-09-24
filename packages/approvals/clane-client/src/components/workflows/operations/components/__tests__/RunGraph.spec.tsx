@@ -1,7 +1,13 @@
-import { render, screen } from '@testing-library/react';
+import { render as rtlRender, screen } from '@testing-library/react';
+import type { ReactElement } from 'react';
+
+import { I18nProvider } from '../../../../../i18n';
 
 import { RunGraph } from '../RunGraph';
 import type { WorkflowRun } from '../../data/types';
+
+// Render inside the platform's i18n provider, as the section is in the app.
+const render = (ui: ReactElement) => rtlRender(ui, { wrapper: I18nProvider });
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const fixture = require('../../data/__fixtures__/workflow-run.json') as { run: WorkflowRun };

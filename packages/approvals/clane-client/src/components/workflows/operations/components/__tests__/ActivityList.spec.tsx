@@ -1,6 +1,12 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render as rtlRender, screen, fireEvent } from '@testing-library/react';
+import type { ReactElement } from 'react';
+
+import { I18nProvider } from '../../../../../i18n';
 
 import { ActivityList } from '../ActivityList';
+
+// Render inside the platform's i18n provider, as the section is in the app.
+const render = (ui: ReactElement) => rtlRender(ui, { wrapper: I18nProvider });
 
 const ev = (id: number, ts: string, type: string, payload: unknown, agent: string | null = null) => ({
   id,

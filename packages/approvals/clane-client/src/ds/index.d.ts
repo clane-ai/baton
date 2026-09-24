@@ -11,7 +11,7 @@ export function Tabs(p: { tabs: (string | { value: string; label: React.ReactNod
 export function StatCard(p: { label: React.ReactNode; value: React.ReactNode; valueColor?: string; delta?: React.ReactNode; deltaColor?: string } & Style & Kids): JSX.Element;
 export function Card(p: { app?: boolean; large?: boolean; flush?: boolean; className?: string; onClick?: () => void } & Style & Kids): JSX.Element;
 export function EmptyState(p: { icon?: React.ReactNode; title: React.ReactNode; description?: React.ReactNode; action?: React.ReactNode } & Style): JSX.Element;
-export function Button(p: { variant?: "primary" | "secondary" | "secondaryDark" | "ghost" | "ghostDark"; size?: "md" | "lg"; href?: string; icon?: React.ReactNode; trailing?: React.ReactNode; disabled?: boolean; fullWidth?: boolean; onClick?: (e: React.MouseEvent) => void; type?: "button" | "submit"; title?: string; "aria-label"?: string } & Style & Kids): JSX.Element;
+export function Button(p: { variant?: "primary" | "secondary" | "secondaryDark" | "ghost" | "ghostDark" | "danger"; size?: "sm" | "md" | "lg"; href?: string; icon?: React.ReactNode; trailing?: React.ReactNode; disabled?: boolean; fullWidth?: boolean; onClick?: (e: React.MouseEvent) => void; type?: "button" | "submit"; title?: string; "aria-label"?: string } & Style & Kids): JSX.Element;
 export function FileRow(p: { badge?: React.ReactNode; badgeColor?: string; badgeInk?: string; name: React.ReactNode; meta?: React.ReactNode; onClick?: () => void }): JSX.Element;
 export function BadgeTile(p: { color?: string; ink?: string; size?: number; radius?: number } & Style & Kids): JSX.Element;
 export function StatusChip(p: { status?: string; pulse?: boolean; tone?: "light" | "dark"; pill?: boolean } & Style & Kids): JSX.Element;

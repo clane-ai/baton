@@ -132,7 +132,11 @@ lazy-loads the section. `OPERATIONS_SEGMENT` must equal the last segment of
 
 An entry point in the list header opens it:
 `openWorkflow(OPERATIONS_SEGMENT)` behind a secondary button labelled
-`t('workflow.nav.approvals')`.
+`t('workflow.nav.approvals')`. Show that button, and honour the segment, only
+when `/api/config` lists `workflow-ops` in `modules` (the proxy's one gate,
+`docs/api/workflow-ops-proxy.md`). With the area off the proxy answers 404, so
+the screens must not be reachable either; the authoring studio stays as it is.
+The client talks to `/api/workflow-ops` (`BASE` in `operations/data/api.ts`).
 
 ## `clane-client/src/lib/spaRoute.js` — keep deeper paths on a replace
 
@@ -171,3 +175,14 @@ it('still pushes the bare section when navigating', () => {
   expect(window.location.pathname).toBe('/app/build/workflows');
 });
 ```
+
+## Findings for the design-system owner (no edit requested)
+
+Not blocking, and not changed by this work. Several shared components are
+built from clickable `<span>`s, so a keyboard or screen-reader user cannot
+operate them: `Tabs.jsx`, and the promoted `FilterBar.jsx` (`Chip`, whose
+"Clear all" is also hard-coded English) and `ApprovalCard.jsx` (Approve and
+Reject). `Input.jsx` renders a `<label>` that is not tied to its field, so the
+field has no accessible name. The Workflow screens therefore use area-local
+`TabBar`, `TextField`, toggle chips and `DecisionBar`, which keep the shared
+look and add the semantics. Fixing the shared components would let those go.

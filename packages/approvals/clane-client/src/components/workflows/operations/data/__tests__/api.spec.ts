@@ -81,7 +81,7 @@ describe('getItem', () => {
 describe('documents', () => {
   it('builds the streamed document path without the deployment base (the api wrapper adds it)', () => {
     (window as unknown as { __CLANE_BASE__?: string }).__CLANE_BASE__ = '/clane';
-    expect(documentPath('TSK-1', 'abc')).toBe('/api/approvals/items/TSK-1/documents/abc');
+    expect(documentPath('TSK-1', 'abc')).toBe('/api/workflow-ops/items/TSK-1/documents/abc');
     delete (window as unknown as { __CLANE_BASE__?: string }).__CLANE_BASE__;
   });
   it('returns text bodies as they are', async () => {
@@ -96,7 +96,7 @@ describe('documents', () => {
     const b = new Blob(['%PDF'], { type: 'application/pdf' });
     blob.mockResolvedValue(b);
     await expect(getDocumentBlob('TSK-1', 'abc')).resolves.toBe(b);
-    expect(blob).toHaveBeenCalledWith('/api/approvals/items/TSK-1/documents/abc');
+    expect(blob).toHaveBeenCalledWith('/api/workflow-ops/items/TSK-1/documents/abc');
   });
 });
 
