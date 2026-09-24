@@ -102,28 +102,45 @@ converged runtime's schema, not about work already underway.
 
 ## Where the section lives (ruled)
 
-The operational screens join the workflow studio **inside the main client application**, not in a
-separate Vite build. This overrules the earlier separate-build pick, which was correct only while this
-was a standalone area; the premise changed when the user asked for one Workflow section rather than two
-neighbours, and a separate build cannot share routes or state with a studio that lives in the main
-application.
+**Workflow is a top-level section of the product**, a sibling of Build, Settings and Admin, inside the
+main client application. It is not a separate build. In the client that means one entry in the
+canonical route set, one entry in the named sub-section table beside settings, admin and build, one
+left rail entry and one render branch in the shell. This overrules the earlier separate-build pick,
+which was correct only while this was a standalone area; a separate build cannot share routes or state
+with a studio that lives in the main application.
 
-The graph authoring surface is already a lazy route in the main application
-(`clane-client/src/components/workflows/`). The separate `studio` build in that repository is a
-different surface, the skills and tools area, and must not be confused with it. So nothing in the
-authoring surface moves: the operational screens join it.
+**The section carries everything except the inbox**: the workflow definitions, runs, a single run,
+documents, activity and spend. The work item screen, where a person acts on one thing, lives in the
+section too, and returns the person to Home once a decision is recorded, because that is where the rest
+of their queue is.
+
+**The studio moves into the section**, and its old address in the build section aliases to the new one.
+The alias must resolve to a single canonical address by redirecting, never a second route rendering the
+studio independently: two live addresses for one surface is the same divergence one layer down, and the
+route module's legacy alias table exists to prevent exactly that. Leaving authoring in Build while
+operations live in Workflow would also reproduce the authoring and execution split at the interface
+layer, which is the two-halves problem this convergence exists to end.
+
+Note for anyone reading the repository: the separate `studio` build there is a different surface, the
+skills and tools area, and is not the workflow graph studio.
+
+**The inbox lives on Home**, which is where a person lands, because approvals are what interrupts
+someone while the rest of the section is somewhere you go on purpose. Architectural rule: Home shows a
+summary view of **the one inbox**, the same component and the same data in a summary mode, never a
+second implementation. Two inboxes would drift, and the wrong one would be the one people see first.
+How much Home shows and how it looks is a product design decision for the user and the interface owner.
 
 **Consequences, all of them simplifications.** The static mount and the deep-link fallback built for a
-separate area are no longer needed, because a route in the main application needs neither. The
-entitlement predicate, the gate on the platform interface and the module list reported to the client
-all stay, because they still decide whether the interface answers and whether the section is offered.
+separate area are not needed, because a route in the main application needs neither. The entitlement
+predicate, the gate on the platform interface and the module list reported to the client all stay,
+because they still decide whether the interface answers and whether the section is offered.
 
-**Naming.** The area key, the entitlement and the surface are named `workflow`. One constraint applies:
-a workflow registry interface and a workflows component directory already exist, so the operational
-interface must not collide with them, and a singular surface sitting beside a plural twin is a split
-that confuses people permanently. The operational surface is therefore nested under the existing
-workflows path rather than placed next to it, declared ahead of the identifier route. The gateway owner
-picks the final path within that rule.
+**Naming.** The area key, the entitlement and the section are named `workflow`. The operational
+interface is a distinct compound resource name sitting beside the existing workflow registry, matching
+this codebase's own precedent where a compound run resource sits beside its plural parent. It is not
+nested under the registry: nesting would depend on route declaration order holding forever, and that
+shadowing trap has already fired in this repository once. This supersedes the earlier preference for
+nesting.
 
 ## Fit conditions
 
