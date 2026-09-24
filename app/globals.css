@@ -1,0 +1,8 @@
+
+/* ---- spend ---- */
+.tiles-3 { grid-template-columns: repeat(3, minmax(160px, 1fr)); }
+.spend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.spend-row { grid-template-columns: minmax(160px, 1.6fr) 130px 120px 100px; }
+.chart { display: flex; align-items: flex-end; gap: 6px; height: 180px; padding: 8px 4px 0; overflow-x: auto; }
+.bar { background: var(--accent); border-radius: 3px 3px 0 0; }
+@media (max-width: 1100px) { .spend-grid { grid-template-columns: 1fr; } }

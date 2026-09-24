@@ -21,7 +21,10 @@ async function readJson(req: Request): Promise<Json> {
 export async function handleAdmin(ctx: Ctx, req: Request, path: string, url: URL): Promise<Route | null> {
   const seg = path.split("/").filter(Boolean); // ["admin", ...]
   const method = req.method;
-  const actor = ctx.actor;
+  // A platform proxy holding the operator token may name the signed-in person (X-Baton-Actor); the audit
+  // trail then records user:<name> instead of the token owner. Interim until Clane identity mints operators.
+  const named = ctx.kind === "operator" ? (req.headers.get("x-baton-actor") ?? "").trim().slice(0, 120) : "";
+  const actor = named ? `user:${named}` : ctx.actor;
 
   // Routes the daemon may call with an agent token.
   if (path === "/work-available" && method === "GET") {
