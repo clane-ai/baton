@@ -84,6 +84,15 @@ export function fromClaneGraph(claneManifest, opts = {}) {
   const dropped = new Set();
   // approval node id -> the gateway synthesised to carry its decision
   const gatewayFor = new Map();
+  // channel name -> the artefact kind the node writing it produces, so a declared input can say which
+  // artefact it wants rather than which node wrote it.
+  const channelKinds = new Map();
+  for (const n of nodes) {
+    const c = n.data?.config ?? {};
+    const channel = String(c.output_key ?? n.id);
+    if (String(n.type) === 'human') { channelKinds.set(channel, 'review'); continue; }
+    channelKinds.set(channel, first(kinds[n.id], c.baton?.produces?.[0]) ?? proposeKind(n, schemas).kind ?? 'other');
+  }
 
   for (const n of nodes) {
     const type = String(n.type ?? '');
@@ -128,12 +137,32 @@ export function fromClaneGraph(claneManifest, opts = {}) {
           'engine');
         continue;
       }
+      if (type === 'code') {
+        const known = [...channelKinds.keys()].filter((c) => c !== (cfg.output_key ?? n.id));
+        const { reads, usesChannelsObject } = channelReads(String(cfg.code ?? ''), known);
+        if (usesChannelsObject) {
+          dropped.add(n.id);
+          note('blocker', n.id, type,
+            `this code reads a "channels" object, which exists in neither executor: the platform injects each channel as a variable named after it, and a worker receives the same names. Rewrite the reads as bare names.`,
+            'converter');
+          continue;
+        }
+        const declared = new Set(declaredInputs(n, channelKinds).map((i) => i.channel));
+        const undeclared = reads.filter((r) => !declared.has(r));
+        if (undeclared.length && !opts.allowUndeclaredInputs) {
+          dropped.add(n.id);
+          note('blocker', n.id, type,
+            `reads the channel(s) ${undeclared.join(', ')} without declaring them as inputs. A worker receives only what the node declares, so this would run against nothing and produce a plausible result from empty values — a payment of zero rather than a failure. Declare the bindings, or the step cannot be handed to a worker.`,
+            'converter');
+          continue;
+        }
+      }
       const payload = type === 'code'
         ? {
             kind: 'clane_code',
             language: String(cfg.language ?? 'python'),
             source: String(cfg.code ?? ''),
-            inputs: resolvedInputs(n, opts),
+            inputs: declaredInputs(n, channelKinds),
             node: n.id,
             // Stable across a retry of the same step in the same run, and deliberately NOT including
             // the attempt: a key that changes per retry makes a receiving system see a second distinct
@@ -305,16 +334,41 @@ function kindFor(n, kinds, note, schemas) {
   return 'other';
 }
 
-/** The channel values a node consumes, resolved at conversion time so the worker needs no access to
- *  the run's state. Only explicit bindings are resolved: a template buried in prose is not an input
- *  contract, and pretending otherwise would hand a worker something it cannot rely on. */
-function resolvedInputs(n, opts) {
+/** What a code node's locals are, and where each one comes from.
+ *
+ *  This cannot be values. A compiler creates the tasks before the run produces anything, so there is
+ *  nothing to inline: the purchase order does not exist when the payment task is created. What CAN
+ *  travel is the mapping — this local name is that artefact kind — and the worker resolves it through
+ *  the engine when it claims the task, which it can do because it holds an agent token and the task
+ *  already consumes those artefacts. "Self-contained" means it need not ask the PLATFORM what to run;
+ *  asking the engine for its own inputs is what every agent does.
+ *
+ *  Only declared bindings are carried. An undeclared read is refused rather than guessed at, because
+ *  the alternative is a worker running code against nothing and producing a plausible, empty result.
+ */
+export function declaredInputs(n, channelKinds) {
   const cfg = n?.data?.config ?? {};
-  const given = opts?.inputs?.[n.id] ?? {};
-  const out = { ...given };
+  const out = [];
   for (const b of Array.isArray(cfg.inputs) ? cfg.inputs : []) {
-    const name = b?.name ?? b?.as ?? b?.from;
-    if (name && out[name] === undefined) out[name] = b?.value ?? b?.from ?? null;
+    const as = String(b?.as ?? '').trim();
+    const from = String(b?.from ?? '').trim();
+    if (!as || !from) continue;
+    const channel = from.split('.')[0];
+    out.push({ as, channel, kind: channelKinds.get(channel) ?? null, path: from });
   }
   return out;
+}
+
+/** Channel names a source reads, by the two ways a node can read one.
+ *
+ *  A heuristic, like the file-write check, and labelled as one. The platform injects every channel as
+ *  a NATIVE VARIABLE named after the channel, so a read is a bare identifier; an explicit binding
+ *  injects under its alias. Code referring to a `channels` object is reading something that does not
+ *  exist in either executor, so that is reported separately rather than counted as a channel read. */
+export function channelReads(code, known) {
+  const reads = new Set();
+  for (const name of known) {
+    if (new RegExp(`(^|[^\\w.])${name}\\b`).test(code)) reads.add(name);
+  }
+  return { reads: [...reads], usesChannelsObject: /\bchannels\s*[.[]/.test(code) };
 }

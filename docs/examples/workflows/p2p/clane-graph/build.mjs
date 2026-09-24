@@ -86,6 +86,9 @@ node('approve', 'human', 'Approve purchase order', {
 node('send_po', 'code', 'Supplier ERP: send, acknowledge, ship, invoice', {
   language: 'node',
   code: readFileSync(join(here, 'send_po.js'), 'utf8'),
+  // Declared rather than ambient. The platform injects every channel anyway, so this changes nothing
+  // there; it is what lets the step be handed to a worker, which receives only what is declared.
+  inputs: [{ as: 'purchase_order', from: 'purchase_order' }],
   output_key: 'supplier',
   output_fields: [...fieldsOf('delivery_note'), ...fieldsOf('invoice')].filter(
     (f, i, a) => a.findIndex((x) => x.name === f.name) === i,
@@ -118,6 +121,10 @@ node('match_gate', 'router', 'Matched?', {
 node('pay', 'code', 'Bank: schedule payment', {
   language: 'node',
   code: readFileSync(join(here, 'pay.js'), 'utf8'),
+  inputs: [
+    { as: 'invoice_match', from: 'invoice_match' },
+    { as: 'supplier', from: 'supplier' },
+  ],
   output_key: 'payment',
   output_fields: fieldsOf('payment'),
 }, NEXT, 0);

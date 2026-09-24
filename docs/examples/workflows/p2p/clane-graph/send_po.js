@@ -9,8 +9,10 @@
 // reason this step is code rather than a role.
 
 function main() {
-  const po = channels.purchase_order ?? {};
-  const order = typeof po === 'string' ? JSON.parse(po) : po;
+  // `purchase_order` is injected as a local by both executors: the platform injects every channel
+  // as a variable named after it, and a worker injects what the node declares. There is no `channels`
+  // object in either, which the converter now refuses.
+  const order = typeof purchase_order === 'string' ? JSON.parse(purchase_order) : purchase_order ?? {};
   const poNumber = order.po_number ?? 'PO-UNKNOWN';
   const lines = Array.isArray(order.lines) ? order.lines : [];
   const today = new Date().toISOString().slice(0, 10);

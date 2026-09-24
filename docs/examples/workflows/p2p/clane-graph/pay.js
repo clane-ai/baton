@@ -6,11 +6,10 @@
 // no idempotency key, and the runtime re-runs a pending node at least once after a resume.
 
 function main() {
-  const m = channels.invoice_match ?? {};
-  const match = typeof m === 'string' ? JSON.parse(m) : m;
-  const s = channels.supplier ?? {};
-  const supplier = typeof s === 'string' ? JSON.parse(s) : s;
-  const invoice = supplier.invoice ?? {};
+  // Both locals are declared as inputs on the node, so a worker receives them by name.
+  const match = typeof invoice_match === 'string' ? JSON.parse(invoice_match) : invoice_match ?? {};
+  const supplier_ = typeof supplier === 'string' ? JSON.parse(supplier) : supplier ?? {};
+  const invoice = supplier_.invoice ?? {};
 
   const scheduled = new Date(Date.now() + 2 * 864e5).toISOString().slice(0, 10);
   const payment = {
