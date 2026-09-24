@@ -1,4 +1,4 @@
-import { render as rtlRender, screen, fireEvent, within, waitFor } from '@testing-library/react';
+import { act, render as rtlRender, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import type { ReactElement } from 'react';
 
 import { I18nProvider } from '../../../../i18n';
@@ -23,6 +23,18 @@ const open = (path: string): void => {
 };
 
 afterEach(() => setOverrides({}));
+
+// Screens keep loading (documents, the inbox, polls) after a test's last
+// assertion; let those settle inside act before the test ends.
+afterEach(async () => {
+  // A few ticks: navigations render as transitions, a little after the click.
+  for (let i = 0; i < 5; i += 1) {
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+  }
+});
+
 
 describe('Runs screen', () => {
   it('lists each run with its process, status and progress', async () => {

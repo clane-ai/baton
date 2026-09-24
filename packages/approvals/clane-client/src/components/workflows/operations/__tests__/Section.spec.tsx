@@ -1,4 +1,4 @@
-import { render as rtlRender, screen, waitFor, fireEvent } from '@testing-library/react';
+import { act, render as rtlRender, screen, waitFor, fireEvent } from '@testing-library/react';
 import type { ReactElement } from 'react';
 
 import { I18nProvider } from '../../../../i18n';
@@ -20,6 +20,18 @@ jest.mock('../data/api', () =>
 );
 
 type BaseWindow = typeof window & { __CLANE_BASE__?: string };
+
+// Screens keep loading (documents, the inbox, polls) after a test's last
+// assertion; let those settle inside act before the test ends.
+afterEach(async () => {
+  // A few ticks: navigations render as transitions, a little after the click.
+  for (let i = 0; i < 5; i += 1) {
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+  }
+});
+
 
 afterEach(() => {
   delete (window as BaseWindow).__CLANE_BASE__;

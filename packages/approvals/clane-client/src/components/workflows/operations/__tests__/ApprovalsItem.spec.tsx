@@ -1,4 +1,4 @@
-import { render as rtlRender, screen, fireEvent, within } from '@testing-library/react';
+import { act, render as rtlRender, screen, fireEvent, within } from '@testing-library/react';
 import type { ReactElement } from 'react';
 
 import { I18nProvider } from '../../../../i18n';
@@ -45,6 +45,18 @@ const open = (path: string): void => {
 
 afterEach(() => setOverrides({}));
 
+// Screens keep loading (documents, the inbox, polls) after a test's last
+// assertion; let those settle inside act before the test ends.
+afterEach(async () => {
+  // A few ticks: navigations render as transitions, a little after the click.
+  for (let i = 0; i < 5; i += 1) {
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+  }
+});
+
+
 describe('Approvals screen', () => {
   it('shows the counts and a row for every waiting item', async () => {
     open('');
@@ -88,6 +100,8 @@ describe('Approvals screen', () => {
     fireEvent.keyDown(window, { key: 'j' });
     fireEvent.keyDown(window, { key: 'Enter' });
     expect(window.location.pathname).toBe(`${SECTION_MOUNT}/items/TSK-0804`);
+    // The item screen opens (this fixture has no detail for TSK-0804).
+    expect(await screen.findByText('This work item does not exist')).toBeInTheDocument();
   });
 
   it('says so when nothing is waiting', async () => {
@@ -110,6 +124,7 @@ describe('Approvals screen', () => {
 });
 
 describe('Work item screen', () => {
+
   it('shows the business document, its source documents and the decision by name', async () => {
     open('/items/TSK-0927');
     expect(await screen.findByRole('heading', { name: 'Purchase order PO-2026-103' })).toBeInTheDocument();
@@ -122,6 +137,8 @@ describe('Work item screen', () => {
   it('switches to the activity tab', async () => {
     open('/items/TSK-0927');
     await screen.findByRole('heading', { name: 'Purchase order PO-2026-103' });
+    // The first source document has loaded before the switch.
+    await screen.findByText('Requisition PR-2026-103');
     fireEvent.click(screen.getByRole('tab', { name: /Activity/ }));
     expect(screen.getAllByTestId('activity-title').length).toBeGreaterThan(0);
   });

@@ -6,7 +6,7 @@ import { useAuthOptional } from '../../../../lib/auth';
 import { useT } from '../../../../i18n';
 import { getDocumentBlob, getDocumentText, getInbox, getItem, getItemDocuments } from '../data/api';
 import { useAsync, usePoll } from '../data/hook';
-import type { Artifact, DocumentRef } from '../data/types';
+import type { Artifact, DocumentRef, TaskDetailResponse } from '../data/types';
 import { documentsFor, mergeDocuments } from '../lib/documents';
 import { nextText, stripProcess, summaryLine, waitingText } from '../lib/inbox';
 import { personName } from '../lib/people';
@@ -46,46 +46,9 @@ const numberOf = (a: Artifact | undefined): string => (a ? documentNumber(a.kind
 
 export function Item(): JSX.Element {
   const { t } = useT();
-  const user = useAuthOptional()?.user ?? null;
   const { key = '' } = useParams();
   const detail = usePoll(() => getItem(key), [key], ITEM_POLL_MS);
-  const files = useAsync(() => getItemDocuments(key), [key]);
-  const inbox = usePoll(() => getInbox(null, 50), [], INBOX_POLL_MS);
-  const [tab, setTab] = useState<'doc' | 'policy' | 'activity'>('doc');
-
   const d = detail.data;
-  const task = d?.task;
-  const approval = task?.role === 'operator';
-  const kindLabel = (kind: string): string => {
-    const k = `workflow.kind.${kind}`;
-    const v = t(k);
-    return v === k ? kind.replace(/_/g, ' ') : v;
-  };
-
-  const consumed = useMemo(() => {
-    const seen = new Set<string>();
-    return (d?.consumed ?? []).filter((a) => (seen.has(a.kind) ? false : (seen.add(a.kind), true)));
-  }, [d]);
-  const own = d?.artifacts ?? [];
-  const primary: Artifact | undefined = approval
-    ? consumed.find((a) => a.kind === 'purchase_order') ?? consumed[0]
-    : own[0] ?? consumed[0];
-  const shown: Artifact[] = approval ? consumed : own.length ? [own[0], ...consumed] : consumed;
-
-  const docs: DocumentRef[] = useMemo(() => {
-    const fromApi = [...(files.data?.documents ?? []), ...(d?.documents ?? [])];
-    const conventions = [...consumed, ...own].flatMap((a) => documentsFor(a.kind, a.content));
-    return mergeDocuments(fromApi, conventions);
-  }, [files.data, d, consumed, own]);
-
-  const item = inbox.data?.items.find((i) => i.key === key) ?? null;
-  const nextWaiting = useMemo(() => {
-    const others = (inbox.data?.items ?? [])
-      .filter((i) => i.kind === 'approval' && i.key !== key)
-      .sort((a, b) => a.waiting_since.localeCompare(b.waiting_since));
-    return others[0]?.key ?? null;
-  }, [inbox.data, key]);
-
   const back = <Link to={paths.approvals()} style={{ color: 'inherit', textDecoration: 'none' }}>{t('workflow.nav.approvals')}</Link>;
 
   if (detail.error && !d) {
@@ -102,7 +65,7 @@ export function Item(): JSX.Element {
       </Page>
     );
   }
-  if (!d || !task) {
+  if (!d || !d.task) {
     return (
       <Page breadcrumb={back} title={key}>
         <NothingHere
@@ -113,6 +76,58 @@ export function Item(): JSX.Element {
       </Page>
     );
   }
+  return <ItemBody itemKey={key} detail={d} back={back} onChanged={detail.reload} />;
+}
+
+/** The item once it is known to exist: only then are its documents and the inbox loaded. */
+function ItemBody({
+  itemKey: key,
+  detail: d,
+  back,
+  onChanged,
+}: {
+  itemKey: string;
+  detail: TaskDetailResponse;
+  back: React.ReactNode;
+  onChanged: () => void;
+}): JSX.Element {
+  const { t } = useT();
+  const user = useAuthOptional()?.user ?? null;
+  const files = useAsync(() => getItemDocuments(key), [key]);
+  const inbox = usePoll(() => getInbox(null, 50), [], INBOX_POLL_MS);
+  const [tab, setTab] = useState<'doc' | 'policy' | 'activity'>('doc');
+
+  const task = d.task;
+  const approval = task?.role === 'operator';
+  const kindLabel = (kind: string): string => {
+    const k = `workflow.kind.${kind}`;
+    const v = t(k);
+    return v === k ? kind.replace(/_/g, ' ') : v;
+  };
+
+  const consumed = useMemo(() => {
+    const seen = new Set<string>();
+    return (d.consumed ?? []).filter((a) => (seen.has(a.kind) ? false : (seen.add(a.kind), true)));
+  }, [d]);
+  const own = d.artifacts ?? [];
+  const primary: Artifact | undefined = approval
+    ? consumed.find((a) => a.kind === 'purchase_order') ?? consumed[0]
+    : own[0] ?? consumed[0];
+  const shown: Artifact[] = approval ? consumed : own.length ? [own[0], ...consumed] : consumed;
+
+  const docs: DocumentRef[] = useMemo(() => {
+    const fromApi = [...(files.data?.documents ?? []), ...(d.documents ?? [])];
+    const conventions = [...consumed, ...own].flatMap((a) => documentsFor(a.kind, a.content));
+    return mergeDocuments(fromApi, conventions);
+  }, [files.data, d, consumed, own]);
+
+  const item = inbox.data?.items.find((i) => i.key === key) ?? null;
+  const nextWaiting = useMemo(() => {
+    const others = (inbox.data?.items ?? [])
+      .filter((i) => i.kind === 'approval' && i.key !== key)
+      .sort((a, b) => a.waiting_since.localeCompare(b.waiting_since));
+    return others[0]?.key ?? null;
+  }, [inbox.data, key]);
 
   const summary = primary ? policySummary(primary.kind, primary.content) : null;
   const title = primary ? `${kindLabel(primary.kind)} ${numberOf(primary)}`.trim() : stripProcess(task.title);
@@ -236,7 +251,7 @@ export function Item(): JSX.Element {
               nextWaiting={nextWaiting}
               decidedByName={decidedByName}
               onDone={() => {
-                detail.reload();
+                onChanged();
                 inbox.reload();
               }}
             />

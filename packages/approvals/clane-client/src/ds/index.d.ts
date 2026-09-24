@@ -1,6 +1,8 @@
-// Type surface of the shared clane-client/src/ds barrel (existing exports) plus the components this
-// area promotes (Task 2). In the platform the .jsx files carry no types (allowJs); these declarations
-// document the props the area relies on and make the staging type-check meaningful.
+// Types for the shared design-system barrel (src/ds/index.js), existing and promoted exports.
+// COPIED TO THE PLATFORM as a new file. The .jsx components carry no types, and with allowJs
+// TypeScript infers every destructured prop as required, so a .tsx caller fails `tsc --noEmit`
+// (the first half of `npm run build`). A declaration beside index.js takes precedence for type
+// resolution and changes nothing at runtime. Before this, no .ts/.tsx file imported the barrel.
 import type * as React from "react";
 
 type Style = { style?: React.CSSProperties };
@@ -25,6 +27,9 @@ export function Modal(p: { open: boolean; title: React.ReactNode; onClose?: () =
 export function Avatar(p: { name?: string; src?: string; size?: number } & Style): JSX.Element;
 export function Header(p: { left?: React.ReactNode; right?: React.ReactNode } & Style): JSX.Element;
 export function Logo(p: { size?: number; active?: boolean; title?: string } & Style): JSX.Element;
+export function Footer(p: Record<string, unknown>): JSX.Element;
+export function TreeView(p: Record<string, unknown>): JSX.Element;
+export function Stepper(p: Record<string, unknown>): JSX.Element;
 
 // ---- promoted in Task 2 (from src/hr/ds/components) ----
 export function Drawer(p: { open: boolean; title: React.ReactNode; headerExtra?: React.ReactNode; onClose?: () => void; width?: number; inline?: boolean } & Kids): JSX.Element | null;

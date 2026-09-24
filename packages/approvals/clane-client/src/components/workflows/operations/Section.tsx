@@ -14,6 +14,9 @@ import { Documents } from './pages/Documents';
 import { Activity } from './pages/Activity';
 import { Spend } from './pages/Spend';
 
+/** Opt in to react-router v7 behaviour now (the platform runs 6.30, which warns otherwise). */
+export const ROUTER_FUTURE = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
+
 /** How often the waiting count on the Approvals tab refreshes. */
 const STATUS_POLL_MS = 15000;
 
@@ -118,7 +121,7 @@ export function WorkflowOperations(): JSX.Element {
         fontFamily: 'var(--font-body)',
       }}
     >
-      <BrowserRouter basename={withBase(SECTION_MOUNT)}>
+      <BrowserRouter basename={withBase(SECTION_MOUNT)} future={ROUTER_FUTURE}>
         <SectionNav />
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           <Routes>

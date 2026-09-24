@@ -42,7 +42,7 @@ const next = [
 function renderBar(props: Partial<React.ComponentProps<typeof DecisionBar>> = {}) {
   const onDone = jest.fn();
   render(
-    <MemoryRouter>
+    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <DecisionBar
         task={task()}
         decision={null}
