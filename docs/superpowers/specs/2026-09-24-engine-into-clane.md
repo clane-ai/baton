@@ -92,6 +92,39 @@ Each step leaves the system serving. Nothing is switched over until the step bef
 5. **Cut the proxy over**, then the agents, then retire the Supabase deployment. The proxy first because
    it is reversible in one line; the agents second because they are distributed and slower to change.
 
+## Where artefacts live once the engine is in Clane
+
+Asked by the user, 24 September 2026. Five decisions, and two of them only became visible tonight.
+
+**The rows.** Artefacts stay a table of their own beside the tasks that produced them: the task, the
+kind, the content as JSON, a hash, a schema version, metadata, and a reference to a stored file when
+there is one. Nothing about that shape needs to change; it moves.
+
+**The schema, and this is the part that changed tonight.** Clane does not use one schema per database.
+Its application data lives in `app_dev` and `app_prod` in the same database, with the same rows under the
+same identifiers in both. So the engine does not add *a* schema, it adds one per environment, and every
+rule below applies twice. Anything that assumes a single engine schema per database is wrong here.
+
+**The kind column.** Today it is a Postgres enum, which cannot hold per-tenant values. It becomes text
+with a reference into the kind registry, resolved by slug and version rather than by filename. That is
+the largest single change and it belongs in the same migration as the move, not a later one.
+
+**The files.** Artefact blobs and workspace documents are files, not rows, and they are addressed by
+identifier everywhere a screen or an interface can see them. Paths stay internal. Clane's own file
+storage replaces the bucket; what must not change is that a document is fetched by its id and streamed,
+so nothing outside the engine ever learns where the bytes actually sit.
+
+**The tenant.** Every row carries one and every stored file sits under a tenant prefix, with row-level
+security. Ruled today, and cheapest while the data is being moved anyway.
+
+### The hazard the environment split creates
+
+Clane's two environments hold **the same five workflows under the same identifiers**. If artefacts are
+copied between environments the way those rows evidently were, then an approval decided in one appears
+decided in the other, and an audit trail stops meaning anything. Artefacts and events are a record of
+what happened, so they are per-environment and never copied. Say so where somebody refreshing a
+development environment from production will read it, because that is exactly when it will happen.
+
 ## What must not regress
 
 - **Tokens stay hashed.** Agent and operator tokens are stored only as hashes and shown once. No step of
