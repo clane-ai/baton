@@ -1,0 +1,89 @@
+# Retiring the separate service: the engine moves into Clane
+
+**Decision, 24 September 2026 (the user):** Baton stops being a separate service. Everything that can run
+inside Clane runs inside Clane. The schema and its tables move into the database Clane already uses, and
+the functions Supabase serves today become Clane's own interface.
+
+**One refinement, agreed the same day:** *one database, two processes.* The data moves into Clane's
+Postgres, because tenancy, identity and licensing live there and a second store would duplicate all
+three. The engine keeps a process of its own rather than being folded into the application server,
+because it has a different shape: long-lived work, leases, background reconciliation, and direct
+connections from agents on other machines that authenticate with their own tokens rather than a browser
+session. That process ships from the same repository and shares the same database and libraries.
+
+Implementation owner: `clane-ai-f5`. Architecture: `clane-baton-ba`. This spec is the hand-over.
+
+## What actually has to move
+
+The engine is not only a database. It uses four things its current host provides, and each needs a Clane
+equivalent before the service can be retired.
+
+| Dependency today | What it holds | Clane equivalent needed |
+|---|---|---|
+| Supabase Postgres | the `baton` schema: enums, tables, row-level security, and most of the logic as database functions | Clane's Postgres, same schema name |
+| Supabase Storage | artefact blobs, and workspace documents under `docs/<workspace>/<path>` | Clane's file storage |
+| Supabase Vault | two secrets: a GitHub token and a webhook signing secret | Clane's secret storage |
+| Supabase Edge runtime | serves every face: agent protocol, hooks, gates, GitHub webhooks, invite redemption, operator API | the engine's own Node process |
+
+The good news is where the logic lives. Most of the engine is PL/pgSQL inside the schema, so it ports as
+data-definition rather than being rewritten. The TypeScript layer is a thin, framework-free wrapper that
+calls those functions; its faces become routes.
+
+## The faces, and which way they point
+
+Two different audiences, and the boundary between them is the part to get right.
+
+**Inward, to people.** The operator API, consumed by Clane's server on behalf of a signed-in person. It
+already runs behind a proxy that holds the operator credential and names the acting user in a header.
+That arrangement does not change: the proxy keeps its platform paths so the client is untouched by the
+move.
+
+**Outward, to machines.** The agent protocol, the hook face, the enforcement gates, invite redemption
+and GitHub webhooks. These are called by agent sessions on other machines and by GitHub, with the
+engine's own bearer tokens, never a browser session. They must stay reachable and must keep
+authenticating against the engine's token model.
+
+Do not put the outward faces behind Clane's user-session middleware. A mis-mounted authentication layer
+fails silently rather than loudly: the configuration route that blocked the whole Workflow section for a
+day did exactly that, answering successfully while omitting the half that only exists for a signed-in
+user.
+
+## Order of work
+
+Each step leaves the system serving. Nothing is switched over until the step before it is proven.
+
+1. **Schema into Clane's database.** Create the `baton` schema there and run the migrations against it.
+   They are raw SQL, so they sit alongside Clane's own migration tooling rather than inside it; decide
+   explicitly which tool owns them and write that decision down. Nothing reads from the new schema yet.
+2. **Storage and secrets.** Replace the two blob paths (artefacts, workspace documents) and the two
+   secrets with Clane's equivalents, behind the same small interfaces the engine already uses. These are
+   the only places the host leaks into the code.
+3. **The engine process.** Stand up the engine as its own service in the repository, serving both faces
+   against the new database. Run it alongside the existing one, reading the same data, before anything
+   depends on it.
+4. **Data migration.** Move the live procure-to-pay data, or reset it. That is the user's call and
+   should be asked rather than assumed, because the runs are the only real test data that exists.
+5. **Cut the proxy over**, then the agents, then retire the Supabase deployment. The proxy first because
+   it is reversible in one line; the agents second because they are distributed and slower to change.
+
+## What must not regress
+
+- **Tokens stay hashed.** Agent and operator tokens are stored only as hashes and shown once. No step of
+  this migration is a reason to hold a plaintext token anywhere.
+- **Row-level security survives.** Agents see their own work through a bound database role, not through
+  application filtering. If the Clane database cannot express that, say so early rather than quietly
+  dropping to application-level checks.
+- **Documents keep their identifiers.** Screens address documents by id and stream them through the
+  platform. Paths are an internal detail and must not resurface in any interface.
+- **The audit trail stays continuous.** Events are the product, not debugging output. A migration that
+  loses or renumbers them costs more than it saves.
+
+## What this unblocks, and what it does not
+
+It unblocks tenancy, because a tenant column and a storage prefix are far cheaper to add while the data
+is being moved anyway, and tenancy is already ruled as landing in the converged schema.
+
+It does not address approver authority, which remains the first commercial prerequisite: today the
+engine trusts whoever holds the operator credential and takes the person's name from a header the
+platform sets. That belongs with Clane identity once the engine lives beside it, and it should be the
+first thing built after the move rather than the last.
