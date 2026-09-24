@@ -48,6 +48,28 @@ fails silently rather than loudly: the configuration route that blocked the whol
 day did exactly that, answering successfully while omitting the half that only exists for a signed-in
 user.
 
+## Where agents run (decided, 24 September 2026)
+
+**Agents stay on machines for now**, until the system has been tested and the model is settled. Clane
+hosts the engine; it does not host the sessions. The supervisor daemon keeps running where the work
+belongs, next to the repository and the tools it needs.
+
+For the migration that makes one requirement firm rather than optional: the agent-facing endpoints must
+stay reachable from other machines, and must keep authenticating with the engine's own tokens. An agent
+changes one value, the engine's address, or redeems a fresh invite. Nothing else about the agent model
+moves.
+
+Two things this defers rather than solves, and they should be reopened together, not separately:
+
+- **Clane-hosted sessions.** Possible, and it needs model credentials on a worker host plus a workspace
+  per task. It is not a configuration change: a session executing one customer's workflow on a shared
+  host must not reach another customer's files, tokens or repositories, which is container-level
+  isolation. Revisit once tenancy exists, never before.
+- **The in-platform executor.** Most business-process steps are a model call, a connector call or a
+  script, none of which needs a session on a machine at all. That is where hundreds of agents becomes
+  affordable, and it is independent of this migration. Real sessions stay for work that needs a machine,
+  a repository and tools.
+
 ## Order of work
 
 Each step leaves the system serving. Nothing is switched over until the step before it is proven.
