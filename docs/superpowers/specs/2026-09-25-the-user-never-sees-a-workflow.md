@@ -209,3 +209,122 @@ inverted the two.
 **Told to the UX owner early:** filtering, sorting and totalling on the canonical header is cheap.
 Filtering on an arbitrary field a kind has not mapped, and free-text search across artefact content, are
 not. If either appears in a design, it is raised before it is drawn.
+
+## The header mapping is the membership test, not a tolerance problem
+
+The UX owner flagged that the canonical header assumes a counterparty and that most of our kinds have
+none. I counted rather than judged, across all nineteen schemas.
+
+**Five kinds map a counterparty or an amount: delivery note, invoice, invoice match, payment, purchase
+order.** All five are the procure-to-pay family. The other fourteen — api contract, build, config, db
+schema, design spec, goods receipt, handoff, migration, pr, review, service contract, task spec, test
+report, user story — map neither.
+
+(One correction to my own check while running it: the first pattern matched `summary` as an amount,
+because "summary" contains "sum". Four kinds were counted as carrying money that carry a sentence. The
+figures above are from the corrected pattern.)
+
+That result dissolves the question rather than answering it. **Most of the fourteen were never going to
+appear in a clerk's queue.** A build, a pull request, a test report, a user story and a design spec are
+engineering artefacts belonging to the builder's views. Asking what the business queue does when a test
+report has no customer is asking the wrong thing: a test report is not a business document.
+
+So the rule is: **a kind that maps the canonical header is a business document and appears in the queue;
+a kind that does not is not, and does not.** The mapping is the membership test. That is better than
+tolerating absence, because tolerating absence puts a build row in a purchasing clerk's inbox with four
+empty columns and calls it a feature.
+
+**The case that decides the design is the goods receipt.** It is unambiguously a business document, and
+it maps a number and a date but neither a counterparty nor an amount — a warehouse counts what arrived,
+it does not know the vendor or the price. It cannot be excluded and it cannot be shown with two empty
+columns. It carries the purchase order's number, so the resolution is that **a kind may inherit header
+fields from the document it references**: the goods receipt's counterparty is the counterparty of its
+purchase order. That is one more thing a kind declares, and it is the mechanism that makes a single queue
+over a document family work at all.
+
+**The consequence for scope.** There is no single queue over all artefacts, and there was never going to
+be one. There is a queue per document family, over the kinds that share a header. Procure-to-pay is the
+first family and it has five kinds, which is enough to prove the mechanism without pretending the
+fourteen engineering kinds belong to it.
+
+## What a person's edit does to provenance
+
+From the same reading, and it costs nothing. If a human edit is a new artefact authored by that person,
+the provenance of an edited field is a person rather than a model, and the screen should say so where it
+currently shows source and confidence. The trail then reads in one direction: this field came from page
+three of the PDF at 94%, that one was typed by a named person at 10:42. Nobody has to explain what a
+person's confidence means, which is a better answer than the source caption in the screenshot and falls
+out of the append log for free.
+
+## What our review screen actually is
+
+Sharper than "read-only", and worth keeping in these words. The artefact document component has no inputs
+or change handlers at all, but the item screen has ten between it and the decision bar — and every one is
+about the **decision** rather than the **content**: the tab switcher, a reload, and the reason, budget and
+deadline fields.
+
+So the screen is fully editable in one dimension and completely fixed in the other. A person can refuse
+the work and say why, set a budget and set a deadline, and cannot correct a wrong value. If a vendor name
+is misread they must reject the artefact and send the work back rather than fix two characters and
+approve. **Ours is built to adjudicate the agent's work; theirs is built to finish it.**
+
+That also makes the first version smaller than it looks. The decision surface, the reason capture and the
+approve and reject paths exist and work. What is missing is an editable projection of the artefact and a
+way to commit an edited version — not a new screen.
+
+## The fourth silent success: an edit the walker throws away
+
+Found by the gateway owner in code shipped yesterday, before anything was built on it.
+
+When a Clane workflow pauses at a human step, the bridge sends the previous step's output as the review
+text, and the walker later resumes from the same frozen copy in its checkpoint. Today that is
+*accidentally* correct: the person sees exactly what the walker will deliver, because both come from one
+snapshot.
+
+An editable review pane breaks it. The edit becomes a new artefact, the person approves the corrected
+version, and the walker resumes from the checkpoint and delivers **the original**. The run completes,
+reports success, and the audit trail records that a named person approved it. The correction is silently
+discarded, and the only way anyone finds out is by comparing what went out against what they typed.
+
+So the rule that an approval references the artefact rather than the task has a second half: **the resume
+must take the approved artefact, not the checkpoint's copy.** A frozen snapshot is the right thing to
+show and the wrong thing to act on, once the thing being shown can change.
+
+This is the fourth defect in three days whose failure mode is a success report. It joins inputs arriving
+empty and producing a zero-amount payment that satisfied its schema; resolution reading the wrong invoice
+once a workflow produced two; and an idempotency guarantee described wrongly in a way that would have
+told somebody they were protected from a double payment. None of the four raises an error. All four were
+caught by stating a property precisely enough to test it.
+
+## Absence, and the trap in the demo's numbers
+
+Every canonical header field is nullable, with no defaults, and **specifically never zero for a missing
+amount**. Sorting places absent values last explicitly. Grouping by counterparty needs a real "none"
+group rather than dropping those rows, because a filtered queue that quietly loses documents is a queue
+whose counts stop adding up.
+
+Which is one explanation — offered as a trap to avoid, not as a diagnosis of the other product — of
+counts that reconcile beside money that does not. That is what you get when rows with no amount are
+dropped from the money aggregate while still being counted, or when an absent amount is summed as zero.
+Whatever the tiles come to mean, ours has to decide explicitly whether a document with no amount is
+excluded from the total or contributes nothing, and **say which on the screen**. The two produce the same
+number and mean different things.
+
+And the stronger version of withholding the tiles: nobody specifies them as "value per state" until the
+user has said what the money is. An aggregate nobody can define is the thing on a screen people trust
+most and check least.
+
+## Two rules for the head projection
+
+The projection must use the completion gate's selection rule **verbatim** rather than a variant of it,
+with a test asserting that the head the projection holds and the row the gate would select are the same
+row. If those ever disagree, the screen shows one document while the gate validates another, which is
+worse than either being wrong alone.
+
+The ordering is made total — creation time, then identifier — so two writes in the same millisecond
+cannot flip the head depending on which one a planner reaches first.
+
+The guard needs no change for human edits, for a reason worth stating rather than assuming: an edit is a
+new artefact with a later creation time, so it is the newest and the guard admits it. The guard only ever
+rejects a write that would move the head *backwards*, which a genuine edit never does. What it protects
+against is a replay of an older row, which is a different thing.
