@@ -124,6 +124,9 @@ create table if not exists baton.artifact_head (
 alter table baton.artifact_head enable row level security;
 grant select, insert, update, delete on baton.artifact_head to service_role;
 
+comment on column baton.artifact_head.unreadable is
+  'Header fields that were PRESENT in the artefact and could not be read. Empty means every present field was readable; it never means no fields were checked, which keeps "checked and fine" distinct from "never checked". Only fields that must be CONVERTED can appear here — the date and the amount — because only a conversion has a shape to get wrong. A counterparty or a document number is extracted as text: it is present or absent, with nothing in between, so it can never be marked. Anyone adding a field should expect this and not assume otherwise.';
+
 comment on table baton.artifact_head is
   'One row per task and kind: the current artefact, chosen by the same total ordering the completion gate uses, with its canonical header. Maintained by trigger so no write path can bypass it.';
 
