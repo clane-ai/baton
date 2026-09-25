@@ -328,3 +328,46 @@ The guard needs no change for human edits, for a reason worth stating rather tha
 new artefact with a later creation time, so it is the newest and the guard admits it. The guard only ever
 rejects a write that would move the head *backwards*, which a genuine edit never does. What it protects
 against is a replay of an older row, which is a different thing.
+
+## Four rules that make inheritance and membership safe
+
+Settled with the gateway owner, and all four correct something I had written loosely.
+
+**Inheritance is a reference resolved on read, never a value copied on write.** If a goods receipt's
+projection stored a copy of its purchase order's counterparty, then editing that purchase order — which
+an editable review pane makes routine — leaves the receipt showing the old vendor. Nothing errors, the
+row looks complete, and the queue is confidently wrong about who the goods came from. The structural
+reason is the stronger one: the projection is already a derived view of an append log, so a copied
+inherited value would be a derived value *of a derived value*, and the second level is where staleness
+hides and nobody looks. The projection stores the link and resolves through it, which costs a join from a
+narrow indexed table to itself.
+
+**The link is the structural one, not the document number.** I had written that the goods receipt carries
+the purchase order's *number*, so inherit through that. Wrong: a document number is a business string a
+reviewer can now edit, it can repeat across years, and it is exactly the kind of key that matches the
+wrong row once rather than never. The engine already records the reliable relationship — a task's
+`consumes` names the kind **and** the producing task, which is the same link a worker's inputs resolve
+through. The number stays what it is: something to display and search, not something to join on.
+
+**Verified, because the rule depends on it.** The compiler pins every consumed kind to its upstream task
+(`{ kind, from_task: d.id }`), so the structural link is present on every step of a compiled workflow —
+confirmed on the procure-to-pay plan, where each step's consumption is pinned rather than left open. But
+`from_task` is nullable in the schema and the readiness predicate tolerates its absence, matching on kind
+alone. So a task created by another route can carry an unpinned consumption, and inheriting through one
+of those would resolve by kind across the whole run — which is precisely the defect that would have read
+the wrong invoice once a workflow produced two. **Inheritance requires a pinned link and refuses when
+there is none**, rather than falling back to kind.
+
+**A column comes from the family's declared header, never from the data.** Structural absence and genuine
+absence must not look alike, and the clean way to keep them apart is that they have different sources. A
+field no kind in the family maps is simply not a column, rather than a column of blanks. A null in a row
+whose kind *does* map the field is genuine absence and belongs in the "none" group. If a screen ever
+decides its columns by inspecting the rows, the two collapse the first day every document happens to lack
+a value.
+
+**Family membership is declared, not inferred from the mapping.** My membership test made membership a
+side effect: a kind that gains an amount for an unrelated reason would silently appear in a purchasing
+clerk's queue, and nobody would connect the two changes. So it is two declarations — the kind says which
+family it belongs to, and the header mapping says how it renders there. *Adding a field* must never mean
+*and now it is in somebody's inbox*. That also gives the queue-per-family conclusion somewhere to live
+instead of being inferred from whichever kinds happen to map.
