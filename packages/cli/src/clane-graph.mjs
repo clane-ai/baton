@@ -32,14 +32,19 @@ const LANGUAGES = new Set(['python', 'node', 'bash']);
 /** A heuristic, and named as one. Version one supports code that returns a value: a worker has no
  *  workspace, so a node that writes a file fails in a way that looks like broken code.
  *
- *  This limit is PROVISIONAL and may be looser than it looks. The platform's executors will not run
- *  without a conversation context at all, and the answer settled on that side is a service identity per
- *  organisation with one conversation per engine run — which gives a run a workspace after all.
+ *  This was recorded as provisional on the reasoning that a conversation per engine run would give a
+ *  worker a workspace after all. That reasoning is now known to be wrong, and the refusal is closer to
+ *  right than the suggestion to lift it was.
  *
- *  Do not widen it on that reasoning alone. The experiment that would lift it, once a worker actually
- *  executes something: have one step write a file and a later step in the SAME run read it back. If the
- *  second step sees it, the workspace spans the run and this refusal can go, with evidence behind it.
- *  If it does not, the refusal is right and the reason is better understood than it is today. */
+ *  What the platform's sandbox actually is: a microVM per user, with a session per conversation inside
+ *  it, and the workspace on tmpfs. It survives a pause and resume only while the snapshot survives;
+ *  destroy the machine or purge the snapshot and the files are gone. Durable files go to blob storage
+ *  through signed URLs minted per conversation.
+ *
+ *  So a per-run conversation buys a SCRATCH workspace, not a durable one. If this refusal ever lifts it
+ *  lifts onto blob storage, which is a different design with a different contract, and not onto the
+ *  workspace. The experiment worth running is still whether a later step sees an earlier step's file,
+ *  but a yes would now mean the snapshot happened to survive rather than that the workspace is durable. */
 function writesFiles(language, code) {
   if (language === 'python') {
     return /\bopen\s*\([^)]*['"][wax]/.test(code) || /\b(pathlib|shutil)\b/.test(code);
