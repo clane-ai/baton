@@ -154,3 +154,49 @@ It does not address approver authority, which remains the first commercial prere
 engine trusts whoever holds the operator credential and takes the person's name from a header the
 platform sets. That belongs with Clane identity once the engine lives beside it, and it should be the
 first thing built after the move rather than the last.
+
+## Two tables called `artifacts`, and why that is an ambiguity rather than a collision
+
+The gateway owner found that Clane already has a table called `artifacts` and stopped work on the
+projection over it. I checked, and the finding is real while the conclusion drawn from it is not.
+
+**What is there.** `app_dev.artifacts` and `app_prod.artifacts`, sixteen columns each: id, userId,
+tenantId, sourceKind, sourceId, name, ext, path, size, modifiedAt, createdAt, storageKind, orgFileId,
+deviceId, deviceName, absPath. **2,973 rows in development and 2,972 in production.** It is a **file
+index** — one row per file, keyed to a user and a device, carrying a path and a size, maintained as code
+writes things.
+
+The engine's is the typed output of a step: a task, a kind, JSON content, a hash, a schema version. Every
+property agreed this week is true of one and false of the other. One is an index kept current; the other
+is an append log that must never be.
+
+**But there is no collision, because the engine does not move into those schemas.** The move spec puts
+the engine in its own `baton` schema in Clane's database — "Clane's Postgres, same schema name", "create
+the `baton` schema there and run the migrations against it" — one per environment. So the result is
+`baton_dev.artifacts` beside `app_dev.artifacts`, in one database, in different schemas. A migration that
+would fail is not what happens here. Verified: there is no `baton` schema in that project yet, and the
+engine's functions already pin their own `search_path`.
+
+**The ambiguity is real even though the collision is not, and it is the part worth acting on.** One
+database will hold two tables with the same name and unrelated meanings, and the hazard is not a failed
+migration — it is somebody later deciding to tidy them together, after which a projection sits over a
+mixture of business documents and file rows and "the artefact table is an append log" becomes half true.
+
+**Decision: the schemas stay separate, the name stays, and both tables carry a comment.** Renaming the
+engine's central concept would reach the CLI, every agent instruction, nineteen schema files, the
+operator API and every document written this week — a larger change, with its own risk, than the
+ambiguity justifies. Renaming Clane's would be more honest, since it indexes files and "artifact" is what
+created the confusion, but it has three thousand live rows and live code behind it. So: a comment on each
+table saying what it holds and that the other one is unrelated, written where the person who tries to
+merge them will read it, which is on the tables themselves rather than in a document.
+
+**And a third instance of the copying pattern.** 2,973 rows against 2,972 is the same near-identity as the
+five workflows under identical identifiers. This one is a file index whose rows name users and devices,
+which makes copying it between environments harder to justify than copying definitions, and strengthens
+the rule already recorded: records of what happened are per-environment and are never copied.
+
+**Neither piece of work is actually blocked.** The projection projects `baton.artifacts`, which exists
+today in the engine's own project, and the delivery ledger extends the outbound delivery machinery that
+also already exists there. Both are engine-side, both can be built now against the live schema, and both
+travel with everything else when the move happens. The dependency was on a physical schema that turned
+out not to be in the way.
