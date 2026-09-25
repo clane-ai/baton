@@ -36,42 +36,58 @@ end $$;
 -- somebody can act on and absence is not. The same rule the screens already follow.
 -- ─────────────────────────────────────────────────────────────────────────────
 create or replace function baton.artifact_header(p_kind text, c jsonb)
-returns table (counterparty text, document_number text, document_date date, amount numeric, currency text)
+returns table (counterparty text, document_number text, document_date date, amount numeric,
+               currency text, unreadable text[])
 language sql immutable as $$
-  select
-    case p_kind
-      when 'purchase_order' then coalesce(c->'vendor'->>'name', c->>'vendor')
-      when 'invoice'        then coalesce(c->'vendor'->>'name', c->>'vendor')
-      when 'delivery_note'  then coalesce(c->'vendor'->>'name', c->>'vendor')
-      when 'payment'        then coalesce(c->'beneficiary'->>'name', c->>'vendor')
-      else null
-    end,
-    case p_kind
-      when 'purchase_order' then c->>'po_number'
-      when 'invoice'        then c->>'invoice_number'
-      when 'delivery_note'  then c->>'delivery_note_number'
-      when 'goods_receipt'  then c->>'grn_number'
-      when 'invoice_match'  then c->>'invoice_number'
-      when 'payment'        then c->>'payment_ref'
-      else null
-    end,
-    -- Only a value that is actually a date. A malformed one becomes NULL rather than raising, because a
-    -- trigger that throws on one odd artefact would block the step that produced it.
-    case
-      when p_kind = 'invoice'        then baton.as_date(c->>'issued_at')
-      when p_kind = 'delivery_note'  then baton.as_date(c->>'shipped_at')
-      when p_kind = 'goods_receipt'  then baton.as_date(c->>'received_at')
-      when p_kind = 'payment'        then baton.as_date(c->>'scheduled_for')
-      when p_kind = 'purchase_order' then baton.as_date(c->>'needed_by')
-      else null
-    end,
-    case
-      when p_kind in ('purchase_order', 'invoice') then baton.as_numeric(c->>'total')
-      when p_kind = 'invoice_match'                then baton.as_numeric(c->>'amount_payable')
-      when p_kind = 'payment'                      then baton.as_numeric(c->>'amount')
-      else null
-    end,
-    case p_kind when 'goods_receipt' then null when 'review' then null else c->>'currency' end;
+  with raw as (
+    select
+      case p_kind
+        when 'purchase_order' then coalesce(c->'vendor'->>'name', c->>'vendor')
+        when 'invoice'        then coalesce(c->'vendor'->>'name', c->>'vendor')
+        when 'delivery_note'  then coalesce(c->'vendor'->>'name', c->>'vendor')
+        when 'payment'        then coalesce(c->'beneficiary'->>'name', c->>'vendor')
+        else null
+      end as counterparty,
+      case p_kind
+        when 'purchase_order' then c->>'po_number'
+        when 'invoice'        then c->>'invoice_number'
+        when 'delivery_note'  then c->>'delivery_note_number'
+        when 'goods_receipt'  then c->>'grn_number'
+        when 'invoice_match'  then c->>'invoice_number'
+        when 'payment'        then c->>'payment_ref'
+        else null
+      end as document_number,
+      case
+        when p_kind = 'invoice'        then c->>'issued_at'
+        when p_kind = 'delivery_note'  then c->>'shipped_at'
+        when p_kind = 'goods_receipt'  then c->>'received_at'
+        when p_kind = 'payment'        then c->>'scheduled_for'
+        when p_kind = 'purchase_order' then c->>'needed_by'
+        else null
+      end as date_text,
+      case
+        when p_kind in ('purchase_order', 'invoice') then c->>'total'
+        when p_kind = 'invoice_match'                then c->>'amount_payable'
+        when p_kind = 'payment'                      then c->>'amount'
+        else null
+      end as amount_text,
+      case p_kind when 'goods_receipt' then null when 'review' then null else c->>'currency' end as currency
+  )
+  select r.counterparty, r.document_number,
+         baton.as_date(r.date_text), baton.as_numeric(r.amount_text), r.currency,
+         -- PRESENT AND UNREADABLE is not the same fact as ABSENT, and they have different remedies:
+         -- one is a document that legitimately has no date, the other is a document somebody must fix.
+         -- Collapsing them makes the second invisible: a date-ordered queue sorts it to the bottom, a
+         -- date-filtered queue drops it entirely, and the only way anyone finds out is by noticing an
+         -- order that never got done. A clerk cannot chase what they cannot see.
+         (select coalesce(array_agg(f order by f), '{}'::text[]) from (
+            select 'document_date'::text as f
+             where r.date_text is not null and btrim(r.date_text) <> '' and baton.as_date(r.date_text) is null
+            union all
+            select 'amount'::text
+             where r.amount_text is not null and btrim(r.amount_text) <> '' and baton.as_numeric(r.amount_text) is null
+          ) u)
+    from raw r;
 $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -97,6 +113,9 @@ create table if not exists baton.artifact_head (
   document_date       date,
   amount              numeric,
   currency            text,
+  -- Header fields that were PRESENT in the artefact and could not be read. Empty means every field
+  -- present was readable; it never means "no fields". Absent and unreadable stay distinguishable.
+  unreadable          text[] not null default '{}',
   inherits_from_task  uuid references baton.tasks(id) on delete set null,
   inherits_from_kind  baton.artifact_kind,
   projected_at        timestamptz not null default now(),
@@ -146,9 +165,10 @@ begin
 
   insert into baton.artifact_head as head
     (task_id, kind, artifact_id, created_at, counterparty, document_number, document_date, amount, currency,
-     inherits_from_task, inherits_from_kind)
+     unreadable, inherits_from_task, inherits_from_kind)
   values (new.task_id, new.kind, new.id, new.created_at,
-          h.counterparty, h.document_number, h.document_date, h.amount, h.currency, ptr_task, ptr_kind)
+          h.counterparty, h.document_number, h.document_date, h.amount, h.currency,
+          coalesce(h.unreadable, '{}'::text[]), ptr_task, ptr_kind)
   on conflict (task_id, kind) do update
      set artifact_id        = excluded.artifact_id,
          created_at         = excluded.created_at,
@@ -157,6 +177,7 @@ begin
          document_date      = excluded.document_date,
          amount             = excluded.amount,
          currency           = excluded.currency,
+         unreadable         = excluded.unreadable,
          inherits_from_task = excluded.inherits_from_task,
          inherits_from_kind = excluded.inherits_from_kind,
          projected_at       = now()
@@ -170,9 +191,9 @@ create trigger artifacts_project_head after insert on baton.artifacts
 
 -- Backfill, using the same ordering, so the table agrees with the gate from the moment it exists.
 insert into baton.artifact_head (task_id, kind, artifact_id, created_at, counterparty, document_number,
-                                document_date, amount, currency, inherits_from_task, inherits_from_kind)
+                                document_date, amount, currency, unreadable, inherits_from_task, inherits_from_kind)
 select d.task_id, d.kind, d.id, d.created_at, hh.counterparty, hh.document_number, hh.document_date,
-       hh.amount, hh.currency,
+       hh.amount, hh.currency, coalesce(hh.unreadable, '{}'::text[]),
        case when d.kind = any(baton.header_source_kinds()) then null else p.from_task end,
        case when d.kind = any(baton.header_source_kinds()) then null else p.from_kind end
   from (select distinct on (task_id, kind) * from baton.artifacts order by task_id, kind, created_at desc, id desc) d
@@ -197,6 +218,8 @@ create or replace view baton.artifact_head_resolved as
          coalesce(h.amount, src.amount)             as amount,
          coalesce(h.currency, src.currency)         as currency,
          h.counterparty is null and src.counterparty is not null as counterparty_inherited,
+         h.unreadable,
+         cardinality(h.unreadable) > 0 as has_unreadable,
          h.inherits_from_task, h.inherits_from_kind,
          t.key as task_key, t.role, t.state, t.workflow_run
     from baton.artifact_head h
@@ -243,3 +266,9 @@ create trigger artifact_postings_touch_updated_at before update on baton.artifac
 -- The morning list: approved and not yet posted. An index rather than a report.
 create index if not exists artifact_postings_outstanding_idx
   on baton.artifact_postings (destination, outcome) where outcome <> 'posted';
+
+-- Documents whose header could not be read are a findable population rather than rows missing from
+-- every filtered view. This is the "with issues" count a queue screen already shows, so it is the
+-- contents of that tile rather than a diagnostic nobody asked for.
+create index if not exists artifact_head_unreadable_idx
+  on baton.artifact_head (task_id) where cardinality(unreadable) > 0;
