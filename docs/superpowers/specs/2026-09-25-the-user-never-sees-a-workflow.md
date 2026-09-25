@@ -371,3 +371,68 @@ clerk's queue, and nobody would connect the two changes. So it is two declaratio
 family it belongs to, and the header mapping says how it renders there. *Adding a field* must never mean
 *and now it is in somebody's inbox*. That also gives the queue-per-family conclusion somewhere to live
 instead of being inferred from whichever kinds happen to map.
+
+## The first family does not agree with itself
+
+The UX owner parsed all nineteen schemas independently and found that the five kinds are not the
+uniform set I implied. I verified every claim field by field rather than accepting the summary. All of
+them hold.
+
+| kind | extra props | counterparty | amount | currency |
+|---|---|---|---|---|
+| purchase_order | closed | `requester` (string) **and** `vendor` (object) | `total` | yes |
+| delivery_note | open | `vendor` (string) | — | no |
+| invoice | open | `vendor` (string) | `subtotal` **and** `total` | yes |
+| invoice_match | closed | — | `amount_payable` | **no** |
+| payment | open | `beneficiary` (object) **and** `vendor` (string) | `amount` | yes |
+| goods_receipt | closed | — | — | no |
+
+So in the family chosen as the first queue: **two of six cannot fill the money column, two cannot fill the
+counterparty column, and only three of six carry a currency at all.** The goods receipt is not the
+exception I made it out to be; it is the clearest case of something affecting most of the family.
+
+**An amount without a currency is not money.** An invoice match has `amount_payable` and no currency
+field. Rendering it in a money column means inventing a currency, and the one that gets invented is
+whatever the neighbouring row happens to use. The column refuses to render an amount with no currency
+beside it rather than defaulting.
+
+**The counterparty is ambiguous exactly where it exists.** A purchase order has `vendor` and `requester`
+— one is the supplier, the other is your own staff member. A payment has `beneficiary`, a bank payee with
+an IBAN, and also an optional `vendor` string. Choosing wrong puts an employee under a column headed with
+the supplier's name, and nobody notices until a clerk does. The same ambiguity sits on the money: an
+invoice carries both `subtotal` and `total`, and which one is *the* amount is a decision, not a lookup.
+
+**The same field is a different shape in different kinds.** `vendor` is an object with id, name, approved
+and email on a purchase order, and a bare string on an invoice, a delivery note and a payment. One
+mapping cannot read both. So the header is a canonical *vocabulary* and the mapping into it is **per
+kind** — which is what the gateway owner proposed, and this is the concrete reason it has to be.
+
+### Four states for a cell, because two is what causes the confusion
+
+- **Owned** — the kind declares the field and this document has a value.
+- **Inherited** — the value comes from a referenced document, and it is visibly marked as borrowed with
+  the source named. Two reasons, and the second is the load-bearing one: it tells the truth about where
+  the row's identity comes from, and it **forecloses the edit**, because an inherited cell must not be
+  typeable once the pane is editable — changing a supplier from inside a goods receipt would either lie
+  or silently rewrite a different document. Inheritance also pays for its own provenance line, slotting
+  in beside source and confidence with no new mechanism.
+- **Not applicable** — the kind does not declare the field at all. A goods receipt has no amount because
+  a warehouse counts what arrived and does not know the price. Correct, permanent, and it must never look
+  like something went wrong.
+- **Missing** — the kind declares the field and this document lacks a value. A data-quality problem
+  somebody should act on, and filterable: "invoices with no total" is a real question, "goods receipts
+  with no total" is not.
+
+**Not applicable and missing must never share a glyph.** Today both would render as an empty cell or a
+dash, and that single choice is what makes a clerk distrust a column: they cannot tell the system's
+silence from the document's. The first gets a muted mark reading as *this does not apply here*; the
+second gets the treatment the board already gives an unknown count, because it is the same class of
+thing — a number you do not have, rather than a zero.
+
+### Open schemas, which change the editable pane rather than the queue
+
+`additionalProperties` is **false** on purchase order, goods receipt and invoice match, and **true** on
+invoice, delivery note and payment. So half the family may legitimately carry fields the schema never
+declared. An editable pane rendered strictly from the schema would silently hide real data on an invoice.
+It renders declared fields as the form and undeclared ones as something visible — and probably not
+editable — rather than dropping them.
