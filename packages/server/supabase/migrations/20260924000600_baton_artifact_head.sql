@@ -219,7 +219,24 @@ create or replace view baton.artifact_head_resolved as
          coalesce(h.currency, src.currency)         as currency,
          h.counterparty is null and src.counterparty is not null as counterparty_inherited,
          h.unreadable,
-         cardinality(h.unreadable) > 0 as has_unreadable,
+         -- What is DERIVED from a row must carry that row's problems, not only its values. A goods
+         -- receipt has no amount of its own, so its own mark list is correctly empty; if the purchase
+         -- order it points at held an unreadable amount, the receipt resolves to that null and would
+         -- otherwise look identical to a receipt whose order genuinely has no amount. The mark has to
+         -- travel with the value, or the invisibility we just closed reappears one indirection away.
+         --
+         -- Only fields actually taken from the source are reported: a mark on a field we did not
+         -- inherit is the source's problem and not ours to show here.
+         array(
+           select f from unnest(coalesce(src.unreadable, '{}'::text[])) f
+            where (f = 'amount'   and h.amount is null)
+               or (f = 'currency' and h.currency is null)
+         ) as inherited_unreadable,
+         cardinality(h.unreadable) > 0
+           or exists (
+                select 1 from unnest(coalesce(src.unreadable, '{}'::text[])) f
+                 where (f = 'amount' and h.amount is null) or (f = 'currency' and h.currency is null)
+              ) as has_unreadable,
          h.inherits_from_task, h.inherits_from_kind,
          t.key as task_key, t.role, t.state, t.workflow_run
     from baton.artifact_head h
